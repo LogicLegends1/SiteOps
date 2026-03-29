@@ -19,6 +19,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
+    python3.11-venv \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy built Next.js app
@@ -28,8 +29,14 @@ RUN npm ci --omit=dev
 
 # Setup Python service
 WORKDIR /app
+
+# Create a venv
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install requirements inside venv
 COPY services/python_service/requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY services/python_service ./python_service
 
@@ -37,6 +44,6 @@ COPY services/python_service ./python_service
 COPY start.sh .
 RUN chmod +x start.sh
 
-EXPOSE 3000
+EXPOSE 3000 8000
 
 CMD ["./start.sh"]
