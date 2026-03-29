@@ -31,27 +31,27 @@ import {
 const navItems = [
   {
     title: "Dashboard",
-    href: "/",
+    href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
     title: "Site Progress Tracking",
-    href: "/site-progress",
+    href: "/dashboard/site-progress",
     icon: MapPin,
   },
   {
     title: "Predictive Delay Engine",
-    href: "/delay-engine",
+    href: "/dashboard/delay-engine",
     icon: AlertTriangle,
   },
   {
     title: "Material Forecasting",
-    href: "/material-forecast",
+    href: "/dashboard/material-forecast",
     icon: Package,
   },
   {
     title: "Workforce Allocation",
-    href: "/workforce",
+    href: "/dashboard/workforce",
     icon: Users,
   },
 ]
