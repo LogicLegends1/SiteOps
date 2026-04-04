@@ -1,0 +1,1253 @@
+openapi: 3.0.0
+info:
+  title: SiteOps Web API
+  description: API specification for the SiteOps web application
+  version: 1.0.0
+  contact:
+    name: SiteOps Team
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.siteops.local
+    description: Production server
+
+paths:
+# Authentication endpoints
+  /api/auth/signup:
+    post:
+      summary: Register a new user
+      operationId: signupUser
+      tags:
+        - Authentication
+      description: Creates a new user account with email and password. Sends a confirmation email to verify the account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - username
+                - personid
+                - role
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User email address
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  description: User password
+                  example: SecurePassword123!
+                username:
+                  type: string
+                  description: Display name for the user
+                  example: John Doe
+                personid:
+                  type: string
+                  description: Person identifier in the system
+                  example: PERSON_001
+                role:
+                  type: string
+                  enum:
+                    - project_manager
+                    - site_engineer
+                    - foreman
+                    - supervisor
+                  description: User role in the system
+                  example: project_manager
+                avatarimage:
+                  type: string
+                  nullable: true
+                  description: URL to user avatar image
+                  example: https://example.com/avatar.jpg
+      responses:
+        '200':
+          description: User registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Check your email to confirm your account.
+                  authUser:
+                    $ref: '#/components/schemas/AuthUser'
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request - missing required fields or creation failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: email and password are required
+
+  /api/auth/login:
+    post:
+      summary: User login
+      operationId: loginUser
+      tags:
+        - Authentication
+      description: Authenticates a user with email and password credentials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User email address
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  description: User password
+                  example: SecurePassword123!
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Signed in successfully
+                  user:
+                    $ref: '#/components/schemas/AuthUser'
+                  session:
+                    $ref: '#/components/schemas/Session'
+        '400':
+          description: Bad request - missing credentials or invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Email and password are required
+        '401':
+          description: Unauthorized - email not confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Please confirm your email before signing in. Check your inbox.
+
+  /api/auth/google:
+    get:
+      summary: Initiate Google OAuth authentication
+      operationId: initiateGoogleOAuth
+      tags:
+        - Authentication
+      description: Redirects to Google login page to initiate OAuth authentication flow
+      responses:
+        '302':
+          description: Redirect to Google OAuth consent page
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+                description: Google OAuth URL
+        '400':
+          description: OAuth initialization failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: OAuth provider error
+
+# Project endpoints
+  /api/project:
+    post:
+      summary: Create a project
+      operationId: createProject
+      tags:
+        - Project
+      description: Creates a new project record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Invalid input payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /api/project/{projectID}:
+    get:
+      summary: Get a specific project
+      operationId: getProjectById
+      tags:
+        - Project
+      description: Returns a single project by its ID.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Project ID
+          example: 1
+      responses:
+        '200':
+          description: Project found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+    patch:
+      summary: Update a project
+      operationId: updateProject
+      tags:
+        - Project
+      description: Updates updatable fields of a project. Only provided fields are changed.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Project ID
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Invalid update payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+    delete:
+      summary: Delete a project
+      operationId: deleteProject
+      tags:
+        - Project
+      description: Deletes a project by ID.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Project ID
+          example: 1
+      responses:
+        '204':
+          description: Project deleted successfully
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+# Activity endpoints
+  /api/activity:
+    post:
+      summary: Create an activity
+      operationId: createActivity
+      tags:
+        - Activity
+      description: Creates a new activity record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateActivityRequest'
+      responses:
+        '201':
+          description: Activity created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+        '400':
+          description: Invalid input payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /api/activity/{activityID}:
+    get:
+      summary: Get a specific activity
+      operationId: getActivityById
+      tags:
+        - Activity
+      description: Returns a single activity by its ID.
+      parameters:
+        - name: activityID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Activity ID
+          example: 1
+      responses:
+        '200':
+          description: Activity found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+        '404':
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /api/activity/{activityID}/logs:
+    post:
+      summary: Add an activity log entry
+      operationId: addActivityLog
+      tags:
+        - Activity
+      description: Adds a new progress log entry for an activity and updates the activity progress.
+      parameters:
+        - name: activityID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Activity ID
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateActivityLogRequest'
+      responses:
+        '201':
+          description: Activity log created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityLogEntry'
+        '400':
+          description: Invalid log payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /api/activity/{activityID}/logs/last/undo:
+    post:
+      summary: Undo the last activity log entry
+      operationId: undoLastActivityLog
+      tags:
+        - Activity
+      description: Reverts the effect of the most recent activity log entry and restores the previous progress state.
+      parameters:
+        - name: activityID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Activity ID
+          example: 1
+      responses:
+        '200':
+          description: Last activity log undone successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Last activity log entry undone successfully
+                  activity:
+                    $ref: '#/components/schemas/Activity'
+                  undoneLog:
+                    $ref: '#/components/schemas/ActivityLogEntry'
+        '404':
+          description: Activity or last log entry not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+# Person endpoints
+  /api/person:
+    post:
+      summary: Create a person
+      operationId: createPerson
+      tags:
+        - Person
+      description: Creates a new person record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePersonRequest'
+      responses:
+        '201':
+          description: Person created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+        '400':
+          description: Invalid input payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /api/person/all:
+    get:
+      summary: Get all people
+      operationId: getAllPeople
+      tags:
+        - Person
+      description: Returns all people in the system.
+      responses:
+        '200':
+          description: People retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Person'
+
+  /api/person/{personID}:
+    get:
+      summary: Get a specific person
+      operationId: getPersonById
+      tags:
+        - Person
+      description: Returns a single person by their ID.
+      parameters:
+        - name: personID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Person ID
+          example: 1
+      responses:
+        '200':
+          description: Person found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+        '404':
+          description: Person not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+    patch:
+      summary: Update a person
+      operationId: updatePerson
+      tags:
+        - Person
+      description: Updates updatable fields of a person. Only provided fields are changed.
+      parameters:
+        - name: personID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Person ID
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePersonRequest'
+      responses:
+        '200':
+          description: Person updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+        '400':
+          description: Invalid update payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Person not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+    delete:
+      summary: Delete a person
+      operationId: deletePerson
+      tags:
+        - Person
+      description: Deletes a person by ID.
+      parameters:
+        - name: personID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Person ID
+          example: 1
+      responses:
+        '204':
+          description: Person deleted successfully
+        '404':
+          description: Person not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /api/person/{personID}/assign-project:
+    post:
+      summary: Assign a person to a project
+      operationId: assignPersonToProject
+      tags:
+        - Person
+      description: Assigns a person to a project.
+      parameters:
+        - name: personID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Person ID
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignPersonToProjectRequest'
+      responses:
+        '200':
+          description: Person assigned to project successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Person assigned to project successfully
+                  personID:
+                    type: integer
+                    example: 1
+                  projectID:
+                    type: integer
+                    example: 2
+        '400':
+          description: Invalid assignment payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Person or project not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+    patch:
+      summary: Update an activity
+      operationId: updateActivity
+      tags:
+        - Activity
+      description: Updates updatable fields of an activity. Only provided fields are changed.
+      parameters:
+        - name: activityID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Activity ID
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateActivityRequest'
+      responses:
+        '200':
+          description: Activity updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+        '400':
+          description: Invalid update payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+    delete:
+      summary: Delete an activity
+      operationId: deleteActivity
+      tags:
+        - Activity
+      description: Deletes an activity by ID.
+      parameters:
+        - name: activityID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Activity ID
+          example: 1
+      responses:
+        '204':
+          description: Activity deleted successfully
+        '404':
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+components:
+  schemas:
+    AuthUser:
+      type: object
+      description: Authenticated user object from Supabase auth
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: user@example.com
+        user_metadata:
+          type: object
+          description: Additional user metadata
+          properties:
+            full_name:
+              type: string
+              example: John Doe
+            avatar_url:
+              type: string
+              format: uri
+              example: https://example.com/avatar.jpg
+
+    User:
+      type: object
+      description: User record in the system
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user record identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        personid:
+          type: string
+          description: Person identifier
+          example: PERSON_001
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: user@example.com
+        username:
+          type: string
+          description: User display name
+          example: John Doe
+        role:
+          type: string
+          enum:
+            - project_manager
+            - site_engineer
+            - foreman
+            - supervisor
+          description: User role in the system
+          example: project_manager
+        avatarimage:
+          type: string
+          nullable: true
+          format: uri
+          description: URL to user avatar image
+          example: https://example.com/avatar.jpg
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when user was created
+          example: 2026-04-04T10:30:00Z
+
+    Session:
+      type: object
+      description: Authentication session
+      properties:
+        access_token:
+          type: string
+          description: JWT access token for API requests
+        refresh_token:
+          type: string
+          description: Refresh token for obtaining new access tokens
+        expires_in:
+          type: integer
+          description: Token expiration time in seconds
+          example: 3600
+        expires_at:
+          type: integer
+          format: int64
+          description: Timestamp when token expires
+          example: 1712235000
+        token_type:
+          type: string
+          example: bearer
+        user:
+          $ref: '#/components/schemas/AuthUser'
+
+    Project:
+      type: object
+      description: Project record in the system
+      properties:
+        projectID:
+          type: integer
+          description: Unique project identifier
+          example: 1
+        name:
+          type: string
+          description: Project name
+          example: Colombo Tower Expansion
+        locationLongitude:
+          type: number
+          format: double
+          nullable: true
+          description: Project longitude coordinate
+          example: 79.8612
+        locationLatitude:
+          type: number
+          format: double
+          nullable: true
+          description: Project latitude coordinate
+          example: 6.9271
+        projectDiagram:
+          type: string
+          nullable: true
+          description: URL/path to project diagram
+          example: https://example.com/diagram.png
+        projectManagerID:
+          type: integer
+          nullable: true
+          description: Assigned project manager user ID
+          example: 2
+        status:
+          type: string
+          enum:
+            - PENDING
+            - IN_PROGRESS
+            - PAUSED
+            - COMPLETED
+            - CANCELLED
+          description: Current workflow status
+          example: IN_PROGRESS
+      required:
+        - projectID
+        - name
+        - status
+
+    CreateProjectRequest:
+      type: object
+      description: Payload for creating a new project
+      properties:
+        name:
+          type: string
+          description: Project name
+          example: Colombo Tower Expansion
+        locationLongitude:
+          type: number
+          format: double
+          nullable: true
+          description: Project longitude coordinate
+          example: 79.8612
+        locationLatitude:
+          type: number
+          format: double
+          nullable: true
+          description: Project latitude coordinate
+          example: 6.9271
+        projectDiagram:
+          type: string
+          nullable: true
+          description: URL/path to project diagram
+          example: https://example.com/diagram.png
+        projectManagerID:
+          type: integer
+          nullable: true
+          description: Assigned project manager user ID
+          example: 2
+        status:
+          type: string
+          enum:
+            - PENDING
+            - IN_PROGRESS
+            - PAUSED
+            - COMPLETED
+            - CANCELLED
+          description: Initial workflow status
+          example: PENDING
+      required:
+        - name
+        - status
+
+    UpdateProjectRequest:
+      type: object
+      description: Updatable fields for a project
+      properties:
+        name:
+          type: string
+          description: Project name
+          example: Colombo Tower Expansion - Phase 2
+        locationLongitude:
+          type: number
+          format: double
+          nullable: true
+          description: Project longitude coordinate
+          example: 79.8613
+        locationLatitude:
+          type: number
+          format: double
+          nullable: true
+          description: Project latitude coordinate
+          example: 6.9272
+        projectDiagram:
+          type: string
+          nullable: true
+          description: URL/path to project diagram
+          example: https://example.com/diagram-v2.png
+        projectManagerID:
+          type: integer
+          nullable: true
+          description: Assigned project manager user ID
+          example: 3
+        status:
+          type: string
+          enum:
+            - PENDING
+            - IN_PROGRESS
+            - PAUSED
+            - COMPLETED
+            - CANCELLED
+          description: Current workflow status
+          example: IN_PROGRESS
+
+    Activity:
+      type: object
+      description: Activity record in the system
+      properties:
+        activityID:
+          type: integer
+          description: Unique activity identifier
+          example: 1
+        projectID:
+          type: integer
+          description: Parent project identifier
+          example: 1
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Progress percentage
+          example: 40
+        description:
+          type: string
+          description: Activity description
+          example: Foundation excavation work
+        status:
+          type: string
+          enum:
+            - PENDING
+            - IN_PROGRESS
+            - PAUSED
+            - COMPLETED
+            - CANCELLED
+          description: Current workflow status
+          example: IN_PROGRESS
+      required:
+        - activityID
+        - projectID
+        - progress
+        - description
+        - status
+
+    CreateActivityRequest:
+      type: object
+      description: Payload for creating a new activity
+      properties:
+        projectID:
+          type: integer
+          description: Parent project identifier
+          example: 1
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Initial progress percentage
+          example: 0
+        description:
+          type: string
+          description: Activity description
+          example: Foundation excavation work
+        status:
+          type: string
+          enum:
+            - PENDING
+            - IN_PROGRESS
+            - PAUSED
+            - COMPLETED
+            - CANCELLED
+          description: Initial workflow status
+          example: PENDING
+      required:
+        - projectID
+        - description
+        - status
+
+    UpdateActivityRequest:
+      type: object
+      description: Updatable fields for an activity
+      properties:
+        projectID:
+          type: integer
+          description: Parent project identifier
+          example: 2
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Progress percentage
+          example: 65
+        description:
+          type: string
+          description: Activity description
+          example: Foundation excavation and soil compaction
+        status:
+          type: string
+          enum:
+            - PENDING
+            - IN_PROGRESS
+            - PAUSED
+            - COMPLETED
+            - CANCELLED
+          description: Current workflow status
+          example: PAUSED
+
+    ActivityLogEntry:
+      type: object
+      description: Activity progress log entry
+      properties:
+        logEntryID:
+          type: integer
+          description: Unique activity log identifier
+          example: 1
+        activityID:
+          type: integer
+          description: Activity identifier
+          example: 1
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the log was recorded
+          example: 2026-04-04T10:30:00Z
+        description:
+          type: string
+          description: Log description
+          example: Excavation completed for sector A
+        siteEngineerID:
+          type: integer
+          description: Site engineer user ID who recorded the log
+          example: 5
+        updatedProgress:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 100
+          description: Updated progress value after the log
+          example: 45
+        evidencePhoto:
+          type: string
+          nullable: true
+          description: URL/path to supporting evidence photo
+          example: https://example.com/evidence.jpg
+      required:
+        - logEntryID
+        - activityID
+        - timestamp
+        - description
+        - siteEngineerID
+
+    CreateActivityLogRequest:
+      type: object
+      description: Payload for creating a new activity log entry
+      properties:
+        description:
+          type: string
+          description: Log description
+          example: Excavation completed for sector A
+        siteEngineerID:
+          type: integer
+          description: Site engineer user ID who recorded the log
+          example: 5
+        updatedProgress:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 100
+          description: New progress value to apply to the activity
+          example: 45
+        evidencePhoto:
+          type: string
+          nullable: true
+          description: URL/path to supporting evidence photo
+          example: https://example.com/evidence.jpg
+      required:
+        - description
+        - siteEngineerID
+
+    Person:
+      type: object
+      description: Person record in the system
+      properties:
+        personID:
+          type: integer
+          description: Unique person identifier
+          example: 1
+        name:
+          type: string
+          description: Person name
+          example: Nimal Perera
+        position:
+          type: string
+          description: Job title or position
+          example: Site Engineer
+        yearsOfExperience:
+          type: integer
+          nullable: true
+          description: Years of experience
+          example: 8
+        NIC:
+          type: string
+          description: National identity card number
+          example: 991234567V
+      required:
+        - personID
+        - name
+        - position
+        - NIC
+
+    CreatePersonRequest:
+      type: object
+      description: Payload for creating a new person
+      properties:
+        name:
+          type: string
+          description: Person name
+          example: Nimal Perera
+        position:
+          type: string
+          description: Job title or position
+          example: Site Engineer
+        yearsOfExperience:
+          type: integer
+          nullable: true
+          description: Years of experience
+          example: 8
+        NIC:
+          type: string
+          description: National identity card number
+          example: 991234567V
+      required:
+        - name
+        - position
+        - NIC
+
+    UpdatePersonRequest:
+      type: object
+      description: Updatable fields for a person
+      properties:
+        name:
+          type: string
+          description: Person name
+          example: Nimal Perera
+        position:
+          type: string
+          description: Job title or position
+          example: Project Manager
+        yearsOfExperience:
+          type: integer
+          nullable: true
+          description: Years of experience
+          example: 10
+        NIC:
+          type: string
+          description: National identity card number
+          example: 991234567V
+
+    AssignPersonToProjectRequest:
+      type: object
+      description: Payload for assigning a person to a project
+      properties:
+        projectID:
+          type: integer
+          description: Project ID to assign the person to
+          example: 2
+      required:
+        - projectID
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login or signup endpoint
+
