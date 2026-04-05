@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   SidebarProvider,
   Sidebar,
@@ -27,6 +27,7 @@ import {
   LogOut,
   HardHat,
 } from "lucide-react"
+import { createClient } from "@/lib/superbase"
 
 const navItems = [
   {
@@ -62,6 +63,33 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const [userAvatar, setUserAvatar] = useState<string | null>(null)
+  const [userName, setUserName] = useState<string>("User")
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        // Get avatar from user metadata
+        const avatarUrl = user.user_metadata?.avatar_url
+        const fullName = user.user_metadata?.full_name || "User"
+        
+        setUserAvatar(avatarUrl)
+        setUserName(fullName)
+      }
+    }
+    
+    fetchUser()
+  }, [])
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push("/login")
+  }
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -105,15 +133,21 @@ export default function DashboardLayout({
                 <span>Settings</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={handleLogout} tooltip="Logout">
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
           <Separator className="my-2" />
           <div className="flex items-center gap-3 px-2 group-data-[collapsible=icon]:justify-center">
             <Avatar className="h-8 w-8">
-              <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
-              <AvatarFallback className="bg-primary/20 text-primary text-xs">SE</AvatarFallback>
+              <AvatarImage src={userAvatar || "/placeholder.svg?height=32&width=32"} alt={userName} />
+              <AvatarFallback className="bg-primary/20 text-primary text-xs">{userName.substring(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-              <span className="text-sm font-medium text-foreground">Site Engineer</span>
+              <span className="text-sm font-medium text-foreground">{userName}</span>
               <span className="text-xs text-muted-foreground">Project Alpha</span>
             </div>
           </div>

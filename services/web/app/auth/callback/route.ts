@@ -16,37 +16,56 @@ export async function GET(request: Request) {
     }
   }
 
-  // ✅ Get logged-in user
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
 
   console.log("Logged-in user:", user);
 
-  if (user) {
-    // 🔍 Check if user already exists
-    const { data: existingUser } = await supabase
+  const { data: existingUser, error: dbError } = await supabase
+    .from("user") 
+    .select("id, role, avatarimage, username")
+    .eq("email", user.email)
+    .maybeSingle();
+
+  if (dbError || !existingUser) {
+    console.log("❌ Unauthorized user:", user.email);
+
+    await supabase.auth.signOut();
+
+    return NextResponse.redirect(
+      new URL("/?error=unauthorized_user", request.url)
+    );
+  }
+
+  const avatarUrl = user.user_metadata?.avatar_url
+  const fullName = user.user_metadata?.full_name || "User"
+
+  const needsUpdate = 
+    existingUser.avatarimage !== avatarUrl || 
+    existingUser.username !== fullName;
+
+  if (needsUpdate) {
+    console.log("📝 Updating user avatar/name for:", user.email);
+    const { error: updateError } = await supabase
       .from("user")
-      .select("*")
-      .eq("email", user.email)
-      .single();
+      .update({
+        avatarimage: avatarUrl || existingUser.avatarimage,
+        username: fullName || existingUser.username,
+      })
+      .eq("email", user.email);
 
-    if (!existingUser) {
-      // ✅ Insert new user
-      const { error: insertError } = await supabase.from("user").insert([
-        {
-          email: user.email,
-          username: user.user_metadata?.full_name || "New User",
-          avatarimage: user.user_metadata?.avatar_url || null,
-          role: "project_manager", // ⚠️ must match your enum
-        },
-      ]);
-
-      if (insertError) {
-        console.error("Insert error:", insertError.message);
-      }
+    if (updateError) {
+      console.error("Update error:", updateError.message);
     }
   }
 
+
+  console.log("✅ Authorized user:", user.email);
   return NextResponse.redirect(new URL("/dashboard", request.url));
 }

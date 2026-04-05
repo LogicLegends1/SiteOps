@@ -8,16 +8,17 @@ export async function GET(req: NextRequest) {
     options: {
       redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback`,
       queryParams: {
-        access_type: 'offline',  // get refresh token
+        access_type: 'offline',  
         prompt: 'consent',
       },
     },
   })
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 })
+    return NextResponse.redirect(
+      new URL('/?error=auth', process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000')
+    )
   }
 
-  // Redirect user to Google login page
   return NextResponse.redirect(data.url)
 }
