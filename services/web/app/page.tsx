@@ -38,7 +38,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-4">
             <Button asChild className="group transition-all duration-300 hover:shadow-md hover:shadow-primary/20 hover:-translate-y-0.5">
-              <Link href="/auth/login">
+              <Link href="/login">
                 Go to Login
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
