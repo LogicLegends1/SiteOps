@@ -26,6 +26,7 @@ import {
   Settings,
   LogOut,
   HardHat,
+  Wrench,
 } from "lucide-react"
 import { createClient } from "@/lib/superbase"
 
@@ -54,6 +55,11 @@ const navItems = [
     title: "Workforce Allocation",
     href: "/dashboard/workforce",
     icon: Users,
+  },
+  {
+    title: "Equipment Allocation",
+    href: "/dashboard/equipment",
+    icon: Wrench,
   },
 ]
 
