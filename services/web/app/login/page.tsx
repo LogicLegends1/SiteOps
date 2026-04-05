@@ -34,15 +34,25 @@ export default function LoginPage() {
     setIsSubmitting(true)
 
     try {
-      // Mocking backend since APIs are not created yet
-      if (email === "admin@gmail.com" && password === "1234") {
-        router.push("/dashboard")
-        router.refresh()
-      } else {
-        setError("Invalid email or password.")
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const payload = (await res.json().catch(() => ({}))) as LoginResponse
+
+      if (!res.ok) {
+        setError(payload.error || "Unable to sign in. Please try again.")
+        return
       }
+
+      router.push("/dashboard")
+      router.refresh()
     } catch {
-      setError("An error occurred. Please try again.")
+      setError("Network error. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
