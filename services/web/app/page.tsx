@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { HardHat, GanttChartSquare, Bot, Lightbulb, Users, ArrowRight } from "lucide-react";
 
@@ -134,3 +135,4 @@ export default function HomePage() {
     </div>
   );
 }
+
