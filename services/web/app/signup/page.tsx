@@ -69,7 +69,7 @@ export default function SignupPage() {
         return
       }
 
-      router.push("/dashboard")
+      router.push("/login")
       router.refresh()
     } catch {
       setError("Network error. Please try again.")

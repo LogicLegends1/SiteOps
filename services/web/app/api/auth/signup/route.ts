@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     .from('person')
     .insert([
       {
-        username,
+        name: username,
         position: role,
         yearsofexperience: yearsOfExperience
           ? parseInt(yearsOfExperience)
