@@ -1,15 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
-  materialAlerts,
   getAlertSeverityColor,
   type MaterialAlert,
+  materialAlerts as dummyAlerts
 } from "@/lib/material-data"
 import {
   AlertTriangle,
@@ -52,7 +52,17 @@ function getAlertTypeLabel(type: MaterialAlert["type"]): string {
 }
 
 export function MaterialAlertsPanel() {
-  const [alerts, setAlerts] = useState(materialAlerts)
+  const [alerts, setAlerts] = useState<MaterialAlert[]>([])
+
+  useEffect(() => {
+    fetch("http://localhost:8000/predict/alerts/1")
+      .then((res) => res.json())
+      .then((data) => setAlerts(data))
+      .catch((err) => {
+        console.error("Failed to fetch alerts", err)
+        setAlerts(dummyAlerts)
+      })
+  }, [])
 
   const activeAlerts = alerts.filter((a) => !a.acknowledged)
   const acknowledgedAlerts = alerts.filter((a) => a.acknowledged)

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     avatarimage
   } = await req.json()
 
-  // ✅ Validation
+  // Validation
   if (!email || !password || !username || !role || !nic) {
     return NextResponse.json(
       { error: 'Missing required fields' },
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const authUserId = authData.user.id // 🔥 UUID
+  const authUserId = authData.user.id // UUID
 
   // =====================================
   // 2. Insert into person table

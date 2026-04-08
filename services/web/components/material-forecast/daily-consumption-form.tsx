@@ -36,7 +36,7 @@ export function DailyConsumptionForm() {
 
   const selectedMaterial = materials.find((m) => m.id === formData.materialId)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.materialId || !formData.quantity || !formData.activity || !formData.zone) {
       return
@@ -44,27 +44,44 @@ export function DailyConsumptionForm() {
 
     setIsSubmitting(true)
 
-    // Simulate submission
-    setTimeout(() => {
-      const newLog: MaterialConsumptionLog = {
-        id: `LOG-${Date.now()}`,
-        materialId: formData.materialId,
-        date: new Date().toISOString().split("T")[0],
-        quantity: parseFloat(formData.quantity),
-        activity: formData.activity,
-        zone: formData.zone,
-        loggedBy: "Current User",
-      }
-
-      setLogs((prev) => [newLog, ...prev])
-      setFormData({
-        materialId: "",
-        quantity: "",
-        activity: "",
-        zone: "",
+    try {
+      const res = await fetch("/api/materials/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          materialId: formData.materialId.replace("MAT-", ""), // Sanitize dummy IDs if necessary, or pass raw if fetched from live
+          quantity: formData.quantity,
+          activityId: 1, // Using 1 as a placeholder until activities are wired to live
+        }),
       })
+
+      if (res.ok) {
+        // Fallback local update for immediate UI feedback
+        const newLog: MaterialConsumptionLog = {
+          id: `LOG-${Date.now()}`,
+          materialId: formData.materialId,
+          date: new Date().toISOString().split("T")[0],
+          quantity: parseFloat(formData.quantity),
+          activity: formData.activity,
+          zone: formData.zone,
+          loggedBy: "You",
+        }
+
+        setLogs((prev) => [newLog, ...prev])
+        setFormData({
+          materialId: "",
+          quantity: "",
+          activity: "",
+          zone: "",
+        })
+      } else {
+        console.error("Failed to log consumption")
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
       setIsSubmitting(false)
-    }, 500)
+    }
   }
 
   const getMaterialName = (id: string) => {

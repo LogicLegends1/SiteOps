@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -15,7 +16,6 @@ import {
   AreaChart,
 } from "recharts"
 import {
-  consumptionHistory,
   getTrendColor,
   type Material,
 } from "@/lib/material-data"
@@ -39,6 +39,19 @@ function TrendIcon({ trend }: { trend: Material["consumptionTrend"] }) {
 }
 
 export function ConsumptionTrendChart({ material }: ConsumptionTrendChartProps) {
+  const [data, setData] = useState<{date: string, actual: number, planned: number}[]>([])
+
+  useEffect(() => {
+    if (material && material.id) {
+      // Use clean IDs for fetching
+      const rawId = material.id.replace("MAT-", "")
+      fetch(`http://localhost:8000/predict/trend/1/${rawId}`)
+        .then((res) => res.json())
+        .then((respData) => setData(respData))
+        .catch((err) => console.error("Failed to load trend", err))
+    }
+  }, [material])
+
   if (!material) {
     return (
       <Card>
@@ -53,7 +66,6 @@ export function ConsumptionTrendChart({ material }: ConsumptionTrendChartProps) 
     )
   }
 
-  const data = consumptionHistory[material.id] || []
   const hasData = data.length > 0
 
   // Calculate variance percentage
@@ -178,7 +190,7 @@ export function ConsumptionTrendChart({ material }: ConsumptionTrendChartProps) 
           <div className="text-center">
             <p className="text-xs text-muted-foreground">Reorder Level</p>
             <p className="text-lg font-semibold">
-              {material.reorderLevel.toLocaleString()} <span className="text-xs text-muted-foreground">{material.unit}</span>
+              {(material.reorderLevel || 0).toLocaleString()} <span className="text-xs text-muted-foreground">{material.unit}</span>
             </p>
           </div>
           <div className="text-center">
