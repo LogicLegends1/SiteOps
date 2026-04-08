@@ -142,8 +142,14 @@ export default function LoginPage() {
               Continue with Google
             </Button>
 
-            <div className="text-center text-sm">
-              <Link href="/" className="text-primary hover:underline">
+            <div className="text-center text-sm flex flex-col gap-2 mt-2">
+              <div>
+                Don&apos;t have an account?{" "}
+                <Link href="/signup" className="text-primary hover:underline font-medium">
+                  Sign up
+                </Link>
+              </div>
+              <Link href="/" className="text-muted-foreground hover:text-primary hover:underline mt-2">
                 Back to Home
               </Link>
             </div>

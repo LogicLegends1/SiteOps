@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -24,7 +24,26 @@ import {
 
 export default function MaterialForecastPage() {
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null)
-  const stats = getMaterialStats()
+  const [liveMaterials, setLiveMaterials] = useState<Material[]>([])
+  const [liveAlerts, setLiveAlerts] = useState<any[]>([])
+
+  useEffect(() => {
+    Promise.all([
+      fetch("http://localhost:8000/predict/shortage/all/1").then(res => res.json()),
+      fetch("http://localhost:8000/predict/alerts/1").then(res => res.json())
+    ]).then(([mats, alts]) => {
+      setLiveMaterials(mats || [])
+      setLiveAlerts(alts || [])
+    }).catch(console.error)
+  }, [])
+
+  const stats = {
+    totalMaterials: liveMaterials.length,
+    criticalCount: liveMaterials.filter((m) => m.stockLevel === "critical").length,
+    lowStockCount: liveMaterials.filter((m) => m.stockLevel === "low").length,
+    activeAlerts: liveAlerts.filter((a) => !a.acknowledged).length,
+    materialsWithSpike: liveMaterials.filter((m) => m.consumptionTrend === "spike" || m.consumptionTrend === "increasing").length,
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -113,7 +132,7 @@ export default function MaterialForecastPage() {
                   {stats.criticalCount} material{stats.criticalCount > 1 ? "s" : ""} at critical level
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {materials
+                  {liveMaterials
                     .filter((m) => m.stockLevel === "critical")
                     .map((m) => `${m.name} (${m.daysUntilShortage} days)`)
                     .join(", ")}

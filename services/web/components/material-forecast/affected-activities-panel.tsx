@@ -30,7 +30,7 @@ export function AffectedActivitiesPanel({ selectedMaterial }: AffectedActivities
 
   // If a specific material is selected, filter to its activities
   const filteredActivities = selectedMaterial
-    ? selectedMaterial.linkedActivities
+    ? (selectedMaterial.linkedActivities || [])
     : Array.from(activityMaterialsMap.keys())
 
   // Get activity details from delay engine data

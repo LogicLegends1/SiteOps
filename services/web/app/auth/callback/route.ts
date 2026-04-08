@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     .maybeSingle();
 
   if (dbError || !existingUser) {
-    console.log("❌ Unauthorized user:", user.email);
+    console.log("[ERROR] Unauthorized user:", user.email);
 
     await supabase.auth.signOut();
 
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
     existingUser.username !== fullName;
 
   if (needsUpdate) {
-    console.log("📝 Updating user avatar/name for:", user.email);
+    console.log("[UPDATE] Updating user avatar/name for:", user.email);
     const { error: updateError } = await supabase
       .from("user")
       .update({
@@ -66,6 +66,6 @@ export async function GET(request: Request) {
   }
 
 
-  console.log("✅ Authorized user:", user.email);
+  console.log("[SUCCESS] Authorized user:", user.email);
   return NextResponse.redirect(new URL("/dashboard", request.url));
 }
