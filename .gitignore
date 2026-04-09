@@ -1,4 +1,7 @@
 .next/dev
 .next/production-server
 .next/static
-.env.local
+
+# Local environment files
+services/python_service/.env
+services/web/.env.local

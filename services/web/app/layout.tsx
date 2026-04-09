@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Toaster } from '@/components/ui/toaster'
+import { ErrorToastHandler } from '@/components/auth/error-toast-handler'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -37,7 +40,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans antialiased">
+        <Suspense fallback={null}>
+          <ErrorToastHandler />
+        </Suspense>
         {children}
+        <Toaster />
         <Analytics />
       </body>
     </html>
