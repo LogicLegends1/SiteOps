@@ -34,6 +34,8 @@ WORKDIR /app
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
 # Install requirements inside venv
 COPY services/python_service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

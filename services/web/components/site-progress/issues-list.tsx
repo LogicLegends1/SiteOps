@@ -3,13 +3,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { type Zone } from "@/lib/site-data"
 import {
-  type Zone,
   issues,
   getIssuesByZoneId,
   getPriorityColor,
   getIssueStatusColor,
-} from "@/lib/site-data"
+} from "@/lib/issues-data"
 import { AlertTriangle, Package, Wrench, Users, Shield, HelpCircle, Clock } from "lucide-react"
 
 interface IssuesListProps {
@@ -39,8 +39,8 @@ function formatDate(dateString: string): string {
 }
 
 export function IssuesList({ selectedZone }: IssuesListProps) {
-  const displayedIssues = selectedZone 
-    ? getIssuesByZoneId(selectedZone.id) 
+  const displayedIssues = selectedZone
+    ? getIssuesByZoneId(selectedZone.zoneID)
     : issues
 
   return (
@@ -53,8 +53,8 @@ export function IssuesList({ selectedZone }: IssuesListProps) {
               Issues & Blockers
             </CardTitle>
             <CardDescription>
-              {selectedZone 
-                ? `Issues for ${selectedZone.name}` 
+              {selectedZone
+                ? `Issues for ${selectedZone.name}`
                 : "All active issues across zones"}
             </CardDescription>
           </div>
@@ -63,14 +63,15 @@ export function IssuesList({ selectedZone }: IssuesListProps) {
           </Badge>
         </div>
       </CardHeader>
+
       <CardContent>
         {displayedIssues.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No active issues</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {selectedZone 
-                ? "This zone has no reported issues" 
+              {selectedZone
+                ? "This zone has no reported issues"
                 : "All zones are clear of issues"}
             </p>
           </div>
@@ -79,17 +80,18 @@ export function IssuesList({ selectedZone }: IssuesListProps) {
             <div className="flex flex-col gap-3">
               {displayedIssues.map((issue) => {
                 const TypeIcon = getIssueTypeIcon(issue.type)
+
                 return (
                   <div
                     key={issue.id}
                     className="flex flex-col gap-2 p-4 rounded-lg bg-secondary/50 border border-border/50"
                   >
-                    {/* Header Row */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <TypeIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                         <span className="text-xs font-mono text-muted-foreground">{issue.id}</span>
                       </div>
+
                       <div className="flex items-center gap-2">
                         <Badge className={getPriorityColor(issue.priority)} variant="secondary">
                           {issue.priority}
@@ -100,15 +102,12 @@ export function IssuesList({ selectedZone }: IssuesListProps) {
                       </div>
                     </div>
 
-                    {/* Title */}
                     <h4 className="text-sm font-medium text-foreground">{issue.title}</h4>
 
-                    {/* Description */}
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       {issue.description}
                     </p>
 
-                    {/* Footer */}
                     <div className="flex items-center justify-between pt-2 border-t border-border/50">
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Users className="h-3 w-3" />
