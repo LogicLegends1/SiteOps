@@ -213,21 +213,21 @@ paths:
                     type: string
 
   /api/project/all:
-      get:
-        summary: Get all projects
-        operationId: getAllProjects
-        tags:
-          - Project
-        description: Returns all projects in the system.
-        responses:
-          '200':
-            description: Projects retrieved successfully
-            content:
-              application/json:
-                schema:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/Project'
+    get:
+      summary: Get all projects
+      operationId: getAllProjects
+      tags:
+        - Project
+      description: Returns all projects in the system.
+      responses:
+        '200':
+          description: Projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
 
   /api/project/{projectID}:
     get:
