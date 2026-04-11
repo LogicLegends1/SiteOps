@@ -55,12 +55,11 @@ paths:
                 role:
                   type: string
                   enum:
-                    - project_manager
-                    - site_engineer
-                    - foreman
-                    - supervisor
+                    - OPERATION_MANAGER
+                    - PROJECT_MANAGER
+                    - SITE_ENGINEER
                   description: User role in the system
-                  example: project_manager
+                  example: PROJECT_MANAGER
                 avatarimage:
                   type: string
                   nullable: true
@@ -213,6 +212,23 @@ paths:
                   error:
                     type: string
 
+  /api/project/all:
+      get:
+        summary: Get all projects
+        operationId: getAllProjects
+        tags:
+          - Project
+        description: Returns all projects in the system.
+        responses:
+          '200':
+            description: Projects retrieved successfully
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Project'
+
   /api/project/{projectID}:
     get:
       summary: Get a specific project
@@ -308,6 +324,52 @@ paths:
       responses:
         '204':
           description: Project deleted successfully
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /api/project/{projectID}/assigned-people:
+    get:
+      summary: Get people assigned to a project
+      operationId: getAssignedPeopleByProject
+      tags:
+        - Project
+      description: Returns all people assigned to the specified project.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Project ID
+          example: 1
+      responses:
+        '200':
+          description: Assigned people retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  people:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Person'
+        '400':
+          description: Invalid project ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '404':
           description: Project not found
           content:
@@ -804,12 +866,11 @@ components:
         role:
           type: string
           enum:
-            - project_manager
-            - site_engineer
-            - foreman
-            - supervisor
+            - OPERATION_MANAGER
+            - PROJECT_MANAGER
+            - SITE_ENGINEER
           description: User role in the system
-          example: project_manager
+          example: PROJECT_MANAGER
         avatarimage:
           type: string
           nullable: true
@@ -876,11 +937,6 @@ components:
           nullable: true
           description: URL/path to project diagram
           example: https://example.com/diagram.png
-        projectManagerID:
-          type: integer
-          nullable: true
-          description: Assigned project manager user ID
-          example: 2
         status:
           type: string
           enum:
@@ -921,11 +977,6 @@ components:
           nullable: true
           description: URL/path to project diagram
           example: https://example.com/diagram.png
-        projectManagerID:
-          type: integer
-          nullable: true
-          description: Assigned project manager user ID
-          example: 2
         status:
           type: string
           enum:
@@ -965,11 +1016,6 @@ components:
           nullable: true
           description: URL/path to project diagram
           example: https://example.com/diagram-v2.png
-        projectManagerID:
-          type: integer
-          nullable: true
-          description: Assigned project manager user ID
-          example: 3
         status:
           type: string
           enum:
