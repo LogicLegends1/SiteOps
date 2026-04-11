@@ -380,6 +380,52 @@ paths:
                   error:
                     type: string
 
+  /api/activity/all:
+    get:
+      summary: Get all activities for a project
+      operationId: getAllActivitiesByProject
+      tags:
+        - Activity
+      description: Returns all activities for the specified project.
+      parameters:
+        - name: projectID
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Project ID to filter activities by
+          example: 1
+      responses:
+        '200':
+          description: Activities retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Activity'
+        '400':
+          description: Invalid or missing project ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
 # Activity endpoints
   /api/activity:
     post:
@@ -444,6 +490,51 @@ paths:
                     type: string
 
   /api/activity/{activityID}/logs:
+    get:
+      summary: Get all logs for an activity
+      operationId: getAllActivityLogs
+      tags:
+        - Activity
+      description: Returns all log entries for the specified activity.
+      parameters:
+        - name: activityID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Activity ID
+          example: 1
+      responses:
+        '200':
+          description: Activity logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ActivityLogEntry'
+        '400':
+          description: Invalid activity ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
     post:
       summary: Add an activity log entry
       operationId: addActivityLog
@@ -482,46 +573,6 @@ paths:
                     type: string
         '404':
           description: Activity not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-
-  /api/activity/{activityID}/logs/last/undo:
-    post:
-      summary: Undo the last activity log entry
-      operationId: undoLastActivityLog
-      tags:
-        - Activity
-      description: Reverts the effect of the most recent activity log entry and restores the previous progress state.
-      parameters:
-        - name: activityID
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Activity ID
-          example: 1
-      responses:
-        '200':
-          description: Last activity log undone successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Last activity log entry undone successfully
-                  activity:
-                    $ref: '#/components/schemas/Activity'
-                  undoneLog:
-                    $ref: '#/components/schemas/ActivityLogEntry'
-        '404':
-          description: Activity or last log entry not found
           content:
             application/json:
               schema:
