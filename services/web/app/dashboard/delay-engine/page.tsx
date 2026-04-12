@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useEffect, useState } from "react"
+import { fetchWeatherForecast, transformWeatherData } from "@/lib/weather-api"
 import {
   Select,
   SelectContent,
@@ -37,7 +38,8 @@ export default function PredictiveDelayEnginePage() {
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null)
   const [alerts, setAlerts] = useState<DelayAlert[]>(initialAlerts)
   const [zoneFilter, setZoneFilter] = useState<string>("all")
-
+  const [weatherData, setWeatherData] = useState<any[]>(weatherForecast)
+  const [loadingWeather, setLoadingWeather] = useState(true) 
   const overallRisk = calculateOverallRisk()
 
   const filteredActivities =
@@ -66,6 +68,34 @@ export default function PredictiveDelayEnginePage() {
       )
     )
   }
+  useEffect(() => {
+  const loadWeather = async () => {
+    try {
+      setLoadingWeather(true)
+
+      // Colombo (Sri Lanka) coords — change if needed
+      const lat = 6.9271
+      const lon = 79.8612
+
+      const raw = await fetchWeatherForecast(lat, lon)
+      console.log("Raw weather data:", raw)
+      const transformed = transformWeatherData(raw)
+
+      setWeatherData(transformed)
+    } catch (error) {
+      console.error("Weather fetch failed:", error)
+      setWeatherData(weatherForecast)
+    } finally {
+      setLoadingWeather(false)
+    }
+  }
+
+  loadWeather()
+
+  // Auto refresh every 10 mins
+  const interval = setInterval(loadWeather, 600000)
+  return () => clearInterval(interval)
+}, [])
 
   // Calculate stats
   const totalActivities = activityProgress.length
@@ -217,7 +247,11 @@ export default function PredictiveDelayEnginePage() {
             onSelectZone={handleSelectZone}
             selectedZoneId={selectedZoneId}
           />
-          <WeatherImpactPanel forecast={weatherForecast} activities={activityProgress} />
+          {loadingWeather ? (
+  <div className="p-4 text-sm text-muted-foreground">Loading weather...</div>
+) : (
+  <WeatherImpactPanel forecast={weatherData} activities={activityProgress} />
+)}
           <ActivityDetailsPanel activity={selectedActivity} />
         </div>
       </div>
