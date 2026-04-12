@@ -1,5 +1,19 @@
 export type ZoneStatus = "pending" | "in_progress" | "completed" | "delayed"
 
+// Lightweight zone metadata used by workforce planning UI.
+export interface WorkforceZoneMeta {
+  id: string
+  name: string
+  activity: string
+}
+
+export const zones: WorkforceZoneMeta[] = [
+  { id: "zone-a", name: "Zone A", activity: "Foundation Work" },
+  { id: "zone-b", name: "Zone B", activity: "Piling Section" },
+  { id: "zone-c", name: "Zone C", activity: "Electrical Installation" },
+  { id: "zone-d", name: "Zone D", activity: "Drainage Setup" },
+]
+
 export interface Zone {
   zoneID: number
   projectID: number
