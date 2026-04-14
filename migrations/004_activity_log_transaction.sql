@@ -1,5 +1,5 @@
 -- ============================================================
--- SiteOps Database Schema Update 003
+-- SiteOps Database Schema Update 004
 -- Atomic activity log creation + activity progress update
 -- ============================================================
 
