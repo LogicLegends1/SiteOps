@@ -8,13 +8,20 @@ export interface Zone {
   activity: string | null
   status: ZoneStatus
   progress: number
-  posX: number
-  posY: number
-  widthPercent: number
-  heightPercent: number
-  displayOrder: number
-  imagePath?: string | null
-  imageUrl?: string | null
+  lat: number
+  lng: number
+  markerLabel: string
+  assignedTeam?: string | null
+  assignedSupervisor?: string | null
+  startDate?: string
+  expectedCompletion?: string
+}
+
+export interface Project {
+  projectID: number
+  name: string
+  locationLatitude: number
+  locationLongitude: number
 }
 
 export function getStatusColor(status: ZoneStatus) {
