@@ -113,12 +113,32 @@ def seed_material_data():
                 "allocatedstock": random.randint(1000, 10000)
             }).execute()
 
-    # Re-fetch inventory for project 1
-    inv_res = supabase.table("project_material_inventory").select("*, material_catalog(*)").eq("projectid", PROJECT_ID).execute()
-    
-    print("🧹 Cleaning legacy consumption logs...")
+    # Fetch all project materials to clear their logs
+    inv_res = supabase.table("project_material_inventory").select("materialid").eq("projectid", PROJECT_ID).execute()
     mat_ids = [item["materialid"] for item in inv_res.data]
-    # No batch delete in postgrest easily, but we can just overwrite logs by date
+    
+    if mat_ids:
+        print(f"🧹 Purging legacy logs for {len(mat_ids)} materials...")
+        supabase.table("material_consumption_log").delete().in_("materialid", mat_ids).execute()
+        print("✅ Clean slate achieved.")
+
+    # Ensure we have diversified activities for the project
+    activities_res = supabase.table("activity").select("activityid").eq("projectid", PROJECT_ID).execute()
+    if len(activities_res.data or []) < 5:
+        print("🌱 Seeding Diversified Project Activities...")
+        new_activities = [
+            {"projectid": PROJECT_ID, "description": "Structural Framing - Level 4", "status": "IN_PROGRESS"},
+            {"projectid": PROJECT_ID, "description": "Lobby Brick Masonry", "status": "IN_PROGRESS"},
+            {"projectid": PROJECT_ID, "description": "HVAC Service Installation", "status": "IN_PROGRESS"},
+            {"projectid": PROJECT_ID, "description": "Internal Wall Plastering", "status": "IN_PROGRESS"},
+            {"projectid": PROJECT_ID, "description": "Foundation Piling - Phase 2", "status": "IN_PROGRESS"}
+        ]
+        for act in new_activities:
+            supabase.table("activity").insert(act).execute()
+        print("✅ Activities populated.")
+
+    # Re-fetch inventory with catalog details for the simulation phase
+    inv_res = supabase.table("project_material_inventory").select("*, material_catalog(*)").eq("projectid", PROJECT_ID).execute()
     
     scenarios = {
         "Cement": {"burn": 60, "type": "sine"},
@@ -129,10 +149,16 @@ def seed_material_data():
         "Electrical": {"burn": 10, "type": "stable"},
         "Chemicals": {"burn": 2, "type": "spike"}
     }
+ 
+    # Fetch all project activities to diversify linkages
+    activities_res = supabase.table("activity").select("activityid, description").eq("projectid", PROJECT_ID).execute()
+    activities = activities_res.data or []
+    
+    if not activities:
+        print("⚠️ No activities found for project. Linking to null.")
+        activities = [{"activityid": None, "description": "Unknown"}]
 
-    # Fetch 1 activity
-    activity_res = supabase.table("activity").select("activityid").eq("projectid", PROJECT_ID).limit(1).execute()
-    act_id = activity_res.data[0]["activityid"]
+    print(f"🔗 Diversifying linkages across {len(activities)} activities...")
 
     for item in inv_res.data:
         cat_name = item["material_catalog"]["category"]
@@ -141,14 +167,19 @@ def seed_material_data():
         
         config = scenarios.get(cat_name, {"burn": 10, "type": "stable"})
         
-        print(f"📊 Generating trail for: {name}")
+        # Select 1-3 activities to associate with this material to create realistic spread
+        linked_acts = random.sample(activities, min(len(activities), random.randint(1, 4)))
+        
+        print(f"📊 Generating trail for: {name} (Linked to: {[a['description'] for a in linked_acts]})")
         points = generate_non_linear_consumption(30, config['burn'], config['type'])
         
         logs = []
         for p in points:
+            # For each daily log point, pick one of the linked activities randomly
+            target_act = random.choice(linked_acts)
             logs.append({
                 "materialid": mat_id,
-                "activityid": act_id,
+                "activityid": target_act["activityid"],
                 "quantityused": p["quantity"],
                 "daterecorded": p["date"],
                 "loggedby": 3
@@ -157,8 +188,8 @@ def seed_material_data():
         chunk_size = 50
         for i in range(0, len(logs), chunk_size):
             supabase.table("material_consumption_log").insert(logs[i:i+chunk_size]).execute()
-
-    print("✅ System Overhaul Seed Complete. Analytics now driven by non-linear telemetry.")
+ 
+    print("✅ System Overhaul Seed Complete. Analytics and linkage now fully diversified.")
 
 if __name__ == "__main__":
     seed_material_data()

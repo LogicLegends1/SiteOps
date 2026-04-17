@@ -73,7 +73,7 @@ export default function MaterialForecastPage() {
               stat.bg,
               stat.border
             )}>
-              <span className="text-[9px] font-black uppercase text-muted-foreground/60 tracking-wider font-mono">{stat.label}</span>
+              <span className="text-[10px] font-black uppercase text-slate-200 tracking-wider font-mono">{stat.label}</span>
               <span className={cn("text-2xl font-bold tracking-tighter mt-1", stat.color)}>{stat.value}</span>
             </div>
           ))}

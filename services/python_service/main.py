@@ -50,17 +50,17 @@ async def get_all_material_forecasts(project_id: int):
     if not inventory_res.data: return []
 
     activities_res = supabase.table("activity").select("activityid, description").eq("projectid", project_id).execute()
-    activity_ids = [act["activityid"] for act in activities_res.data] if activities_res.data else []
+    activity_map = {act["activityid"]: act["description"] for act in activities_res.data} if activities_res.data else {}
+    activity_ids = list(activity_map.keys())
 
     results = []
     fourteen_days_ago = (datetime.now() - timedelta(days=14)).strftime("%Y-%m-%d")
 
-    # FIX: N+1 Query Bottleneck
-    # Fetch ALL consumption logs for the project in 1 single query
+    # Fetch ALL consumption logs including activityid
     all_logs = []
     if activity_ids:
         all_logs_db = supabase.table("material_consumption_log")\
-            .select("materialid, quantityused, daterecorded")\
+            .select("materialid, activityid, quantityused, daterecorded")\
             .in_("activityid", activity_ids)\
             .gte("daterecorded", fourteen_days_ago)\
             .execute()
@@ -97,6 +97,10 @@ async def get_all_material_forecasts(project_id: int):
             if days_rem <= 5: stock_level = "critical"
             elif days_rem <= 15: stock_level = "low"
 
+        # Dynamic Linkage: Find which activities actually used this material in the last 14 days
+        linked_activity_ids = set(l["activityid"] for l in logs_res if l["activityid"] in activity_map)
+        linked_activity_names = [activity_map[aid] for aid in linked_activity_ids]
+
         results.append({
             "id": str(mat_id),
             "name": mat["name"],
@@ -110,7 +114,7 @@ async def get_all_material_forecasts(project_id: int):
             "daysUntilShortage": round(days_rem) if days_rem is not None else 999,
             "stockLevel": stock_level,
             "consumptionTrend": "stable",
-            "linkedActivities": [act["description"] for act in activities_res.data[:3]] if activities_res.data else []
+            "linkedActivities": linked_activity_names
         })
         
     return results
