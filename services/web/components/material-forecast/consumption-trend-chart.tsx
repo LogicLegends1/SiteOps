@@ -3,15 +3,13 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   Area,
   AreaChart,
 } from "recharts"
@@ -19,10 +17,25 @@ import {
   getTrendColor,
   type Material,
 } from "@/lib/material-data"
-import { TrendingUp, TrendingDown, AlertTriangle, Minus } from "lucide-react"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { TrendingUp, TrendingDown, AlertTriangle, Minus, Search, ChevronsUpDown, Check, BarChart3 } from "lucide-react"
 
 interface ConsumptionTrendChartProps {
   material: Material | null
+  materialsList?: Material[]
+  onMaterialChange?: (m: Material) => void
 }
 
 function TrendIcon({ trend }: { trend: Material["consumptionTrend"] }) {
@@ -32,179 +45,215 @@ function TrendIcon({ trend }: { trend: Material["consumptionTrend"] }) {
     case "decreasing":
       return <TrendingDown className="h-4 w-4" />
     case "spike":
-      return <AlertTriangle className="h-4 w-4" />
+      return <AlertTriangle className="h-4 w-4 text-destructive animate-bounce" />
     default:
       return <Minus className="h-4 w-4" />
   }
 }
 
-export function ConsumptionTrendChart({ material }: ConsumptionTrendChartProps) {
+export function ConsumptionTrendChart({ material: initialMaterial, materialsList = [], onMaterialChange }: ConsumptionTrendChartProps) {
+  const [currentMaterial, setCurrentMaterial] = useState<Material | null>(initialMaterial)
   const [data, setData] = useState<{date: string, actual: number, planned: number}[]>([])
+  const [openSelector, setOpenSelector] = useState(false)
 
   useEffect(() => {
-    if (material && material.id) {
-      // Use clean IDs for fetching
-      const rawId = material.id.replace("MAT-", "")
+    setCurrentMaterial(initialMaterial)
+  }, [initialMaterial])
+
+  useEffect(() => {
+    if (currentMaterial && currentMaterial.id) {
+      const rawId = currentMaterial.id.replace("MAT-", "")
       fetch(`http://localhost:8000/predict/trend/1/${rawId}`)
         .then((res) => res.json())
         .then((respData) => setData(respData))
         .catch((err) => console.error("Failed to load trend", err))
     }
-  }, [material])
+  }, [currentMaterial])
 
-  if (!material) {
+  if (!currentMaterial) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Consumption Trend</CardTitle>
-          <CardDescription>Select a material to view consumption trends</CardDescription>
+      <Card className="border-2 border-dashed bg-muted/30">
+        <CardHeader className="text-center py-12">
+          <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground opacity-20 mb-4" />
+          <CardTitle className="text-xl font-black uppercase tracking-tighter opacity-40">Intelligence Feed Offline</CardTitle>
+          <CardDescription className="font-bold uppercase text-[10px] tracking-widest mt-2">Select a specification from the inventory to initialize tracking</CardDescription>
         </CardHeader>
-        <CardContent className="h-64 flex items-center justify-center text-muted-foreground">
-          Click on a material card to view its consumption history
-        </CardContent>
       </Card>
     )
   }
 
   const hasData = data.length > 0
-
-  // Calculate variance percentage
   const totalPlanned = data.reduce((sum, d) => sum + d.planned, 0)
   const totalActual = data.reduce((sum, d) => sum + d.actual, 0)
   const variancePercent = totalPlanned > 0 ? ((totalActual - totalPlanned) / totalPlanned) * 100 : 0
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-base">{material.name}</CardTitle>
-            <CardDescription>
-              7-day consumption trend (Planned vs Actual)
+    <Card className="border-2 shadow-xl bg-card/40 backdrop-blur-sm overflow-hidden">
+      <CardHeader className="pb-6 border-b bg-muted/20">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5 flex-1">
+            <div className="flex items-center gap-2">
+              <Popover open={openSelector} onOpenChange={setOpenSelector}>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" className="p-0 hover:bg-transparent h-auto flex items-center gap-2 group">
+                    <CardTitle className="text-lg font-black tracking-tighter uppercase group-hover:text-primary transition-colors">
+                      {currentMaterial.name}
+                    </CardTitle>
+                    <ChevronsUpDown className="h-4 w-4 opacity-50 group-hover:opacity-100" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Switch material..." />
+                    <CommandList>
+                      <CommandEmpty>No specification matches.</CommandEmpty>
+                      <CommandGroup heading="Project Inventory">
+                        {materialsList.map((m) => (
+                          <CommandItem
+                            key={m.id}
+                            value={m.name}
+                            onSelect={() => {
+                              setCurrentMaterial(m)
+                              onMaterialChange?.(m)
+                              setOpenSelector(false)
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <span className="font-bold">{m.name}</span>
+                            {currentMaterial.id === m.id && <Check className="ml-auto h-4 w-4" />}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <CardDescription className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              7-Day Utilization Delta Analytics
             </CardDescription>
           </div>
-          <div className="flex flex-col items-end gap-1">
+
+          <div className="flex items-center gap-3">
             <Badge
               variant="outline"
-              className={`${getTrendColor(material.consumptionTrend)} flex items-center gap-1`}
+              className={`border-2 font-black uppercase tracking-tighter text-[10px] px-2 py-1 flex items-center gap-1.5 shadow-sm ${getTrendColor(currentMaterial.consumptionTrend)}`}
             >
-              <TrendIcon trend={material.consumptionTrend} />
-              {material.consumptionTrend}
+              <TrendIcon trend={currentMaterial.consumptionTrend} />
+              {currentMaterial.consumptionTrend}
             </Badge>
             {variancePercent !== 0 && (
-              <span
-                className={`text-xs ${
-                  variancePercent > 0 ? "text-warning" : "text-success"
-                }`}
-              >
-                {variancePercent > 0 ? "+" : ""}
-                {variancePercent.toFixed(1)}% variance
-              </span>
+              <div className={`p-1.5 rounded-md border-2 text-[10px] font-black uppercase tracking-tighter ${
+                variancePercent > 0 ? "border-warning/30 text-warning bg-warning/5" : "border-success/30 text-success bg-success/5"
+              }`}>
+                {variancePercent > 0 ? "Over" : "Under"} {Math.abs(variancePercent).toFixed(1)}%
+              </div>
             )}
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      
+      <CardContent className="pt-8">
         {hasData ? (
-          <div className="h-64">
+          <div className="h-[320px] -ml-6">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="plannedGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-warning)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="var(--color-warning)" stopOpacity={0} />
+                    <stop offset="5%" stopColor="hsl(var(--warning))" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="hsl(var(--warning))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                <CartesianGrid strokeDasharray="4 4" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fontWeight: 700, fill: "hsl(var(--muted-foreground))" }}
                   tickFormatter={(value) => {
                     const date = new Date(value)
-                    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()
                   }}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
-                  tickFormatter={(value) => `${value}`}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fontWeight: 700, fill: "hsl(var(--muted-foreground))" }}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "var(--color-popover)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "8px",
-                    fontSize: "12px",
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "2px solid hsl(var(--border))",
+                    borderRadius: "12px",
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    fontSize: "10px",
+                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)"
                   }}
-                  labelFormatter={(value) => {
-                    const date = new Date(value)
-                    return date.toLocaleDateString("en-US", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })
-                  }}
-                  formatter={(value: number, name: string) => [
-                    `${value} ${material.unit}`,
-                    name.charAt(0).toUpperCase() + name.slice(1),
-                  ]}
-                />
-                <Legend
-                  wrapperStyle={{ fontSize: "12px" }}
-                  formatter={(value) => value.charAt(0).toUpperCase() + value.slice(1)}
+                  cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 2 }}
                 />
                 <Area
-                  type="monotone"
+                  type="stepAfter"
                   dataKey="planned"
-                  stroke="var(--color-primary)"
+                  stroke="hsl(var(--primary))"
                   fill="url(#plannedGradient)"
-                  strokeWidth={2}
+                  strokeWidth={3}
+                  strokeDasharray="5 5"
                 />
                 <Area
                   type="monotone"
                   dataKey="actual"
-                  stroke="var(--color-warning)"
+                  stroke="hsl(var(--warning))"
                   fill="url(#actualGradient)"
-                  strokeWidth={2}
+                  strokeWidth={4}
+                  dot={{ r: 4, fill: "hsl(var(--warning))", strokeWidth: 2, stroke: "white" }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="h-64 flex items-center justify-center text-muted-foreground">
-            No consumption data available for this material
+          <div className="h-[320px] flex flex-col items-center justify-center text-muted-foreground gap-4">
+            <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center animate-pulse">
+              <Search className="h-6 w-6 opacity-20" />
+            </div>
+            <p className="font-bold text-xs uppercase tracking-[0.2em] opacity-30">Zero historical log signatures</p>
           </div>
         )}
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border">
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">Daily Average</p>
-            <p className="text-lg font-semibold">
-              {material.dailyAvgConsumption} <span className="text-xs text-muted-foreground">{material.unit}</span>
+        {/* Actionable Statistics Matrix */}
+        <div className="grid grid-cols-3 gap-2 mt-8 pt-6 border-t border-border">
+          <div className="flex flex-col gap-1 p-3 rounded-lg bg-secondary/30 border border-border/50">
+            <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest text-center">Engine Burn Rate</p>
+            <p className="text-base font-black text-center text-primary">
+              {currentMaterial.dailyAvgConsumption} <span className="text-[10px] uppercase">{currentMaterial.unit}/DAY</span>
             </p>
           </div>
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">Reorder Level</p>
-            <p className="text-lg font-semibold">
-              {(material.reorderLevel || 0).toLocaleString()} <span className="text-xs text-muted-foreground">{material.unit}</span>
+          <div className="flex flex-col gap-1 p-3 rounded-lg bg-secondary/30 border border-border/50">
+            <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest text-center">Safety Threshold</p>
+            <p className="text-base font-black text-center">
+              {(currentMaterial.reorderLevel || 0).toLocaleString()} <span className="text-[10px] uppercase">{currentMaterial.unit}</span>
             </p>
           </div>
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">Days to Shortage</p>
+          <div className="flex flex-col gap-1 p-3 rounded-lg bg-secondary/30 border border-border/50">
+            <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest text-center">Stock Depletion</p>
             <p
-              className={`text-lg font-semibold ${
-                material.daysUntilShortage && material.daysUntilShortage <= 5
+              className={`text-base font-black text-center ${
+                currentMaterial.daysUntilShortage && currentMaterial.daysUntilShortage <= 5
                   ? "text-destructive"
-                  : material.daysUntilShortage && material.daysUntilShortage <= 10
+                  : currentMaterial.daysUntilShortage && currentMaterial.daysUntilShortage <= 15
                   ? "text-warning"
-                  : ""
+                  : "text-success"
               }`}
             >
-              {material.daysUntilShortage ?? "N/A"} <span className="text-xs text-muted-foreground">days</span>
+              {currentMaterial.daysUntilShortage !== null && currentMaterial.daysUntilShortage !== 999 
+                ? `${currentMaterial.daysUntilShortage} DAYS` 
+                : "STABLE"}
             </p>
           </div>
         </div>
