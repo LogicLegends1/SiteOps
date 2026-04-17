@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import {
-  materials,
   getStockLevelColor,
   getStockLevelBorder,
   getTrendIcon,
@@ -68,8 +67,6 @@ export function StockOverview({ onSelectMaterial, selectedMaterialId }: StockOve
       })
       .catch((err) => {
         console.error("Failed to fetch live materials", err)
-        // Fallback to dummy materials if Python engine is off
-        setLiveMaterials(materials)
         setIsLoading(false)
       })
   }, [])
