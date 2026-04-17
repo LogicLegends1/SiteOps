@@ -109,52 +109,67 @@ export function ZoneDetails({ zone }: ZoneDetailsProps) {
         <div className="flex flex-col gap-3">
           <h4 className="text-sm font-medium text-foreground">Assignment</h4>
           <div className="grid gap-3">
-            <div className="flex items-center gap-3 p-2 rounded-md bg-secondary/50">
-              <Users className="h-4 w-4 text-primary" />
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Assigned Team</span>
-                <span className="text-sm font-medium text-foreground">{zone.assignedTeam}</span>
+            {zone.assignedTeam && (
+              <div className="flex items-center gap-3 p-2 rounded-md bg-secondary/50">
+                <Users className="h-4 w-4 text-primary" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground">Assigned Team</span>
+                  <span className="text-sm font-medium text-foreground">{zone.assignedTeam}</span>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-2 rounded-md bg-secondary/50">
-              <User className="h-4 w-4 text-primary" />
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Supervisor</span>
-                <span className="text-sm font-medium text-foreground">{zone.assignedSupervisor}</span>
+            )}
+            {zone.assignedSupervisor && (
+              <div className="flex items-center gap-3 p-2 rounded-md bg-secondary/50">
+                <User className="h-4 w-4 text-primary" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground">Supervisor</span>
+                  <span className="text-sm font-medium text-foreground">{zone.assignedSupervisor}</span>
+                </div>
               </div>
-            </div>
+            )}
+            {!zone.assignedTeam && !zone.assignedSupervisor && (
+              <p className="text-xs text-muted-foreground">No assignments yet</p>
+            )}
           </div>
         </div>
 
         <Separator />
 
         {/* Timeline */}
-        <div className="flex flex-col gap-3">
-          <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-            <CalendarClock className="h-4 w-4 text-muted-foreground" />
-            Project Timeline
-          </h4>
-          <div className="grid gap-3">
-            <div className="flex items-center gap-3 p-2 rounded-md bg-secondary/50">
-              <Calendar className="h-4 w-4 text-primary" />
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Start Date</span>
-                <span className="text-sm font-medium text-foreground">
-                  {formatDate(zone.startDate)}
-                </span>
+        {(zone.startDate || zone.expectedCompletion) && (
+          <>
+            <div className="flex flex-col gap-3">
+              <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                Project Timeline
+              </h4>
+              <div className="grid gap-3">
+                {zone.startDate && (
+                  <div className="flex items-center gap-3 p-2 rounded-md bg-secondary/50">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">Start Date</span>
+                      <span className="text-sm font-medium text-foreground">
+                        {formatDate(zone.startDate)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {zone.expectedCompletion && (
+                  <div className="flex items-center gap-3 p-2 rounded-md bg-secondary/50">
+                    <Clock className="h-4 w-4 text-primary" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">Expected Completion</span>
+                      <span className="text-sm font-medium text-foreground">
+                        {formatDate(zone.expectedCompletion)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-3 p-2 rounded-md bg-secondary/50">
-              <Clock className="h-4 w-4 text-primary" />
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Expected Completion</span>
-                <span className="text-sm font-medium text-foreground">
-                  {formatDate(zone.expectedCompletion)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </CardContent>
     </Card>
   )

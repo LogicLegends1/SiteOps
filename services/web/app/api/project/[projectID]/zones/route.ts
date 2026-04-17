@@ -25,37 +25,32 @@ export async function GET(
         activity,
         status,
         progress,
-        posx,
-        posy,
-        widthpercent,
-        heightpercent,
-        displayorder,
-        imagepath,
-        imageurl
+        lat,
+        lng,
+        markerlabel
       `)
       .eq("projectid", numericProjectId)
-      .order("displayorder", { ascending: true })
+      .order("zoneid", { ascending: true })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const zones = (data || []).map((zone: any) => ({
-      zoneID: zone.zoneid,
-      projectID: zone.projectid,
-      name: zone.name,
-      description: zone.description,
-      activity: zone.activity,
-      status: zone.status,
-      progress: zone.progress,
-      posX: Number(zone.posx ?? 0),
-      posY: Number(zone.posy ?? 0),
-      widthPercent: Number(zone.widthpercent ?? 0),
-      heightPercent: Number(zone.heightpercent ?? 0),
-      displayOrder: zone.displayorder,
-      imagePath: zone.imagepath,
-      imageUrl: zone.imageurl,
-    }))
+    // Filter zones with valid coordinates and map to camelCase
+    const zones = (data || [])
+      .filter((zone: any) => zone.lat != null && zone.lng != null)
+      .map((zone: any) => ({
+        zoneID: zone.zoneid,
+        projectID: zone.projectid,
+        name: zone.name,
+        description: zone.description,
+        activity: zone.activity,
+        status: zone.status,
+        progress: zone.progress,
+        lat: Number(zone.lat),
+        lng: Number(zone.lng),
+        markerLabel: zone.markerlabel || zone.name,
+      }))
 
     return NextResponse.json({ zones })
   } catch (error) {
