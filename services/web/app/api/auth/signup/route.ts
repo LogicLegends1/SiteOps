@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/superbase/server'
 
+const VALID_ROLES = ['OPERATION_MANAGER', 'PROJECT_MANAGER', 'SITE_ENGINEER']
+
 export async function POST(req: NextRequest) {
   const {
     email,
@@ -17,6 +19,13 @@ export async function POST(req: NextRequest) {
   if (!email || !password || !username || !role || !nic) {
     return NextResponse.json(
       { error: 'Missing required fields' },
+      { status: 400 }
+    )
+  }
+
+  if (typeof role !== 'string' || !VALID_ROLES.includes(role)) {
+    return NextResponse.json(
+      { error: `Invalid role. Allowed roles: ${VALID_ROLES.join(', ')}` },
       { status: 400 }
     )
   }
@@ -40,8 +49,6 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     )
   }
-
-  const authUserId = authData.user.id // UUID
 
   // =====================================
   // 2. Insert into person table

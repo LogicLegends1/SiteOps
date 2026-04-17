@@ -14,7 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { type Zone, type IssuePriority } from "@/lib/site-data"
+import { type Zone } from "@/lib/site-data"
+import { type IssuePriority } from "@/lib/issues-data"
 import { Spinner } from "@/components/ui/spinner"
 import { CheckCircle2, Plus, TrendingUp } from "lucide-react"
 

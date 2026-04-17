@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/superbase/server'
 
+const VALID_ROLES = ['OPERATION_MANAGER', 'PROJECT_MANAGER', 'SITE_ENGINEER']
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()
@@ -22,6 +24,13 @@ export async function POST(req: NextRequest) {
     if (!email || !name || !position || !nic) {
       return NextResponse.json(
         { error: 'Email, name, position, and NIC are required' },
+        { status: 400 }
+      )
+    }
+
+    if (role !== undefined && (typeof role !== 'string' || !VALID_ROLES.includes(role))) {
+      return NextResponse.json(
+        { error: `Invalid role. Allowed roles: ${VALID_ROLES.join(', ')}` },
         { status: 400 }
       )
     }

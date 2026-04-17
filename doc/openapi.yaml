@@ -55,12 +55,11 @@ paths:
                 role:
                   type: string
                   enum:
-                    - project_manager
-                    - site_engineer
-                    - foreman
-                    - supervisor
+                    - OPERATION_MANAGER
+                    - PROJECT_MANAGER
+                    - SITE_ENGINEER
                   description: User role in the system
-                  example: project_manager
+                  example: PROJECT_MANAGER
                 avatarimage:
                   type: string
                   nullable: true
@@ -213,6 +212,23 @@ paths:
                   error:
                     type: string
 
+  /api/project/all:
+    get:
+      summary: Get all projects
+      operationId: getAllProjects
+      tags:
+        - Project
+      description: Returns all projects in the system.
+      responses:
+        '200':
+          description: Projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+
   /api/project/{projectID}:
     get:
       summary: Get a specific project
@@ -318,6 +334,98 @@ paths:
                   error:
                     type: string
 
+  /api/project/{projectID}/assigned-people:
+    get:
+      summary: Get people assigned to a project
+      operationId: getAssignedPeopleByProject
+      tags:
+        - Project
+      description: Returns all people assigned to the specified project.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Project ID
+          example: 1
+      responses:
+        '200':
+          description: Assigned people retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  people:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Person'
+        '400':
+          description: Invalid project ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /api/activity/all:
+    get:
+      summary: Get all activities for a project
+      operationId: getAllActivitiesByProject
+      tags:
+        - Activity
+      description: Returns all activities for the specified project.
+      parameters:
+        - name: projectID
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Project ID to filter activities by
+          example: 1
+      responses:
+        '200':
+          description: Activities retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Activity'
+        '400':
+          description: Invalid or missing project ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
 # Activity endpoints
   /api/activity:
     post:
@@ -382,6 +490,51 @@ paths:
                     type: string
 
   /api/activity/{activityID}/logs:
+    get:
+      summary: Get all logs for an activity
+      operationId: getAllActivityLogs
+      tags:
+        - Activity
+      description: Returns all log entries for the specified activity.
+      parameters:
+        - name: activityID
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Activity ID
+          example: 1
+      responses:
+        '200':
+          description: Activity logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ActivityLogEntry'
+        '400':
+          description: Invalid activity ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
     post:
       summary: Add an activity log entry
       operationId: addActivityLog
@@ -420,46 +573,6 @@ paths:
                     type: string
         '404':
           description: Activity not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-
-  /api/activity/{activityID}/logs/last/undo:
-    post:
-      summary: Undo the last activity log entry
-      operationId: undoLastActivityLog
-      tags:
-        - Activity
-      description: Reverts the effect of the most recent activity log entry and restores the previous progress state.
-      parameters:
-        - name: activityID
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Activity ID
-          example: 1
-      responses:
-        '200':
-          description: Last activity log undone successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Last activity log entry undone successfully
-                  activity:
-                    $ref: '#/components/schemas/Activity'
-                  undoneLog:
-                    $ref: '#/components/schemas/ActivityLogEntry'
-        '404':
-          description: Activity or last log entry not found
           content:
             application/json:
               schema:
@@ -804,12 +917,11 @@ components:
         role:
           type: string
           enum:
-            - project_manager
-            - site_engineer
-            - foreman
-            - supervisor
+            - OPERATION_MANAGER
+            - PROJECT_MANAGER
+            - SITE_ENGINEER
           description: User role in the system
-          example: project_manager
+          example: PROJECT_MANAGER
         avatarimage:
           type: string
           nullable: true
@@ -876,11 +988,6 @@ components:
           nullable: true
           description: URL/path to project diagram
           example: https://example.com/diagram.png
-        projectManagerID:
-          type: integer
-          nullable: true
-          description: Assigned project manager user ID
-          example: 2
         status:
           type: string
           enum:
@@ -921,11 +1028,6 @@ components:
           nullable: true
           description: URL/path to project diagram
           example: https://example.com/diagram.png
-        projectManagerID:
-          type: integer
-          nullable: true
-          description: Assigned project manager user ID
-          example: 2
         status:
           type: string
           enum:
@@ -965,11 +1067,6 @@ components:
           nullable: true
           description: URL/path to project diagram
           example: https://example.com/diagram-v2.png
-        projectManagerID:
-          type: integer
-          nullable: true
-          description: Assigned project manager user ID
-          example: 3
         status:
           type: string
           enum:

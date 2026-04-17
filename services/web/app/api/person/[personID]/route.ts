@@ -3,15 +3,15 @@ import { createClient } from '@/lib/superbase/server'
 
 type RouteContext = {
   params: Promise<{
-    personid: string
+    personID: string
   }>
 }
 
 export async function GET(_req: NextRequest, context: RouteContext) {
   try {
     const supabase = await createClient()
-    const { personid } = await context.params
-    const numericPersonId = Number(personid)
+    const { personID } = await context.params
+    const numericPersonId = Number(personID)
 
     if (!Number.isInteger(numericPersonId) || numericPersonId <= 0) {
       return NextResponse.json({ error: "Invalid person id" }, { status: 400 })
@@ -37,8 +37,8 @@ export async function GET(_req: NextRequest, context: RouteContext) {
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
     const supabase = await createClient()
-    const { personid } = await context.params
-    const numericPersonId = Number(personid)
+    const { personID } = await context.params
+    const numericPersonId = Number(personID)
 
     if (!Number.isInteger(numericPersonId) || numericPersonId <= 0) {
       return NextResponse.json({ error: "Invalid person id" }, { status: 400 })
@@ -118,8 +118,8 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 export async function DELETE(_req: NextRequest, context: RouteContext) {
   try {
     const supabase = await createClient()
-    const { personid } = await context.params
-    const numericPersonId = Number(personid)
+    const { personID } = await context.params
+    const numericPersonId = Number(personID)
 
     if (!Number.isInteger(numericPersonId) || numericPersonId <= 0) {
       return NextResponse.json({ error: "Invalid person id" }, { status: 400 })
