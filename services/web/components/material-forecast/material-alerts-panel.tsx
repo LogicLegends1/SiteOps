@@ -19,6 +19,8 @@ import {
   Check,
   Bell,
   Activity,
+  ShoppingCart,
+  ArrowUpRight,
 } from "lucide-react"
 
 function AlertTypeIcon({ type }: { type: MaterialAlert["type"] }) {
@@ -73,11 +75,16 @@ export function MaterialAlertsPanel() {
     )
   }
 
+  const handleRestockRequest = (alert: MaterialAlert) => {
+    // Mock procurement trigger
+    window.alert(`PROCUREMENT REQUESTED: Emergency restock for ${alert.materialName} initiated. Requisition #OPS-${Math.floor(Math.random() * 10000)}`)
+  }
+
   const AlertCard = ({ alert, showAcknowledge = true }: { alert: MaterialAlert; showAcknowledge?: boolean }) => (
     <div
       className={`relative overflow-hidden p-4 rounded-xl border-2 transition-all hover:shadow-lg ${
         alert.severity === "critical"
-          ? "border-destructive bg-destructive/5"
+          ? "border-destructive bg-destructive/5 shadow-[0_0_20px_rgba(239,68,68,0.05)]"
           : alert.severity === "high"
           ? "border-warning bg-warning/5"
           : "border-border bg-card"
@@ -85,12 +92,12 @@ export function MaterialAlertsPanel() {
     >
       {/* Decorative Severity Stripe */}
       <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${
-        alert.severity === "critical" ? "bg-destructive" : 
+        alert.severity === "critical" ? "bg-destructive shadow-[2px_0_10px_rgba(239,68,68,0.5)]" : 
         alert.severity === "high" ? "bg-warning" : "bg-muted-foreground/30"
       }`} />
 
       <div className="flex items-start justify-between gap-4 pl-2">
-        <div className="flex-1 space-y-3">
+        <div className="flex-1 space-y-4">
           <div className="flex items-center gap-2 flex-wrap">
             <div className={`p-1.5 rounded-md ${
               alert.severity === "critical" ? "bg-destructive text-destructive-foreground font-black animate-pulse" : 
@@ -104,37 +111,48 @@ export function MaterialAlertsPanel() {
             </Badge>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-sm font-medium leading-relaxed">{alert.message}</p>
+          <div className="space-y-3">
+            <p className="text-sm font-bold leading-relaxed opacity-90">{alert.message}</p>
             
-            <div className="flex flex-col gap-1 rounded-lg bg-background/50 p-3 border border-border/50">
-              <span className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1">
+            <div className="flex flex-col gap-1 rounded-lg bg-background/50 p-3 border-2 border-primary/10 shadow-inner">
+              <span className="text-[10px] font-black uppercase text-primary flex items-center gap-1.5">
                 <Check className="h-3 w-3" /> Recommended Action
               </span>
-              <p className="text-sm font-bold text-primary italic leading-snug">
+              <p className="text-sm font-black text-foreground italic leading-snug">
                 "{alert.recommendation}"
               </p>
             </div>
+
+            {(alert.severity === "critical" || alert.severity === "high") && !alert.acknowledged && (
+              <Button 
+                onClick={() => handleRestockRequest(alert)}
+                className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase text-xs tracking-widest gap-2 shadow-lg shadow-primary/20 transition-all active:scale-95"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Initiate Emergency Restock
+                <ArrowUpRight className="h-3 w-3 opacity-50" />
+              </Button>
+            )}
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-border/50">
+          <div className="flex items-center justify-between pt-3 border-t-2 border-border/20">
             <div className="flex items-center gap-3">
               {alert.affectedActivities.length > 0 && (
                 <div className="flex -space-x-1">
                   {alert.affectedActivities.slice(0, 3).map((_, i) => (
-                    <div key={i} className="w-5 h-5 rounded-full border-2 border-background bg-secondary flex items-center justify-center">
-                      <Activity className="h-2.5 w-2.5 text-muted-foreground" />
+                    <div key={i} className="w-6 h-6 rounded-full border-2 border-background bg-secondary flex items-center justify-center">
+                      <Activity className="h-3 w-3 text-muted-foreground" />
                     </div>
                   ))}
                   {alert.affectedActivities.length > 3 && (
-                    <div className="w-5 h-5 rounded-full border-2 border-background bg-secondary flex items-center justify-center text-[8px] font-bold">
+                    <div className="w-6 h-6 rounded-full border-2 border-background bg-secondary flex items-center justify-center text-[10px] font-black">
                       +{alert.affectedActivities.length - 3}
                     </div>
                   )}
                 </div>
               )}
-              <span className="text-[10px] text-muted-foreground font-medium italic">
-                {new Date(alert.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Issued {new Date(alert.createdAt).toLocaleDateString()}
+              <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-tight">
+                {new Date(alert.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(alert.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
               </span>
             </div>
 
@@ -143,9 +161,9 @@ export function MaterialAlertsPanel() {
                 size="sm"
                 variant="ghost"
                 onClick={() => handleAcknowledge(alert.id)}
-                className="h-8 text-[10px] font-black uppercase hover:bg-success hover:text-success-foreground"
+                className="h-8 text-[10px] font-black uppercase hover:bg-success hover:text-success-foreground px-3"
               >
-                Mark Handled
+                Dismiss Feed
               </Button>
             )}
           </div>
@@ -155,69 +173,67 @@ export function MaterialAlertsPanel() {
   )
 
   return (
-    <Card className="border-2 shadow-xl bg-card/60 backdrop-blur-sm">
-      <CardHeader className="pb-4 border-b">
+    <Card className="border-2 shadow-2xl bg-card/60 backdrop-blur-md overflow-hidden">
+      <CardHeader className="pb-4 border-b-2 bg-muted/20">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Bell className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-primary rounded-xl shadow-lg shadow-primary/20">
+              <Bell className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <CardTitle className="text-lg font-black tracking-tighter uppercase">Operations Control</CardTitle>
-              <CardDescription className="text-xs font-semibold text-muted-foreground uppercase">Material Shortage & Trend Monitor</CardDescription>
+              <CardTitle className="text-xl font-black tracking-tighter uppercase leading-none">Intelligence Feed</CardTitle>
+              <CardDescription className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-2">Real-time Anomaly Detection</CardDescription>
             </div>
           </div>
           {activeAlerts.length > 0 && (
             <div className="flex items-center gap-2">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
-              </span>
-              <Badge variant="destructive" className="font-black text-xs px-2 py-0.5 border-2 border-destructive-foreground/20 uppercase tracking-tighter">
-                {activeAlerts.length} Breach{activeAlerts.length > 1 ? "es" : ""}
+              <Badge variant="destructive" className="font-black text-[10px] px-3 py-1 border-2 border-destructive shadow-lg shadow-destructive/20 animate-pulse uppercase tracking-widest">
+                {activeAlerts.length} High Risks
               </Badge>
             </div>
           )}
         </div>
       </CardHeader>
-      <CardContent className="pt-6">
+      <CardContent className="pt-8">
         <Tabs defaultValue="active" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 h-11 bg-muted/60 p-1 rounded-lg">
-            <TabsTrigger value="active" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm font-bold uppercase text-[10px] tracking-widest transition-all">
-              Live Feed
+          <TabsList className="grid w-full grid-cols-2 h-12 bg-muted/60 p-1.5 rounded-xl border-2">
+            <TabsTrigger value="active" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all">
+              Live Priority
             </TabsTrigger>
-            <TabsTrigger value="acknowledged" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm font-bold uppercase text-[10px] tracking-widest transition-all">
-              Archive
+            <TabsTrigger value="acknowledged" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all">
+              History Log
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="active" className="mt-6">
-            <ScrollArea className="h-[520px] pr-4">
+          <TabsContent value="active" className="mt-8">
+            <ScrollArea className="h-[550px] pr-4">
               {activeAlerts.length > 0 ? (
-                <div className="space-y-4 pb-4">
+                <div className="space-y-6 pb-6">
                   {activeAlerts.map((alert) => (
                     <AlertCard key={alert.id} alert={alert} />
                   ))}
                 </div>
               ) : (
-                <div className="h-64 flex flex-col items-center justify-center text-muted-foreground gap-3">
-                  <Package className="h-12 w-12 opacity-10" />
-                  <p className="font-black text-sm uppercase tracking-tighter opacity-30">All parameters stable</p>
+                <div className="h-96 flex flex-col items-center justify-center text-muted-foreground gap-4">
+                  <div className="p-6 bg-success/10 rounded-full">
+                    <Check className="h-12 w-12 text-success opacity-40" />
+                  </div>
+                  <p className="font-black text-xs uppercase tracking-[0.2em] opacity-40">Operational Status Nominal</p>
                 </div>
               )}
             </ScrollArea>
           </TabsContent>
-          <TabsContent value="acknowledged" className="mt-6">
-            <ScrollArea className="h-[520px] pr-4">
+          <TabsContent value="acknowledged" className="mt-8">
+            <ScrollArea className="h-[550px] pr-4">
               {acknowledgedAlerts.length > 0 ? (
-                <div className="space-y-4 pb-4">
+                <div className="space-y-6 pb-6">
                   {acknowledgedAlerts.map((alert) => (
                     <AlertCard key={alert.id} alert={alert} showAcknowledge={false} />
                   ))}
                 </div>
               ) : (
-                <div className="h-64 flex flex-col items-center justify-center text-muted-foreground gap-3">
-                   <p className="font-black text-sm uppercase tracking-tighter opacity-30">Archive empty</p>
+                <div className="h-96 flex flex-col items-center justify-center text-muted-foreground gap-4">
+                   <p className="font-black text-xs uppercase tracking-[0.2em] opacity-40">Log archive empty</p>
                 </div>
               )}
             </ScrollArea>
