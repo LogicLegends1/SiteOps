@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useParams, usePathname, useRouter } from "next/navigation"
 import {
   SidebarProvider,
   Sidebar,
@@ -19,104 +18,125 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import {
+  MapPin,
+  AlertTriangle,
+  Package,
+  Users,
   Settings,
   LogOut,
-  HardHat
+  HardHat,
+  Wrench,
+  ChartNoAxesGantt
 } from "lucide-react"
 import { createClient } from "@/lib/superbase"
 
-export default function DashboardLayout({
+const navItems = [
+  {
+    title: "Project Overview",
+    segment: "",
+    icon: ChartNoAxesGantt,
+  },
+  {
+    title: "Site Progress Tracking",
+    segment: "site-progress",
+    icon: MapPin,
+  },
+  {
+    title: "Predictive Delay Engine",
+    segment: "delay-engine",
+    icon: AlertTriangle,
+  },
+  {
+    title: "Material Forecasting",
+    segment: "material-forecast",
+    icon: Package,
+  },
+  {
+    title: "Workforce Allocation",
+    segment: "workforce",
+    icon: Users,
+  },
+  {
+    title: "Equipment Allocation",
+    segment: "equipment",
+    icon: Wrench,
+  },
+]
+
+export default function ProjectLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const params = useParams<{ id?: string }>()
+  const pathname = usePathname()
   const router = useRouter()
+  const projectId = params.id ?? "1"
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
   const [userName, setUserName] = useState<string>("User")
 
+  const getProjectHref = (segment: string) =>
+    segment ? `/project/${projectId}/${segment}` : `/project/${projectId}`
+
   useEffect(() => {
-    let isMounted = true
-
     const fetchUser = async () => {
-      try {
-        const supabase = createClient()
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-
-        if (user && isMounted) {
-          const avatarUrl = user.user_metadata?.avatar_url
-          const fullName = user.user_metadata?.full_name || "User"
-
-          setUserAvatar(avatarUrl)
-          setUserName(fullName)
-        }
-      } catch {
-        if (isMounted) {
-          setUserAvatar(null)
-          setUserName("User")
-        }
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        // Get avatar from user metadata
+        const avatarUrl = user.user_metadata?.avatar_url
+        const fullName = user.user_metadata?.full_name || "User"
+        
+        setUserAvatar(avatarUrl)
+        setUserName(fullName)
       }
     }
-
+    
     fetchUser()
-
-    return () => {
-      isMounted = false
-    }
   }, [])
 
   const handleLogout = async () => {
-    try {
-      const supabase = createClient()
-      await supabase.auth.signOut()
-    } catch {
-      // no-op: always return to login screen
-    }
-
+    const supabase = createClient()
+    await supabase.auth.signOut()
     router.push("/login")
   }
 
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider defaultOpen={true}>
       <Sidebar variant="sidebar" collapsible="icon">
-        <SidebarHeader className="border-sidebar-border flex flex-row items-center justify-between px-4 py-4">
-          <Link href="/" aria-label="Go to home" className="flex items-center gap-3 group-data-[collapsible=icon]:hidden">
+        <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
+          <Link href="/" className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
               <HardHat className="h-5 w-5 text-primary-foreground" />
             </div>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
               <span className="text-base font-semibold text-foreground">SiteOps</span>
+              <span className="text-xs text-muted-foreground">Access Engineering</span>
             </div>
           </Link>
-          <SidebarTrigger className="-ml-2 hidden md:inline-flex" />
         </SidebarHeader>
 
-        <SidebarContent className="overflow-hidden px-2 py-4">
-          <SidebarMenu className="h-full">
-            <SidebarMenuItem className="h-full">
-              <div className="relative h-full w-full overflow-hidden transition-opacity duration-300 group-data-[collapsible=icon]:opacity-0">
-                <Image
-                  src="/sidebar-menu-fill.png"
-                  alt="Sidebar menu visual"
-                  fill
-                  priority
-                  className="object-cover"
-                  style={{
-                    opacity: 1,
-                    WebkitMaskImage:
-                      "linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.30) 25%, rgba(0, 0, 0, 0) 100%)",
-                    maskImage:
-                      "linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.30) 25%, rgba(0, 0, 0, 0) 100%)",
-                  }}
-                  sizes="240px"
-                />
-              </div>
-            </SidebarMenuItem>
+        <SidebarContent className="px-2 py-4">
+          <SidebarMenu>
+            {navItems.map((item) => (
+              <SidebarMenuItem key={item.segment || "overview"}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === getProjectHref(item.segment)}
+                  tooltip={item.title}
+                >
+                  <Link href={getProjectHref(item.segment)}>
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
           </SidebarMenu>
         </SidebarContent>
 
-        <SidebarFooter className="border-sidebar-border px-2 py-3">
+        <SidebarFooter className="border-t border-sidebar-border px-2 py-3">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton tooltip="Settings">
@@ -146,11 +166,12 @@ export default function DashboardLayout({
       </Sidebar>
 
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-20 items-center gap-4 border-b border-border bg-background/95 px-6 backdrop-blur supports-backdrop-filter:bg-background/60">
-          <SidebarTrigger className="md:hidden" />
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b border-border bg-background/95 px-6 backdrop-blur supports-backdrop-filter:bg-background/60">
+          <SidebarTrigger className="-ml-2" />
+          <Separator orientation="vertical" className="h-6" />
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold text-foreground">
-              Dashboard
+            <h1 className="text-lg font-semibold text-foreground">
+              {navItems.find((item) => pathname === getProjectHref(item.segment))?.title || "Project Dashboard"}
             </h1>
           </div>
         </header>

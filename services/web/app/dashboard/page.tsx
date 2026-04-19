@@ -1,272 +1,202 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
+"use client"
+
+import { useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import {
-  MapPin,
-  AlertTriangle,
-  Package,
-  Users,
-  TrendingUp,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-} from "lucide-react"
-import Link from "next/link"
-import { SriLankaSitesMap } from "@/components/dashboard/sri-lanka-sites-map"
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemHeader,
+  ItemTitle,
+} from "@/components/ui/item"
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
+import dynamic from "next/dynamic"
+import type { LeafletMapItem } from "@/components/ui/leaflet-map"
 
-const projectStats = [
+const LeafletMap = dynamic(
+  () => import("@/components/ui/leaflet-map").then((mod) => ({ default: mod.LeafletMap })),
   {
-    title: "Site Progress",
-    value: "68%",
-    description: "Overall completion",
-    icon: MapPin,
-    trend: "+5% this week",
-    href: "/site-progress",
-  },
-  {
-    title: "Delay Risks",
-    value: "3",
-    description: "Activities at risk",
-    icon: AlertTriangle,
-    trend: "2 new alerts",
-    href: "/delay-engine",
-  },
-  {
-    title: "Material Status",
-    value: "2",
-    description: "Low stock items",
-    icon: Package,
-    trend: "Cement, Steel",
-    href: "/material-forecast",
-  },
-  {
-    title: "Workforce",
-    value: "45",
-    description: "Active workers",
-    icon: Users,
-    trend: "5 idle today",
-    href: "/workforce",
-  },
-]
-
-const recentActivities = [
-  {
-    zone: "Zone A",
-    activity: "Foundation Work",
-    status: "in-progress",
-    progress: 75,
-    team: "Team Alpha",
-  },
-  {
-    zone: "Zone B",
-    activity: "Piling Section",
-    status: "delayed",
-    progress: 40,
-    team: "Team Beta",
-  },
-  {
-    zone: "Zone C",
-    activity: "Electrical Installation",
-    status: "completed",
-    progress: 100,
-    team: "Team Gamma",
-  },
-  {
-    zone: "Zone D",
-    activity: "Drainage Setup",
-    status: "not-started",
-    progress: 0,
-    team: "Unassigned",
-  },
-]
-
-const activeIssues = [
-  {
-    id: "ISS-001",
-    title: "Material Delay - Steel Rebar",
-    priority: "high",
-    status: "open",
-    owner: "Procurement Team",
-  },
-  {
-    id: "ISS-002",
-    title: "Equipment Failure - Crane #2",
-    priority: "critical",
-    status: "in-progress",
-    owner: "Maintenance",
-  },
-  {
-    id: "ISS-003",
-    title: "Labour Shortage - Zone B",
-    priority: "medium",
-    status: "open",
-    owner: "HR Department",
-  },
-]
-
-function getStatusColor(status: string) {
-  switch (status) {
-    case "completed":
-      return "bg-success text-success-foreground"
-    case "in-progress":
-      return "bg-primary text-primary-foreground"
-    case "delayed":
-      return "bg-destructive text-destructive-foreground"
-    case "not-started":
-      return "bg-muted text-muted-foreground"
-    default:
-      return "bg-muted text-muted-foreground"
+    ssr: false,
+    loading: () => (
+      <div className="flex h-96 w-full items-center justify-center rounded-lg border border-border bg-card text-sm text-muted-foreground">
+        Loading map...
+      </div>
+    ),
   }
-}
+)
 
-function getPriorityColor(priority: string) {
-  switch (priority) {
-    case "critical":
-      return "bg-destructive text-destructive-foreground"
-    case "high":
-      return "bg-warning text-warning-foreground"
-    case "medium":
-      return "bg-primary text-primary-foreground"
-    default:
-      return "bg-muted text-muted-foreground"
+const projects: LeafletMapItem[] = [
+  {
+    id: 1,
+    title: "Colombo Metro Tower",
+    lng: 79.860071,
+    lat: 6.926354,
+    description: "IN_PROGRESS",
+    tooltip: "Hover for details",
+  },
+  {
+    id: 2,
+    title: "Kandy Central Highway",
+    lng: 80.6337,
+    lat: 7.2906,
+    description: "IN_PROGRESS",
+    tooltip: "Hover for details",
+  },
+  {
+    id: 3,
+    title: "Galle Port Expansion",
+    lng: 80.217,
+    lat: 6.0367,
+    description: "IN_PROGRESS",
+    tooltip: "Hover for details",
+  },
+  {
+    id: 4,
+    title: "Jaffna Bridge Construction",
+    lng: 80.0255,
+    lat: 9.6615,
+    description: "IN_PROGRESS",
+    tooltip: "Hover for details",
+  },
+  {
+    id: 5,
+    title: "Trincomalee Port Upgrade",
+    lng: 81.233,
+    lat: 8.5877,
+    description: "IN_PROGRESS",
+    tooltip: "Hover for details",
+  },
+  {
+    id: 6,
+    title: "Hambantota Airport Expansion",
+    lng: 81.116,
+    lat: 6.124,
+    description: "IN_PROGRESS",
+    tooltip: "Hover for details",
   }
-}
+]
 
 export default function DashboardPage() {
-  return (
-    <div className="flex flex-col gap-6">
-      {/* Welcome Header with Logo Placeholder */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {/* Logo Placeholder */}
-          <div className="h-16 w-16 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center border border-border shadow-lg">
-            <span className="text-primary-foreground font-bold text-xl">AE</span>
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Access Engineering PLC</h1>
-            <p className="text-muted-foreground">Construction Site Operations System</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-sm text-muted-foreground">Current Project</p>
-          <p className="text-lg font-semibold text-foreground">Colombo Metro Tower</p>
-        </div>
-      </div>
+  const router = useRouter()
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {projectStats.map((stat) => (
-          <Link key={stat.title} href={stat.href}>
-            <Card className="bg-card border-border transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <stat.icon className="h-4 w-4 text-muted-foreground" />
+  const createProjectTooltip = useCallback((item: LeafletMapItem) => {
+    const status = item.description ?? "Unknown"
+
+    const container = document.createElement("div")
+    container.className = "bg-background/90 rounded"
+
+    const title = document.createElement("div")
+    title.className = "font-semibold text-sm text-foreground"
+    title.textContent = item.title ?? "Untitled project"
+
+    const id = document.createElement("div")
+    id.className = "text-xs text-muted-foreground mt-1"
+    id.textContent = `Project ID: ${item.id}`
+
+    const statusLine = document.createElement("div")
+    statusLine.className = "text-xs text-muted-foreground"
+    statusLine.textContent = `Status: ${status}`
+
+    container.append(title, id, statusLine)
+    return container
+  }, [])
+
+  const mapOptions = useMemo(
+    () => ({
+      center: [7.0, 80.3] as [number, number],
+      zoom: 7,
+      autoFitToMarkers: true,
+      fitPadding: [60, 60] as [number, number],
+      maxZoom: 19,
+    }),
+    []
+  )
+
+  return (
+    <div className="h-[calc(100dvh-8rem)] min-h-96 overflow-hidden">
+      <Card className="flex h-full min-h-0 flex-col overflow-hidden border-border bg-card">
+        <CardHeader className="shrink-0">
+          <CardTitle className="text-foreground text-xl">Projects</CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 min-h-0 overflow-hidden">
+          <div className="flex h-full min-h-0 flex-row gap-4 overflow-hidden">
+            <Card className="h-full max-h-full max-w-full aspect-square shrink overflow-hidden p-0">
+              <LeafletMap
+                items={projects}
+                className="h-full"
+                mapClassName="h-full"
+                mapOptions={mapOptions}
+                markerOptions={{
+                  getTooltipContent: createProjectTooltip,
+                  tooltipPermanent: false,
+                  tooltipDirection: "top",
+                  tooltipOffset: [0, -12],
+                }}
+                onMarkerClick={({ item }) => {
+                  router.push(`/project/${item.id}`)
+                }}
+              />
+            </Card>
+
+            <Card className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              <CardHeader className="shrink-0 border-b border-border pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base">Project List</CardTitle>
+                  <Badge variant="secondary">{projects.length}</Badge>
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground">{stat.value}</div>
-                <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-                <p className="text-xs text-primary mt-2 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" />
-                  {stat.trend}
-                </p>
+
+              <CardContent className="min-h-0 flex-1 p-0">
+                <ScrollArea className="h-full">
+                  {projects.length === 0 ? (
+                    <Empty className="border-none">
+                      <EmptyHeader>
+                        <EmptyTitle>No projects found</EmptyTitle>
+                        <EmptyDescription>
+                          There are no projects to display. Please add a project to get started.
+                        </EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
+                  ) : (
+                    <ItemGroup className="gap-2 p-2">
+                      {projects.map((project) => {
+                        const status = project.description ?? "Unknown"
+
+                        return (
+                          <Item
+                            key={project.id}
+                            asChild
+                            variant="outline"
+                            size="sm"
+                          >
+                            <button
+                              type="button"
+                              className="w-full cursor-pointer text-left"
+                              onClick={() => router.push(`/project/${project.id}`)}
+                            >
+                              <ItemContent>
+                                <ItemHeader>
+                                  <ItemTitle>{project.title || "Untitled project"}</ItemTitle>
+                                  <Badge variant="outline">{status}</Badge>
+                                </ItemHeader>
+                                <ItemDescription>Project ID: {project.id}</ItemDescription>
+                              </ItemContent>
+                            </button>
+                          </Item>
+                        )
+                      })}
+                    </ItemGroup>
+                  )}
+                </ScrollArea>
               </CardContent>
             </Card>
-          </Link>
-        ))}
-      </div>
-
-      {/* Sri Lanka Sites Map */}
-      <SriLankaSitesMap />
-
-      {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Activities */}
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-foreground">Recent Activities</CardTitle>
-              <CardDescription>Latest updates from site zones</CardDescription>
-            </div>
-            <Link href="/site-progress">
-              <Badge variant="outline" className="cursor-pointer hover:bg-accent">
-                View All
-              </Badge>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4">
-              {recentActivities.map((activity) => (
-                <div
-                  key={activity.zone}
-                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
-                >
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">
-                        {activity.zone}
-                      </span>
-                      <Badge className={getStatusColor(activity.status)} variant="secondary">
-                        {activity.status.replace("-", " ")}
-                      </Badge>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{activity.activity}</span>
-                    <span className="text-xs text-muted-foreground">{activity.team}</span>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 w-24">
-                    <span className="text-sm font-medium text-foreground">{activity.progress}%</span>
-                    <Progress value={activity.progress} className="h-2 w-full" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Active Issues */}
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-foreground">Active Issues</CardTitle>
-              <CardDescription>Current blockers and problems</CardDescription>
-            </div>
-            <Link href="/site-progress">
-              <Badge variant="outline" className="cursor-pointer hover:bg-accent">
-                View All
-              </Badge>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4">
-              {activeIssues.map((issue) => (
-                <div
-                  key={issue.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
-                >
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-muted-foreground">{issue.id}</span>
-                      <Badge className={getPriorityColor(issue.priority)} variant="secondary">
-                        {issue.priority}
-                      </Badge>
-                    </div>
-                    <span className="text-sm font-medium text-foreground">{issue.title}</span>
-                    <span className="text-xs text-muted-foreground">Owner: {issue.owner}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {issue.status === "open" ? (
-                      <AlertCircle className="h-4 w-4 text-warning" />
-                    ) : (
-                      <Clock className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
