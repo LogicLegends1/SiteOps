@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { HardHat, GanttChartSquare, Bot, Lightbulb, Users, ArrowRight } from "lucide-react";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 
 const features = [
@@ -37,6 +38,7 @@ export default function HomePage() {
             <span className="font-bold relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-primary after:transition-all after:duration-300 group-hover:after:w-full">SiteOps</span>
           </div>
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             <Button asChild className="group transition-all duration-300 hover:shadow-md hover:shadow-primary/20 hover:-translate-y-0.5">
               <Link href="/login">
                 Go to Login

@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { HardHat, Mail, Lock, Chrome } from "lucide-react"
 
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -63,7 +64,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="relative min-h-screen bg-background text-foreground">
+      <div className="absolute right-6 top-6">
+        <ThemeToggle />
+      </div>
       <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center p-6">
         <Card className="w-full max-w-md">
           <CardHeader className="items-center text-center">
