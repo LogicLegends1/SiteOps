@@ -16,6 +16,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Separator } from "@/components/ui/separator"
 import {
   MapPin,
@@ -174,6 +175,7 @@ export default function ProjectLayout({
               {navItems.find((item) => pathname === getProjectHref(item.segment))?.title || "Project Dashboard"}
             </h1>
           </div>
+          <ThemeToggle />
         </header>
         <main className="flex-1 overflow-auto p-6">
           {children}
