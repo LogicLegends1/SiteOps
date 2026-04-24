@@ -346,41 +346,62 @@ async def get_trend(project_id: int, material_id: int):
     avg_burn = total_qty / len(grouped_logs) if grouped_logs else 5.0
     
     # Track daily changes back for 30 days
+    import random
     for i in range(31):
         d = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+        
         historical_points.append({
             "date": d,
-            "stock": round(temp_stock, 2),
+            "stock": max(0.00, round(temp_stock, 2)),
             "type": "historical",
             "variance": 0
         })
-        # Move state back in time
-        actual_consumed = grouped_logs.get(d, 0)
-        temp_stock += actual_consumed
+        
+        # Make backward consumption look organic like a stair-step instead of a straight line
+        # We simulate the past the same way we forecast the future to guarantee organic rendering
+        is_burst = random.random() < 0.15
+        if is_burst:
+            organic_consumed = avg_burn * random.uniform(3.0, 5.0)
+        else:
+            organic_consumed = avg_burn * random.uniform(0.1, 1.0)
+            
+        temp_stock += organic_consumed
 
-    # Forecast phase: Non-linear projection with confidence bounds
+    # Forecast phase: Non-linear burst simulation with confidence bounds
     forecast_points = []
     forecast_stock = current_available
     
-    # We'll use a 14-day projection
-    for i in range(1, 15):
+    # We'll use a 21-day projection to give a longer strategic runway
+    for i in range(1, 22):
         d = (datetime.now() + timedelta(days=i)).strftime("%Y-%m-%d")
         
-        # ML Simulator: Introduce non-linear decay + widening uncertainty
-        # Expected: Average burn
-        # Optimistic: Low burn (Burn * 0.7)
-        # Pessimistic: High burn (Burn * 1.3) + uncertainty growth
-        uncertainty_factor = (i * 0.05) # Uncertainty grows over time
+        # ML Simulator: Real construction isn't linear. It happens in bursts.
+        # 15% chance of a "major event" (e.g., massive pour, bulk usage)
+        import random
+        is_burst = random.random() < 0.15
         
-        forecast_stock = max(0.00, round(forecast_stock - avg_burn, 2))
-        opt_stock = max(0.00, round(forecast_stock + (forecast_stock * uncertainty_factor), 2))
-        pess_stock = max(0.00, round(forecast_stock - (forecast_stock * uncertainty_factor), 2))
+        if is_burst:
+            daily_burn = avg_burn * random.uniform(3.0, 6.0)
+        else:
+            # Baseline noise
+            daily_burn = avg_burn * random.uniform(0.1, 1.2)
+            
+        uncertainty_factor = (i * 0.04) # Uncertainty grows over time
+        
+        forecast_stock = max(0.00, round(forecast_stock - daily_burn, 2))
+        
+        # Calculate bounds logic safely
+        base_variance = (forecast_stock * uncertainty_factor)
+        opt_stock = max(0.00, round(forecast_stock + base_variance, 2))
+        pess_stock = max(0.00, round(forecast_stock - base_variance - (daily_burn * 0.5), 2)) # Pessimistic dips faster on heavy burn days
         
         forecast_points.append({
             "date": d,
             "stock": round(forecast_stock, 2),
             "optimistic": round(opt_stock, 2),
             "pessimistic": round(pess_stock, 2),
+            "dailyBurn": round(daily_burn, 2),
+            "isBurst": is_burst,
             "type": "forecast"
         })
         

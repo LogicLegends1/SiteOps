@@ -14,8 +14,10 @@ import {
   Tooltip,
   ResponsiveContainer,
   Area,
-  AreaChart,
+  ComposedChart,
+  Bar,
   ReferenceLine,
+  ReferenceArea,
 } from "recharts"
 import {
   type Material,
@@ -31,7 +33,8 @@ import {
   TrendingDown, 
   AlertTriangle, 
   Minus,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from "lucide-react"
 
 interface ConsumptionTrendChartProps {
@@ -43,7 +46,9 @@ interface ConsumptionTrendChartProps {
 export function ConsumptionTrendChart({ material: initialMaterial, materialsList = [], onMaterialChange }: ConsumptionTrendChartProps) {
   const [currentMaterial, setCurrentMaterial] = useState<Material | null>(initialMaterial)
   const [data, setData] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const [simulationAmount, setSimulationAmount] = useState<number>(0)
+  const [simInput, setSimInput] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
@@ -58,61 +63,48 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
 
   useEffect(() => {
     if (currentMaterial && currentMaterial.id) {
+      setIsLoading(true)
       const rawId = currentMaterial.id.replace("MAT-", "")
       fetch(`http://localhost:8000/predict/trend/1/${rawId}`)
         .then((res) => res.json())
         .then((respData: any[]) => {
-          if (!respData || respData.length === 0) {
+          if (!respData || !Array.isArray(respData) || respData.length === 0) {
             setData([])
+            setIsLoading(false)
             return
           }
           
-          let runningStock = currentMaterial.available
-          const historical = []
+          // The backend now provides a true, non-linear stochastic model.
+          // We just need to inject the simulation bounce into the forecast phase.
+          const processedData = respData.map((point, index, arr) => {
+            if (point.type === 'forecast') {
+              return {
+                ...point,
+                forecastStock: point.stock + (simulationAmount || 0),
+                historicalStock: null,
+                stock: point.stock + (simulationAmount || 0), // Keeping generic 'stock' for tooltip compatibility
+                optimistic: point.optimistic ? point.optimistic + (simulationAmount || 0) : undefined,
+                pessimistic: point.pessimistic ? point.pessimistic + (simulationAmount || 0) : undefined,
+              }
+            } else {
+               const isLastHistorical = index === arr.length - 1 || arr[index + 1].type === 'forecast';
+               return {
+                 ...point,
+                 historicalStock: point.stock,
+                 forecastStock: isLastHistorical ? point.stock : null,
+                 optimistic: isLastHistorical ? point.stock : null,
+                 pessimistic: isLastHistorical ? point.stock : null,
+               }
+            }
+          });
           
-          for (let i = respData.length - 1; i >= 0; i--) {
-            const point = respData[i]
-            // Add a tiny jitter (1-2%) to historical points for visual realism if data is flat
-            const jitter = (Math.random() - 0.5) * (point.actual * 0.05)
-            historical.unshift({
-              date: point.date,
-              stock: runningStock + jitter,
-              type: 'historical'
-            })
-            runningStock += point.actual
-          }
-
-          const forecast = []
-          const lastPoint = historical[historical.length - 1]
-          const lastDate = new Date(lastPoint.date)
-          const baseBurnRate = currentMaterial.dailyAvgConsumption || 10
-          
-          let forecastStock = currentMaterial.available + simulationAmount
-          
-          for (let i = 1; i <= 21; i++) {
-            const futureDate = new Date(lastDate)
-            futureDate.setDate(lastDate.getDate() + i)
-            
-            // Add variance to forecast (±15% of daily burn) to look like real predictive logic
-            const variance = (Math.random() - 0.5) * (baseBurnRate * 0.3)
-            const dailyBurn = Math.max(0, baseBurnRate + variance)
-            
-            forecastStock = Math.max(0, forecastStock - dailyBurn)
-            
-            forecast.push({
-              date: futureDate.toISOString(),
-              stock: forecastStock,
-              type: 'forecast'
-            })
-            
-            if (forecastStock <= 0 && i > 12) break;
-          }
-          
-          setData([...historical, ...forecast])
+          setData(processedData)
+          setIsLoading(false)
         })
         .catch((err) => {
           console.error("Failed to load trajectory", err)
           setData([])
+          setIsLoading(false)
         })
     }
   }, [currentMaterial, simulationAmount])
@@ -225,17 +217,30 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
             </CardHeader>
 
             <CardContent className="p-8 flex-1 flex flex-col gap-10">
-              <div className="flex-1 min-h-[300px] -ml-6">
+              <div className="flex-1 min-h-[300px] grid grid-cols-1 xl:grid-cols-2 gap-8 -ml-6 mr-6 relative">
+                {/* LOADING OVERLAY */}
+                {isLoading && (
+                  <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm rounded-lg">
+                    <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+                    <p className="text-xs font-black uppercase tracking-widest text-primary">Loading...</p>
+                  </div>
+                )}
+                
+                {/* CHART 1: DEPLETION TRAJECTORY */}
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                  <ComposedChart data={data} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="historicalStock" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
                         <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="forecastStock" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.1} />
-                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.1} />
+                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="dangerZone" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#ef4444" stopOpacity={0.1} />
+                        <stop offset="100%" stopColor="#ef4444" stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
@@ -251,6 +256,7 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                       dy={10}
                     />
                     <YAxis
+                      yAxisId="stock"
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 11, fontWeight: 600, fill: "#94a3b8" }}
@@ -267,38 +273,30 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                       itemStyle={{ color: "#f8fafc" }}
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          const isForecast = data.type === 'forecast';
+                          const stockData = payload.find(p => p.dataKey === 'stock')?.payload || payload[0].payload;
+                          const isForecast = stockData.type === 'forecast';
                           return (
-                            <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl shadow-2xl space-y-2">
-                              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2 mb-2">
+                            <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl shadow-2xl space-y-2 min-w-[200px]">
+                              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2 mb-2 flex items-center justify-between">
                                 {new Date(label).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
                               </p>
                               <div className="flex flex-col gap-1">
-                                <div className="flex items-center justify-between gap-8">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase">Projected Stock</span>
-                                  <span className="text-sm font-black text-white font-mono">{Number(data.stock).toLocaleString()} {currentMaterial.unit}</span>
+                                <div className="flex items-center justify-between gap-8 text-[11px] font-bold">
+                                  <span className="text-slate-400 uppercase">Projected Stock</span>
+                                  <span className="font-black text-white font-mono">{Number(stockData.stock).toLocaleString()} {currentMaterial.unit}</span>
                                 </div>
                                 {isForecast && (
                                   <div className="mt-2 pt-2 border-t border-slate-900 flex flex-col gap-1">
                                     <div className="flex items-center justify-between gap-8 text-[9px] font-bold">
-                                      <span className="text-green-500 uppercase opacity-60">Optimistic</span>
-                                      <span className="text-green-400 font-mono">{Number(data.optimistic).toLocaleString()}</span>
+                                      <span className="text-emerald-500 uppercase opacity-70">Best Case</span>
+                                      <span className="text-emerald-400 font-mono">{Number(stockData.optimistic).toLocaleString()}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-8 text-[9px] font-bold">
-                                      <span className="text-red-500 uppercase opacity-60">Pessimistic</span>
-                                      <span className="text-red-400 font-mono">{Number(data.pessimistic).toLocaleString()}</span>
+                                      <span className="text-red-500 uppercase opacity-70">Worst Case</span>
+                                      <span className="text-red-400 font-mono">{Number(stockData.pessimistic).toLocaleString()}</span>
                                     </div>
                                   </div>
                                 )}
-                              </div>
-                              <div className="pt-2">
-                                <Badge variant="outline" className={cn(
-                                  "text-[8px] font-black tracking-widest uppercase px-2",
-                                  isForecast ? "border-amber-500/40 text-amber-500" : "border-blue-500/40 text-blue-500"
-                                )}>
-                                  {isForecast ? "ML Prediction" : "Historical Record"}
-                                </Badge>
                               </div>
                             </div>
                           );
@@ -307,11 +305,12 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                       }}
                     />
                     <ReferenceLine 
+                      yAxisId="stock"
                       y={currentMaterial.reorderLevel} 
                       stroke="#ef4444" 
                       strokeDasharray="3 3" 
                       label={{ 
-                        value: 'REORDER THRESHOLD', 
+                        value: 'REORDER', 
                         position: 'insideBottomRight', 
                         fill: '#ef4444', 
                         fontSize: 10, 
@@ -319,46 +318,134 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                         letterSpacing: '0.1em'
                       }} 
                     />
+                    <ReferenceArea
+                      yAxisId="stock"
+                      y1={0}
+                      y2={currentMaterial.reorderLevel}
+                      fill="url(#dangerZone)"
+                    />
                     
                     {/* CONFIDENCE INTERVAL BAND */}
                     <Area
+                      yAxisId="stock"
                       type="monotone"
                       dataKey="optimistic"
-                      data={data.filter(d => d.type === 'forecast')}
+                      connectNulls={true}
                       stroke="none"
-                      fill="#f59e0b"
+                      fill="#22c55e"
                       fillOpacity={0.05}
                     />
                     <Area
+                      yAxisId="stock"
                       type="monotone"
                       dataKey="pessimistic"
+                      connectNulls={true}
                       stroke="none"
-                      data={data.filter(d => d.type === 'forecast')}
-                      fill="#f59e0b"
+                      fill="#22c55e"
                       fillOpacity={0.05}
                     />
 
                     {/* MAIN TREND LINES */}
                     <Area
+                      yAxisId="stock"
                       type="monotone"
-                      dataKey="stock"
-                      data={data.filter(d => d.type === 'historical')}
+                      dataKey="historicalStock"
+                      connectNulls={true}
                       stroke="#3b82f6"
                       fill="url(#historicalStock)"
                       strokeWidth={3}
-                      dot={{ r: 4, fill: "#0f172a", stroke: "#3b82f6", strokeWidth: 2 }}
+                      dot={false}
                       activeDot={{ r: 6, fill: "#3b82f6" }}
                     />
                     <Area
+                      yAxisId="stock"
                       type="monotone"
-                      dataKey="stock"
-                      data={data.filter(d => d.type === 'forecast')}
-                      stroke="#f59e0b"
+                      dataKey="forecastStock"
+                      connectNulls={true}
+                      stroke="#22c55e"
                       fill="url(#forecastStock)"
                       strokeWidth={3}
-                      strokeDasharray="6 4"
+                      dot={false}
+                      activeDot={{ r: 6, fill: "#22c55e" }}
                     />
-                  </AreaChart>
+                  </ComposedChart>
+                </ResponsiveContainer>
+
+                {/* CHART 2: DAILY BURN HISTOGRAM */}
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={data.filter(d => d.dailyBurn !== undefined)} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fontWeight: 600, fill: "#94a3b8" }}
+                      tickFormatter={(value) => {
+                        const date = new Date(value)
+                        return date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()
+                      }}
+                      dy={10}
+                    />
+                    <YAxis
+                      yAxisId="burn"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fontWeight: 600, fill: "#94a3b8" }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#020617",
+                        border: "1px solid #1e293b",
+                        borderRadius: "8px",
+                        fontWeight: 600,
+                        fontSize: "12px",
+                        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5)"
+                      }}
+                      itemStyle={{ color: "#f8fafc" }}
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const burnData = payload[0].payload;
+                          return (
+                            <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl shadow-2xl space-y-2 min-w-[150px]">
+                              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2 mb-2 flex items-center justify-between">
+                                {new Date(label).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                                {burnData.isBurst && <AlertTriangle className="h-3 w-3 text-red-500" />}
+                              </p>
+                              <div className="flex items-center justify-between gap-6 text-[11px] font-bold mt-1">
+                                <span className={cn("uppercase", burnData.isBurst ? "text-red-400" : "text-amber-500")}>Daily Burn</span>
+                                <span className={cn("font-black font-mono", burnData.isBurst ? "text-red-400" : "text-amber-500")}>-{Number(burnData.dailyBurn).toLocaleString()}</span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    {/* BURST CONSUMPTION BARS */}
+                    <Bar
+                      yAxisId="burn"
+                      dataKey="dailyBurn"
+                      fillOpacity={0.8}
+                      radius={[4, 4, 0, 0]}
+                      barSize={16}
+                      shape={(props: any) => {
+                        const { x, y, width, height, payload } = props;
+                        const isBurst = payload.isBurst;
+                        return (
+                          <rect 
+                            x={x} 
+                            y={y} 
+                            width={width} 
+                            height={height} 
+                            rx={4} 
+                            ry={4} 
+                            fill={isBurst ? "#ef4444" : "#f59e0b"} 
+                            opacity={isBurst ? 0.9 : 0.4} 
+                          />
+                        );
+                      }}
+                    />
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
 
@@ -378,14 +465,24 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                           type="number" 
                           placeholder="Delivery amount..." 
                           className="bg-muted/20 border-border/50 h-14 font-bold text-xl p-6 focus-visible:ring-primary shadow-sm"
-                          value={simulationAmount || ""}
-                          onChange={(e) => setSimulationAmount(Number(e.target.value))}
+                          value={simInput}
+                          onChange={(e) => setSimInput(e.target.value)}
                         />
                         <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-muted-foreground/40 uppercase">{currentMaterial.unit}</span>
                       </div>
                       <Button 
+                        variant="default"
+                        onClick={() => setSimulationAmount(Number(simInput) || 0)}
+                        className="h-14 px-8 bg-blue-600 hover:bg-blue-700 font-black uppercase text-[10px] tracking-widest text-white transition-colors"
+                      >
+                        Apply
+                      </Button>
+                      <Button 
                         variant="ghost" 
-                        onClick={() => setSimulationAmount(0)}
+                        onClick={() => {
+                          setSimulationAmount(0)
+                          setSimInput("")
+                        }}
                         className="h-14 px-8 border border-border/50 font-black uppercase text-[10px] tracking-widest hover:bg-red-950/20 hover:text-red-400 transition-colors"
                       >
                         Reset
