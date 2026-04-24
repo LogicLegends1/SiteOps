@@ -410,6 +410,53 @@ async def get_trend(project_id: int, material_id: int):
     return all_data
 
 
+# --- EQUIPMENT ENDPOINTS ---
+
+@app.get("/equipment/{project_id}")
+async def get_equipment(project_id: int):
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not configured")
+
+    # Fetch equipment items for the project with their class details
+    res = supabase.table("equipment_item")\
+        .select("*, equipment_class(name)")\
+        .eq("projectid", project_id)\
+        .execute()
+    
+    if not res.data:
+        return []
+    
+    # Format for frontend
+    formatted = []
+    for item in res.data:
+        formatted.append({
+            "id": str(item["itemid"]),
+            "name": item["name"],
+            "classId": str(item["classid"]),
+            "className": item["equipment_class"]["name"],
+            "status": item["status"],
+            "dailyRate": float(item["daily_rate"]),
+            "nextServiceDate": item["next_service_date"],
+            "serialNumber": item["serial_number"]
+        })
+        
+    return formatted
+
+@app.patch("/equipment/{item_id}")
+async def update_equipment_status(item_id: int, status: str):
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not configured")
+
+    res = supabase.table("equipment_item")\
+        .update({"status": status})\
+        .eq("itemid", item_id)\
+        .execute()
+    
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Equipment not found")
+        
+    return res.data[0]
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
