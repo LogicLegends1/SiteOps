@@ -74,7 +74,7 @@ export function DelayAlertsPanel({ alerts, onAcknowledge }: DelayAlertsPanelProp
               <div className="flex items-center gap-2">
                 <span className="font-medium text-foreground">{alert.activityName}</span>
                 <Badge variant="outline" className="text-xs border-border text-muted-foreground">
-                  {alert.zoneName}
+                  {alert.name}
                 </Badge>
                 <Badge className={`text-xs capitalize ${getRiskLevelColor(alert.severity)}`}>
                   {alert.severity}

@@ -85,7 +85,7 @@ export function ActivityWorkforceTable() {
                           {getStaffingIcon(activity.overallStatus)}
                           <div className="text-left">
                             <p className="font-medium text-foreground">{activity.activityName}</p>
-                            <p className="text-xs text-muted-foreground">{activity.zoneName}</p>
+                            <p className="text-xs text-muted-foreground">{activity.name}</p>
                           </div>
                         </div>
 
