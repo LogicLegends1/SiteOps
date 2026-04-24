@@ -99,7 +99,7 @@ export function AffectedActivitiesPanel({ selectedMaterial }: AffectedActivities
                       <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
                         <span className="flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
-                          {activityDetails.zoneName}
+                          {activityDetails.name}
                         </span>
                         <span>Progress: {activityDetails.actualProgress}%</span>
                         <span>Team: {activityDetails.assignedTeam}</span>

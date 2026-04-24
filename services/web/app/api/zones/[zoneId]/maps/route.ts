@@ -35,9 +35,9 @@ export async function POST(
     }
 
     const { data: zone, error: zoneError } = await supabase
-      .from("project_zone")
-      .select("zoneid, projectid")
-      .eq("zoneid", numericZoneId)
+      .from("activity")
+      .select("activityid, projectid")
+      .eq("activityid", numericZoneId)
       .single()
 
     if (zoneError || !zone) {
@@ -45,7 +45,7 @@ export async function POST(
     }
 
     const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-")
-    const filePath = `projects/${zone.projectid}/zones/${zone.zoneid}/${Date.now()}-${safeFileName}`
+    const filePath = `projects/${zone.projectid}/activities/${zone.activityid}/${Date.now()}-${safeFileName}`
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
@@ -63,12 +63,12 @@ export async function POST(
     } = supabase.storage.from(BUCKET_NAME).getPublicUrl(filePath)
 
     const { error: updateError } = await supabase
-      .from("project_zone")
+      .from("activity")
       .update({
         imagepath: filePath,
         imageurl: publicUrl,
       })
-      .eq("zoneid", numericZoneId)
+      .eq("activityid", numericZoneId)
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })

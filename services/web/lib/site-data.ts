@@ -11,6 +11,15 @@ export interface Zone {
   lat: number
   lng: number
   markerLabel: string
+  posX?: number | null
+  posY?: number | null
+  widthPercent?: number | null
+  heightPercent?: number | null
+  displayOrder?: number | null
+  createdAt?: string | null
+  updatedAt?: string | null
+  imagePath?: string | null
+  imageUrl?: string | null
   assignedTeam?: string | null
   assignedSupervisor?: string | null
   startDate?: string

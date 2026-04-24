@@ -134,7 +134,7 @@ export function WeatherImpactPanel({ forecast, activities }: WeatherImpactPanelP
               {weatherSensitiveActivities.slice(0, 3).map((activity) => (
                 <div key={activity.id} className="flex items-center justify-between text-sm">
                   <span className="text-foreground">{activity.activityName}</span>
-                  <span className="text-muted-foreground">{activity.zoneName}</span>
+                  <span className="text-muted-foreground">{activity.name}</span>
                 </div>
               ))}
               {weatherSensitiveActivities.length > 3 && (
