@@ -22,24 +22,33 @@ export default function MaterialForecastPage() {
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null)
   const [liveMaterials, setLiveMaterials] = useState<Material[]>([])
   const [liveAlerts, setLiveAlerts] = useState<any[]>([])
+  const [liveStats, setLiveStats] = useState<any>({
+    totalMaterials: 0,
+    criticalCount: 0,
+    lowStockCount: 0,
+    usageSpikes: 0,
+    activeAlerts: 0
+  })
 
   useEffect(() => {
+    // 1. Fetch High-Level Telemetry Stats (Fast)
+    fetch("http://localhost:8000/predict/shortage/stats/1")
+      .then(res => res.json())
+      .then(setLiveStats)
+      .catch(console.error)
+
+    // 2. Fetch Alerts and full list for reference panels
     Promise.all([
       fetch("http://localhost:8000/predict/shortage/all/1").then(res => res.json()),
       fetch("http://localhost:8000/predict/alerts/1").then(res => res.json())
     ]).then(([mats, alts]) => {
-      setLiveMaterials(mats || [])
+      // mats is now {data: [...], total: X}
+      setLiveMaterials(mats?.data || [])
       setLiveAlerts(alts || [])
     }).catch(console.error)
   }, [])
 
-  const stats = {
-    totalMaterials: liveMaterials.length,
-    criticalCount: liveMaterials.filter((m) => m.stockLevel === "critical").length,
-    lowStockCount: liveMaterials.filter((m) => m.stockLevel === "low").length,
-    activeAlerts: liveAlerts.filter((a) => !a.acknowledged).length,
-    materialsWithSpike: liveMaterials.filter((m) => m.consumptionTrend === "spike" || m.consumptionTrend === "increasing").length,
-  }
+  const stats = liveStats // Use the server-provided stats instead of local calculation
 
   return (
     <div className="flex flex-col gap-6 pb-10">
@@ -65,7 +74,7 @@ export default function MaterialForecastPage() {
             { label: "Total Assets", value: stats.totalMaterials, color: "text-blue-400", border: "border-blue-900/50", bg: "bg-blue-950/20" },
             { label: "Critical Stock", value: stats.criticalCount, color: "text-red-400", border: "border-red-900/50", bg: "bg-red-950/20" },
             { label: "Low Buffers", value: stats.lowStockCount, color: "text-orange-400", border: "border-orange-900/50", bg: "bg-orange-950/20" },
-            { label: "Usage Spikes", value: stats.materialsWithSpike, color: "text-amber-400", border: "border-amber-900/50", bg: "bg-amber-950/20" },
+            { label: "Usage Spikes", value: stats.usageSpikes, color: "text-amber-400", border: "border-amber-900/50", bg: "bg-amber-950/20" },
             { label: "Active Alerts", value: stats.activeAlerts, color: "text-primary", border: "border-primary/20", bg: "bg-primary/10" },
           ].map((stat, i) => (
             <div key={i} className={cn(
