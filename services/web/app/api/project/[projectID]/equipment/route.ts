@@ -54,37 +54,99 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     const numericProjectId = Number(projectID)
     const { searchParams } = new URL(_req.url)
     const filter = searchParams.get('filter') || 'project'
+    const summarize = searchParams.get('summarize') || null
 
-    // 1. Fetch Equipment with Classes
-    let eqQuery = supabase
-      .from("equipment_item")
-      .select(`
-        *,
-        equipment_class (name)
-      `)
-      
+    // Lightweight RPC path: return counts per equipment class for the project
+    if (summarize === 'classes') {
+      const { data: counts, error: countsError } = await supabase.rpc('equipment_count_by_class', { p_project_id: numericProjectId })
+      if (countsError) throw countsError
+      return NextResponse.json({ classCounts: counts })
+    }
+
+    // Lightweight status-only path: return counts without joins or log lookups
+    if (summarize === 'status') {
+      let query = supabase.from("equipment_item").select("status")
+      if (filter === 'project') {
+        query = query.eq("projectid", numericProjectId)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+
+      const summary = {
+        total: 0,
+        active: 0,
+        idle: 0,
+        down: 0,
+        maintenance: 0,
+        unassigned: 0,
+      }
+
+      for (const row of data || []) {
+        summary.total += 1
+
+        const status = String(row.status ?? "").toLowerCase().trim()
+        if (status === 'active' || status === 'operational') summary.active += 1
+        else if (status === 'idle') summary.idle += 1
+        else if (status === 'down' || status === 'under_repair' || status === 'broken') summary.down += 1
+        else if (status === 'maintenance') summary.maintenance += 1
+        else if (status === 'unassigned') summary.unassigned += 1
+      }
+
+      return NextResponse.json({ summary })
+    }
+
+    // 1. Fetch Equipment with required columns and class name
+    const eqSelect = `
+      itemid,
+      name,
+      classid,
+      projectid,
+      serial_number,
+      status,
+      next_service_date,
+      last_service_date,
+      technical_specs,
+      equipment_class (name)
+    `
+
+    let eqQuery = supabase.from("equipment_item").select(eqSelect)
     if (filter === 'project') {
       eqQuery = eqQuery.eq("projectid", numericProjectId)
     }
 
     const { data: eqData, error: eqError } = await eqQuery
-
     if (eqError) throw eqError
 
-    // 2. Fetch Active Assignments
+    // If no equipment for this filter/project, return early (avoid extra DB calls)
+    const itemIds = (eqData ?? []).map((r: any) => r.itemid).filter(Boolean)
+    if (itemIds.length === 0) {
+      const response: EquipmentResponse = {
+        summary: { total: 0, active: 0, idle: 0, underRepair: 0, maintenanceDueCount: 0 },
+        equipment: [],
+        maintenanceLogs: [],
+        totalCount: 0,
+        filteredCount: 0
+      }
+      return NextResponse.json(response)
+    }
+
+    // 2. Fetch Active Assignments -- only for the items we care about
     const { data: assignData, error: assignError } = await supabase
       .from("equipment_assignment")
-      .select("*")
+      .select("itemid, activityid, zoneid, start_date, end_date")
       .is("end_date", null)
+      .in("itemid", itemIds)
 
     if (assignError) throw assignError
 
-    // 3. Fetch Maintenance Logs for these items
-    const itemIds = (eqData ?? []).map(r => r.itemid)
+    // 3. Fetch Maintenance Logs for these items, limited to recent window and only needed columns
+    const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
     const { data: logData, error: logError } = await supabase
       .from("equipment_maintenance_log")
-      .select("*")
+      .select("logid, itemid, issue_type, description, reported_at, resolved_at, downtime_hours, resolution_notes")
       .in("itemid", itemIds)
+      .gte("reported_at", cutoff)
       .order("reported_at", { ascending: false })
 
     if (logError) throw logError
@@ -118,6 +180,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
         className: (row.equipment_class as any)?.name ?? "Unknown",
         serialNumber: readString(row, ["serial_number"]),
         status: row.status as any,
+        projectId: row.projectid ? String(row.projectid) : null,
         nextServiceDate: readNullableString(row, ["next_service_date"]),
         lastServiceDate: readNullableString(row, ["last_service_date"]),
         technicalSpecs: (row.technical_specs as TechnicalSpecs) ?? {},
@@ -131,13 +194,80 @@ export async function GET(_req: NextRequest, context: RouteContext) {
       }
     })
 
-    // -- Summary Stats (Human-Reported Model) -- //
-    const total = equipment.length
-    const active = equipment.filter(e => e.status === "active").length
-    const idle = equipment.filter(e => e.status === "idle").length
-    const down = equipment.filter(e => e.status === "down").length
-    const maintenance = equipment.filter(e => e.status === "maintenance").length
-    const unassigned = equipment.filter(e => e.status === "unassigned").length
+    // Extract query parameters for paging and filtering
+    const pageParam = searchParams.get('page')
+    const page = pageParam ? Math.max(1, Number(pageParam)) : null
+    const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 10
+    const search = searchParams.get('search') || null
+    const classNameFilter = searchParams.get('class') || null
+    const statusFilter = searchParams.get('status') || null
+    const projectFilter = searchParams.get('project') || null
+    const zoneFilter = searchParams.get('zone') || null
+    const maintFilter = searchParams.get('maint') || null
+
+    // Determine stats equipment list filtered by project/zone (if selected)
+    let statsEq = equipment
+    if (projectFilter && projectFilter !== "all") {
+      statsEq = statsEq.filter(e => String(e.projectId) === projectFilter)
+    }
+    if (zoneFilter && zoneFilter !== "all") {
+      statsEq = statsEq.filter(e => String(e.activeZoneId) === zoneFilter)
+    }
+
+    // -- Summary Stats (Human-Reported Model) based on selected project/zone -- //
+    const total = statsEq.length
+    const active = statsEq.filter(e => e.status === "active").length
+    const idle = statsEq.filter(e => e.status === "idle").length
+    const down = statsEq.filter(e => e.status === "down").length
+    const maintenance = statsEq.filter(e => e.status === "maintenance").length
+    const unassigned = statsEq.filter(e => e.status === "unassigned").length
+
+    // Apply filtering server-side
+    const filteredEq = equipment.filter(item => {
+      // 1. Search Query
+      if (search) {
+        const q = search.toLowerCase();
+        const matchName = item.name.toLowerCase().includes(q);
+        const matchId = item.id.toLowerCase().includes(q);
+        const matchSerial = (item.serialNumber || "").toLowerCase().includes(q);
+        const matchClass = (item.className || "").toLowerCase().includes(q);
+        const matchModel = ((item.technicalSpecs as any)?.model || "").toLowerCase().includes(q);
+        if (!matchName && !matchId && !matchSerial && !matchClass && !matchModel) return false;
+      }
+      // 2. Class Filter
+      if (classNameFilter && classNameFilter !== "all" && item.className !== classNameFilter) return false;
+      // 3. Status Filter
+      if (statusFilter && statusFilter !== "all" && (item.status || "").toLowerCase().trim() !== statusFilter) return false;
+      // 4. Project Filter
+      if (projectFilter && projectFilter !== "all" && String(item.projectId) !== projectFilter) return false;
+      // 5. Zone Filter
+      if (zoneFilter && zoneFilter !== "all" && String(item.activeZoneId) !== zoneFilter) return false;
+      // 6. Maintenance Filter
+      if (maintFilter && maintFilter !== "all") {
+        const isDue = item.nextServiceDate && new Date(item.nextServiceDate).getTime() < Date.now() + 7 * 86400000;
+        const isOverdue = item.nextServiceDate && new Date(item.nextServiceDate).getTime() < Date.now();
+        if (maintFilter === "service_due" && !isDue) return false;
+        if (maintFilter === "overdue" && !isOverdue) return false;
+        if (maintFilter === "up_to_date" && isDue) return false;
+      }
+      return true;
+    });
+
+    // Paginate
+    let paginatedEq = filteredEq;
+    if (page !== null) {
+      const start = (page - 1) * limit;
+      const end = start + limit;
+      paginatedEq = filteredEq.slice(start, end);
+    }
+
+    const uniqueClasses = Array.from(new Set(equipment.map(e => e.className))).filter(Boolean) as string[]
+    const uniqueProjects = Array.from(new Set(equipment.map(e => e.projectId))).filter(Boolean) as string[]
+    const uniqueZones = Array.from(new Set(equipment.map(e => e.activeZoneId))).filter(Boolean) as string[]
+
+    const serviceDueCount = statsEq.filter(e => e.nextServiceDate && new Date(e.nextServiceDate).getTime() < Date.now() + 7 * 86400000).length
+
+    const immediateRisks = statsEq.filter(e => e.status === "down")
 
     const response: EquipmentResponse = {
       summary: { 
@@ -145,10 +275,18 @@ export async function GET(_req: NextRequest, context: RouteContext) {
         active, 
         idle, 
         underRepair: down, 
-        maintenanceDueCount: maintenance 
+        maintenanceDueCount: maintenance,
+        unassigned,
+        serviceDueCount
       },
-      equipment,
-      maintenanceLogs
+      equipment: paginatedEq,
+      maintenanceLogs: maintenanceLogs.filter(l => paginatedEq.some(e => e.id === l.itemId)),
+      totalCount: total,
+      filteredCount: filteredEq.length,
+      uniqueClasses,
+      uniqueProjects,
+      uniqueZones,
+      immediateRisks
     }
 
     return NextResponse.json(response)
