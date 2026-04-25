@@ -106,7 +106,7 @@ export default function PredictiveDelayEnginePage() {
   )
   const activeAlerts = alerts.filter((a) => !a.acknowledged).length
 
-  const zones = [...new Map(activityProgress.map((a) => [a.zoneId, { id: a.zoneId, name: a.zoneName }])).values()]
+  const zones = [...new Map(activityProgress.map((a) => [a.zoneId, { id: a.zoneId, name: a.name }])).values()]
 
   return (
     <div className="space-y-6">

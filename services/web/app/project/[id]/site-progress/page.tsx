@@ -2,25 +2,24 @@
 
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
-import { ZoneDetails } from "@/components/site-progress/zone-details"
-import { ProgressUpdateForm } from "@/components/site-progress/progress-update-form"
-import { IssuesList } from "@/components/site-progress/issues-list"
-import { type Zone, type Project } from "@/lib/site-data"
+import { ActivityDetailsPanel } from "@/components/site-progress/activity-details-panel"
+import { AddActivityModal } from "@/components/site-progress/add-activity-modal"
+import { type Activity, type Project } from "@/lib/site-data"
 
 const LeafletMap = dynamic(() => import("@/components/site-progress/leaflet-map").then(mod => ({ default: mod.LeafletMap })), {
   ssr: false,
   loading: () => <div className="bg-card border-border rounded-lg p-4 h-96 flex items-center justify-center text-muted-foreground">Loading map...</div>,
 })
 
-export default function SiteProgressPage() {
-  const [zones, setZones] = useState<Zone[]>([])
+export default function ActivityProgressPage() {
+  const [activities, setActivities] = useState<Activity[]>([])
   const [project, setProject] = useState<Project | null>(null)
-  const [selectedZone, setSelectedZone] = useState<Zone | null>(null)
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [loading, setLoading] = useState(true)
 
   const projectId = 1
 
-  async function fetchProjectAndZones() {
+  async function fetchProjectAndActivities() {
     try {
       setLoading(true)
 
@@ -37,24 +36,24 @@ export default function SiteProgressPage() {
         setProject(projectData.project)
       }
 
-      // Fetch zones
-      const zonesRes = await fetch(`/api/project/${projectId}/zones`, {
+      // Fetch activities
+      const activitiesRes = await fetch(`/api/project/${projectId}/zones`, {
         cache: "no-store",
       })
 
-      const zonesData = await zonesRes.json()
+      const activitiesData = await activitiesRes.json()
 
-      if (!zonesRes.ok) {
-        throw new Error(zonesData.error || "Failed to fetch zones")
+      if (!activitiesRes.ok) {
+        throw new Error(activitiesData.error || "Failed to fetch activities")
       }
 
-      setZones(zonesData.zones || [])
+      setActivities(activitiesData.zones || [])
 
-      if (selectedZone) {
-        const updatedSelectedZone = (zonesData.zones || []).find(
-          (zone: Zone) => zone.zoneID === selectedZone.zoneID
+      if (selectedActivity) {
+        const updatedSelectedActivity = (activitiesData.zones || []).find(
+          (activity: Activity) => activity.zoneID === selectedActivity.zoneID
         )
-        setSelectedZone(updatedSelectedZone || null)
+        setSelectedActivity(updatedSelectedActivity || null)
       }
     } catch (error) {
       console.error("Error fetching data:", error)
@@ -64,30 +63,32 @@ export default function SiteProgressPage() {
   }
 
   useEffect(() => {
-    fetchProjectAndZones()
+    fetchProjectAndActivities()
   }, [])
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-foreground">Activity Progress</h1>
+        <AddActivityModal projectId={projectId} onActivityAdded={(newActivity) => {
+          setActivities([...activities, newActivity])
+        }} />
+      </div>
+
+      <div className="flex flex-col gap-6">
+        <div className="w-full">
           <LeafletMap
-            zones={zones}
+            activities={activities}
             project={project}
             loading={loading}
-            onZoneSelect={setSelectedZone}
-            selectedZoneId={selectedZone?.zoneID}
+            onActivitySelect={setSelectedActivity}
+            selectedActivityId={selectedActivity?.zoneID}
           />
         </div>
 
-        <div className="lg:col-span-1">
-          <ZoneDetails zone={selectedZone} />
+        <div className="w-full">
+          <ActivityDetailsPanel activity={selectedActivity} />
         </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ProgressUpdateForm selectedZone={selectedZone} />
-        <IssuesList selectedZone={selectedZone} />
       </div>
     </div>
   )
