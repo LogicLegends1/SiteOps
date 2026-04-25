@@ -44,8 +44,8 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Filter zones with valid coordinates and map to camelCase
-    const zones = (data || [])
+    // Filter activities with valid coordinates and map to camelCase
+    const activities = (data || [])
       .filter((activity: any) => activity.lat != null && activity.lng != null)
       .map((activity: any) => ({
         zoneID: activity.activityid,
@@ -69,9 +69,9 @@ export async function GET(
         imageUrl: activity.imageurl,
       }))
 
-    return NextResponse.json({ zones })
+    return NextResponse.json({ zones: activities })
   } catch (error) {
-    console.error("Get zones error:", error)
+    console.error("Get activities error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

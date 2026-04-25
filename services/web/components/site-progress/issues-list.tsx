@@ -3,17 +3,17 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { type Zone } from "@/lib/site-data"
+import { type Activity } from "@/lib/site-data"
 import {
   issues,
-  getIssuesByZoneId,
+  getIssuesByActivityId,
   getPriorityColor,
   getIssueStatusColor,
 } from "@/lib/issues-data"
 import { AlertTriangle, Package, Wrench, Users, Shield, HelpCircle, Clock } from "lucide-react"
 
 interface IssuesListProps {
-  selectedZone: Zone | null
+  selectedActivity: Activity | null
 }
 
 function getIssueTypeIcon(type: string) {
@@ -38,9 +38,9 @@ function formatDate(dateString: string): string {
   })
 }
 
-export function IssuesList({ selectedZone }: IssuesListProps) {
-  const displayedIssues = selectedZone
-    ? getIssuesByZoneId(selectedZone.zoneID)
+export function IssuesList({ selectedActivity }: IssuesListProps) {
+  const displayedIssues = selectedActivity
+    ? getIssuesByActivityId(selectedActivity.zoneID)
     : issues
 
   return (
@@ -53,9 +53,9 @@ export function IssuesList({ selectedZone }: IssuesListProps) {
               Issues & Blockers
             </CardTitle>
             <CardDescription>
-              {selectedZone
-                ? `Issues for ${selectedZone.name}`
-                : "All active issues across zones"}
+              {selectedActivity
+                ? `Issues for ${selectedActivity.name}`
+                : "All active issues across activities"}
             </CardDescription>
           </div>
           <Badge variant="outline" className="text-muted-foreground">

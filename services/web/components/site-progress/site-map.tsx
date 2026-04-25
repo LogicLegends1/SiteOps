@@ -5,22 +5,22 @@ import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { type Zone, getStatusColor, getStatusBorderColor } from "@/lib/site-data"
+import { type Activity, getStatusColor, getStatusBorderColor } from "@/lib/site-data"
 import { cn } from "@/lib/utils"
 
 interface SiteMapProps {
-  zones: Zone[]
+  activities: Activity[]
   loading?: boolean
-  onZoneSelect: (zone: Zone) => void
-  selectedZoneId?: number
+  onActivitySelect: (activity: Activity) => void
+  selectedActivityId?: number
   onUploadComplete?: () => void
 }
 
 export function SiteMap({
-  zones,
+  activities,
   loading,
-  onZoneSelect,
-  selectedZoneId,
+  onActivitySelect,
+  selectedActivityId,
   onUploadComplete,
 }: SiteMapProps) {
   return (
@@ -30,7 +30,7 @@ export function SiteMap({
           <div>
             <CardTitle className="text-foreground">Site Map</CardTitle>
             <CardDescription>
-              Upload a map image for each zone
+              Upload a map image for each activity
             </CardDescription>
           </div>
         </div>
@@ -55,17 +55,17 @@ export function SiteMap({
 
           {loading && (
             <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground bg-background/40 z-10">
-              Loading zones...
+              Loading activities...
             </div>
           )}
 
           {!loading &&
-            zones.map((zone) => (
-              <ZoneBox
-                key={zone.zoneID}
-                zone={zone}
-                selected={selectedZoneId === zone.zoneID}
-                onSelect={() => onZoneSelect(zone)}
+            activities.map((activity) => (
+              <ActivityBox
+                key={activity.zoneID}
+                activity={activity}
+                selected={selectedActivityId === activity.zoneID}
+                onSelect={() => onActivitySelect(activity)}
                 onUploadComplete={onUploadComplete}
               />
             ))}
@@ -79,13 +79,13 @@ export function SiteMap({
   )
 }
 
-function ZoneBox({
-  zone,
+function ActivityBox({
+  activity,
   selected,
   onSelect,
   onUploadComplete,
 }: {
-  zone: Zone
+  activity: Activity
   selected: boolean
   onSelect: () => void
   onUploadComplete?: () => void
@@ -100,7 +100,7 @@ function ZoneBox({
       const formData = new FormData()
       formData.append("file", file)
 
-      const res = await fetch(`/api/zones/${zone.zoneID}/maps`, {
+      const res = await fetch(`/api/zones/${activity.zoneID}/maps`, {
         method: "POST",
         body: formData,
       })
@@ -126,25 +126,25 @@ function ZoneBox({
       className={cn(
         "absolute rounded-lg border-2 overflow-hidden transition-all duration-200 group",
         "hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/20",
-        getStatusBorderColor(zone.status),
+        getStatusBorderColor(activity.status),
         selected && "ring-2 ring-primary ring-offset-2 ring-offset-background"
       )}
       style={{
-        left: `${zone.posX}%`,
-        top: `${zone.posY}%`,
-        width: `${zone.widthPercent}%`,
-        height: `${zone.heightPercent}%`,
+        left: `${activity.posX}%`,
+        top: `${activity.posY}%`,
+        width: `${activity.widthPercent}%`,
+        height: `${activity.heightPercent}%`,
       }}
     >
       <button
         onClick={onSelect}
         className="relative w-full h-full"
       >
-        {zone.imageUrl ? (
+        {activity.imageUrl ? (
           <>
             <Image
-              src={zone.imageUrl}
-              alt={zone.name}
+              src={activity.imageUrl}
+              alt={activity.name}
               fill
               className="object-cover"
             />
@@ -156,19 +156,19 @@ function ZoneBox({
           </div>
         )}
 
-        <div className={cn("absolute top-2 right-2 h-3 w-3 rounded-full", getStatusColor(zone.status))} />
+        <div className={cn("absolute top-2 right-2 h-3 w-3 rounded-full", getStatusColor(activity.status))} />
 
         <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center">
-          <span className="text-lg font-bold text-white drop-shadow">{zone.name}</span>
+          <span className="text-lg font-bold text-white drop-shadow">{activity.name}</span>
           <span className="text-xs text-white/80 line-clamp-1">
-            {zone.activity || zone.description || "No activity"}
+            {activity.activity || activity.description || "No activity"}
           </span>
 
           <Badge
             variant="secondary"
             className="text-xs mt-2 bg-black/50 text-white border-white/10"
           >
-            {zone.progress}%
+            {activity.progress}%
           </Badge>
         </div>
       </button>
@@ -195,7 +195,7 @@ function ZoneBox({
             inputRef.current?.click()
           }}
         >
-          {uploading ? "Uploading..." : zone.imageUrl ? "Change Image" : "Add Image"}
+          {uploading ? "Uploading..." : activity.imageUrl ? "Change Image" : "Add Image"}
         </Button>
       </div>
     </div>

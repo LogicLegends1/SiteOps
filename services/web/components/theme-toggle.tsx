@@ -14,7 +14,7 @@ export function ThemeToggle() {
     setMounted(true)
   }, [])
 
-  const isDark = resolvedTheme === 'light'
+  const isDark = resolvedTheme === 'dark'
   const nextTheme = isDark ? 'light' : 'dark'
   const label = mounted
     ? `Switch to ${nextTheme} mode`
