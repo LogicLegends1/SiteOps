@@ -34,7 +34,7 @@ export const activities: WorkforceActivityMeta[] = [
 ]
 
 export interface Activity {
-  zoneID: number
+  activityID: number
   projectID: number
   name: string
   description: string | null
