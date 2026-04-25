@@ -4,14 +4,14 @@ import { useEffect, useRef } from "react"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { type Activity, type Project } from "@/lib/site-data"
+import { type Zone, type Project } from "@/lib/site-data"
 
 interface LeafletMapProps {
-  activities: Activity[]
+  zones: Zone[]
   project: Project | null
   loading?: boolean
-  onActivitySelect: (activity: Activity) => void
-  selectedActivityId?: number
+  onZoneSelect: (zone: Zone) => void
+  selectedZoneId?: number
 }
 
 // Create a function to get marker icons that's called at runtime
@@ -46,11 +46,11 @@ const getMarkerIcons = () => {
 }
 
 export function LeafletMap({
-  activities,
+  zones,
   project,
   loading,
-  onActivitySelect,
-  selectedActivityId,
+  onZoneSelect,
+  selectedZoneId,
 }: LeafletMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -84,7 +84,7 @@ export function LeafletMap({
     }
   }, [project])
 
-  // Update markers when activities change
+  // Update markers when zones change
   useEffect(() => {
     if (!mapRef.current) return
 
@@ -97,36 +97,36 @@ export function LeafletMap({
     const { markerIcon, selectedMarkerIcon } = getMarkerIcons()
 
     // Add new markers
-    activities.forEach((activity) => {
-      // Skip activities without valid coordinates
-      if (typeof activity.lat !== "number" || typeof activity.lng !== "number") {
+    zones.forEach((zone) => {
+      // Skip zones without valid coordinates
+      if (typeof zone.lat !== "number" || typeof zone.lng !== "number") {
         return
       }
 
-      const isSelected = selectedActivityId === activity.zoneID
-      const marker = L.marker([activity.lat, activity.lng], {
+      const isSelected = selectedZoneId === zone.zoneID
+      const marker = L.marker([zone.lat, zone.lng], {
         icon: isSelected ? selectedMarkerIcon : markerIcon,
-        title: activity.name,
+        title: zone.name,
       })
         .bindPopup(
-          `<div class="font-semibold">${activity.name}</div>
-           <div class="text-sm text-gray-600">${activity.activity || "No activity"}</div>
-           <div class="text-xs mt-1">Progress: ${activity.progress}%</div>`
+          `<div class="font-semibold">${zone.name}</div>
+           <div class="text-sm text-gray-600">${zone.activity || "No activity"}</div>
+           <div class="text-xs mt-1">Progress: ${zone.progress}%</div>`
         )
-        .bindTooltip(activity.markerLabel || activity.name, {
+        .bindTooltip(zone.markerLabel || zone.name, {
           permanent: true,
           direction: "right",
           offset: [12, 0],
           className: "leaflet-label",
         })
         .on("click", () => {
-          onActivitySelect(activity)
+          onZoneSelect(zone)
         })
         .addTo(mapRef.current!)
 
-      markersRef.current.set(activity.zoneID, marker)
+      markersRef.current.set(zone.zoneID, marker)
     })
-  }, [activities, selectedActivityId, onActivitySelect])
+  }, [zones, selectedZoneId, onZoneSelect])
 
   // Auto-fit map to show all markers
   useEffect(() => {
@@ -137,7 +137,7 @@ export function LeafletMap({
 
     const group = new L.FeatureGroup(markers)
     mapRef.current.fitBounds(group.getBounds(), { padding: [50, 50] })
-  }, [activities])
+  }, [zones])
 
   return (
     <Card className="bg-card border-border h-full">
@@ -145,16 +145,16 @@ export function LeafletMap({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-foreground">Site Map</CardTitle>
-            <CardDescription>Click markers to view activity details</CardDescription>
+            <CardDescription>Click markers to view zone details</CardDescription>
           </div>
         </div>
       </CardHeader>
 
       <CardContent>
-        <div className="relative w-full bg-secondary/30 border border-border overflow-hidden rounded-lg pointer-events-auto">
+        <div className="relative w-full bg-secondary/30 border border-border overflow-hidden rounded-lg">
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground bg-background/40 z-10 pointer-events-none">
-              Loading activities...
+            <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground bg-background/40 z-10">
+              Loading zones...
             </div>
           )}
 
@@ -166,7 +166,7 @@ export function LeafletMap({
             }}
           />
 
-          <div className="absolute bottom-2 left-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded z-[400] pointer-events-none">
+          <div className="absolute bottom-2 left-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded z-[400]">
             © OpenStreetMap
           </div>
         </div>

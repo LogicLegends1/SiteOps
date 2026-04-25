@@ -28,7 +28,7 @@ export function WorkforceGapAlerts() {
   // Calculate gaps per discipline/role
   const gaps: {
     activityName: string
-    name: string
+    zoneName: string
     discipline: WorkerDiscipline
     role: string
     gap: number
@@ -40,7 +40,7 @@ export function WorkforceGapAlerts() {
       if (gap > 0) {
         gaps.push({
           activityName: activity.activityName,
-          name: activity.name,
+          zoneName: activity.zoneName,
           discipline: req.discipline,
           role: req.role,
           gap,
@@ -94,7 +94,7 @@ export function WorkforceGapAlerts() {
                             {gap.gap} {getRoleLabel(gap.role)} needed
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {gap.activityName} - {gap.name}
+                            {gap.activityName} - {gap.zoneName}
                           </p>
                           <div className="flex items-center gap-2 mt-2">
                             <Badge variant="outline" className="text-xs">
