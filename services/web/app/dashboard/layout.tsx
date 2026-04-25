@@ -93,10 +93,10 @@ export default function DashboardLayout({
           <SidebarTrigger className="-ml-2 hidden md:inline-flex" />
         </SidebarHeader>
 
-        <SidebarContent className="overflow-hidden px-2 py-4">
+        <SidebarContent className="overflow-hidden">
           <SidebarMenu className="h-full">
             <SidebarMenuItem className="h-full">
-              <div className="relative h-full w-full overflow-hidden transition-opacity duration-300 group-data-[collapsible=icon]:opacity-0">
+              <div className="relative h-full w-full overflow-hidden opacity-0 transition-opacity duration-500 group-data-[state=expanded]:animate-[fadeIn_0.5s_ease-in-out_forwards] group-data-[collapsible=icon]:opacity-0">
                 <Image
                   src="/sidebar-menu-fill.png"
                   alt="Sidebar menu visual"
