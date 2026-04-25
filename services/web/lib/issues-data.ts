@@ -3,7 +3,7 @@ export type IssueStatus = "open" | "in-progress" | "resolved"
 
 export interface Issue {
   id: string
-  zoneID: number
+  activityID: number
   title: string
   description: string
   type: "material-delay" | "equipment-failure" | "labour-shortage" | "safety-issue" | "other"
@@ -16,7 +16,7 @@ export interface Issue {
 export const issues: Issue[] = [
   {
     id: "ISS-001",
-    zoneID: 1,
+    activityID: 1,
     title: "Concrete delivery delay",
     description: "Supplier reported delay for the next concrete batch.",
     type: "material-delay",
@@ -27,7 +27,7 @@ export const issues: Issue[] = [
   },
   {
     id: "ISS-002",
-    zoneID: 2,
+    activityID: 2,
     title: "Pile driver maintenance",
     description: "Machine requires inspection before next cycle.",
     type: "equipment-failure",
@@ -38,8 +38,8 @@ export const issues: Issue[] = [
   },
 ]
 
-export function getIssuesByZoneId(zoneID: number) {
-  return issues.filter((issue) => issue.zoneID === zoneID)
+export function getIssuesByActivityId(activityID: number) {
+  return issues.filter((issue) => issue.activityID === activityID)
 }
 
 export function getPriorityColor(priority: IssuePriority) {

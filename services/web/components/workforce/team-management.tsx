@@ -33,7 +33,7 @@ import {
   getDisciplineLabel,
   type Team,
 } from "@/lib/workforce-data"
-import { zones } from "@/lib/site-data"
+import { activities } from "@/lib/site-data"
 import { activityProgress } from "@/lib/delay-engine-data"
 
 interface TeamManagementProps {
@@ -45,8 +45,8 @@ interface TeamManagementProps {
 export function TeamManagement({ selectedWorkers, onClearSelection, onTeamCreated }: TeamManagementProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [newTeamName, setNewTeamName] = useState("")
-  const [selectedZone, setSelectedZone] = useState<string>("")
   const [selectedActivity, setSelectedActivity] = useState<string>("")
+  const [selectedWorkType, setSelectedWorkType] = useState<string>("")
   const [selectedLeader, setSelectedLeader] = useState<string>("")
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null)
 
@@ -56,13 +56,13 @@ export function TeamManagement({ selectedWorkers, onClearSelection, onTeamCreate
       name: newTeamName,
       members: selectedWorkers,
       leader: selectedLeader,
-      zone: selectedZone,
-      activity: selectedActivity,
+      activityId: selectedActivity,
+      workType: selectedWorkType,
     })
     setIsCreateDialogOpen(false)
     setNewTeamName("")
-    setSelectedZone("")
     setSelectedActivity("")
+    setSelectedWorkType("")
     setSelectedLeader("")
     onClearSelection()
     onTeamCreated()
@@ -73,7 +73,9 @@ export function TeamManagement({ selectedWorkers, onClearSelection, onTeamCreate
   const renderTeamCard = (team: Team) => {
     const leader = getWorkerById(team.leaderId)
     const members = team.memberIds.map((id) => getWorkerById(id)).filter(Boolean)
-    const assignedZone = zones.find((z) => z.id === team.assignedZoneId)
+    const assignedActivity = activities.find(
+    (a) => a.id === team.assignedActivityId
+    )
     const isExpanded = expandedTeam === team.id
 
     return (
@@ -92,10 +94,10 @@ export function TeamManagement({ selectedWorkers, onClearSelection, onTeamCreate
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {assignedZone && (
+            {assignedActivity && (
               <Badge variant="outline" className="bg-primary/10 text-primary">
                 <MapPin className="h-3 w-3 mr-1" />
-                {assignedZone.name}
+                {assignedActivity.name}
               </Badge>
             )}
             <ChevronRight
@@ -191,19 +193,20 @@ export function TeamManagement({ selectedWorkers, onClearSelection, onTeamCreate
               </div>
 
               <div className="space-y-2">
-                <Label>Assign to Zone</Label>
-                <Select value={selectedZone} onValueChange={setSelectedZone}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select zone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {zones.map((zone) => (
-                      <SelectItem key={zone.id} value={zone.id}>
-                        {zone.name} - {zone.activity}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Assign Activity</Label>
+                  <Select value={selectedActivity} onValueChange={setSelectedActivity}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select activity" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {activities.map((activity) => (
+                        <SelectItem key={activity.id} value={activity.id}>
+                          {activity.name} - {activity.activity}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
               </div>
 
               <div className="space-y-2">
@@ -215,7 +218,7 @@ export function TeamManagement({ selectedWorkers, onClearSelection, onTeamCreate
                   <SelectContent>
                     {activityProgress.map((activity) => (
                       <SelectItem key={activity.id} value={activity.id}>
-                        {activity.activityName} - {activity.zoneName}
+                        {activity.activityName} - {activity.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

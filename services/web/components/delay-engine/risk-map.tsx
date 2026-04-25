@@ -19,7 +19,7 @@ interface RiskMapProps {
 
 interface ZoneData {
   zoneId: string
-  zoneName: string
+  name: string
   activities: ActivityProgress[]
   overallRisk: RiskLevel
   coordinates: { x: number; y: number; width: number; height: number }
@@ -64,10 +64,10 @@ export function RiskMap({ activities, onSelectZone, selectedZoneId }: RiskMapPro
   // Group activities by zone
   const zoneData: ZoneData[] = Object.entries(zoneCoordinates).map(([zoneId, coords]) => {
     const zoneActivities = activities.filter((a) => a.zoneId === zoneId)
-    const zoneName = zoneActivities[0]?.zoneName || zoneId.replace("-", " ").toUpperCase()
+    const name = zoneActivities[0]?.name || zoneId.replace("-", " ").toUpperCase()
     return {
       zoneId,
-      zoneName,
+      name,
       activities: zoneActivities,
       overallRisk: calculateZoneRisk(zoneActivities),
       coordinates: coords,
@@ -120,7 +120,7 @@ export function RiskMap({ activities, onSelectZone, selectedZoneId }: RiskMapPro
                         className="fill-foreground text-[6px] font-medium"
                         textAnchor="middle"
                       >
-                        {zone.zoneName}
+                        {zone.name}
                       </text>
                       {/* Risk indicator */}
                       {zone.overallRisk !== "low" && (
@@ -142,7 +142,7 @@ export function RiskMap({ activities, onSelectZone, selectedZoneId }: RiskMapPro
                   <TooltipContent side="right" className="max-w-xs">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-4">
-                        <span className="font-medium">{zone.zoneName}</span>
+                        <span className="font-medium">{zone.name}</span>
                         <Badge className={`capitalize ${getRiskLevelColor(zone.overallRisk)}`}>
                           {zone.overallRisk} risk
                         </Badge>

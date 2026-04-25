@@ -87,7 +87,7 @@ export function AffectedActivitiesPanel({ selectedMaterial, liveMaterials = [] }
                         <div className="flex items-center gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
                           <span className="flex items-center gap-1.5">
                             <MapPin className="h-3 w-3 text-primary/60" />
-                            {activityDetails?.zoneName || "Project Zone Alpha"}
+                            {activityDetails?.name || "Project Zone Alpha"}
                           </span>
                           <span className="flex items-center gap-1.5">
                             <Activity className="h-3 w-3 text-success/60" />
