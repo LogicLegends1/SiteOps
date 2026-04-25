@@ -80,39 +80,9 @@ export function AffectedActivitiesPanel({ selectedMaterial, liveMaterials = [] }
                     )}
                   >
                     <div className="flex items-start justify-between mb-2">
-<<<<<<< HEAD
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{activityName}</span>
-                        {hasCritical && (
-                          <AlertTriangle className="h-4 w-4 text-destructive" />
-                        )}
-                      </div>
-                      {activityDetails && (
-                        <Badge
-                          variant="outline"
-                          className={
-                            activityDetails.riskLevel === "critical"
-                              ? "border-destructive text-destructive"
-                              : activityDetails.riskLevel === "high"
-                              ? "border-warning text-warning"
-                              : ""
-                          }
-                        >
-                          {activityDetails.riskLevel} risk
-                        </Badge>
-                      )}
-                    </div>
-
-                    {activityDetails && (
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {activityDetails.name}
-=======
                       <div className="flex flex-col gap-1 flex-1 min-w-0 pr-4">
                         <span className="font-bold text-sm tracking-tight text-white leading-tight truncate">
                           {activityName}
->>>>>>> 305034ec834155c2e1a385aa26318fed2cdb13c6
                         </span>
                         <div className="flex items-center gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
                           <span className="flex items-center gap-1.5">

@@ -1,8 +1,10 @@
+"use client"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
-import { type Activity, getStatusColor } from "@/lib/site-data"
+import { type Zone, getStatusColor } from "@/lib/site-data"
 import { cn } from "@/lib/utils"
 import {
   Calendar,
@@ -10,12 +12,12 @@ import {
   User,
   Clock,
   MapPin,
-  Activity as ActivityIcon,
+  Activity,
   CalendarClock,
 } from "lucide-react"
 
-interface ActivityDetailsProps {
-  activity: Activity | null
+interface ZoneDetailsProps {
+  zone: Zone | null
 }
 
 function formatDate(dateString: string): string {
@@ -41,20 +43,20 @@ function getStatusBadgeVariant(status: string) {
   }
 }
 
-export function ActivityDetails({ activity }: ActivityDetailsProps) {
-  if (!activity) {
+export function ZoneDetails({ zone }: ZoneDetailsProps) {
+  if (!zone) {
     return (
       <Card className="bg-card border-border h-full">
         <CardHeader>
-          <CardTitle className="text-foreground">Activity Details</CardTitle>
-          <CardDescription>Select an activity on the map to view details</CardDescription>
+          <CardTitle className="text-foreground">Zone Details</CardTitle>
+          <CardDescription>Select a zone on the map to view details</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center h-64 text-center">
             <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No activity selected</p>
+            <p className="text-muted-foreground">No zone selected</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Click on any activity in the map to see its details
+              Click on any zone in the map to see its details
             </p>
           </div>
         </CardContent>
@@ -68,13 +70,13 @@ export function ActivityDetails({ activity }: ActivityDetailsProps) {
         <div className="flex items-start justify-between">
           <div>
             <CardTitle className="text-foreground flex items-center gap-2">
-              {activity.name}
-              <div className={cn("h-2.5 w-2.5 rounded-full", getStatusColor(activity.status))} />
+              {zone.name}
+              <div className={cn("h-2.5 w-2.5 rounded-full", getStatusColor(zone.status))} />
             </CardTitle>
-            <CardDescription className="mt-1">{activity.activity}</CardDescription>
+            <CardDescription className="mt-1">{zone.activity}</CardDescription>
           </div>
-          <Badge className={getStatusBadgeVariant(activity.status)}>
-            {activity.status.replace("-", " ")}
+          <Badge className={getStatusBadgeVariant(zone.status)}>
+            {zone.status.replace("-", " ")}
           </Badge>
         </div>
       </CardHeader>
@@ -83,9 +85,9 @@ export function ActivityDetails({ activity }: ActivityDetailsProps) {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium text-foreground">{activity.progress}%</span>
+            <span className="font-medium text-foreground">{zone.progress}%</span>
           </div>
-          <Progress value={activity.progress} className="h-2" />
+          <Progress value={zone.progress} className="h-2" />
         </div>
 
         <Separator />
@@ -93,7 +95,7 @@ export function ActivityDetails({ activity }: ActivityDetailsProps) {
         {/* Activity Details */}
         <div className="flex flex-col gap-3">
           <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-            <ActivityIcon className="h-4 w-4 text-muted-foreground" />
+            <Activity className="h-4 w-4 text-muted-foreground" />
             Activity Details
           </h4>
           <p className="text-sm text-muted-foreground leading-relaxed">

@@ -50,7 +50,7 @@ export function ActivityDetailsPanel({ activity }: ActivityDetailsPanelProps) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs text-muted-foreground mb-1">{activity.name}</p>
+            <p className="text-xs text-muted-foreground mb-1">{activity.zoneName}</p>
             <CardTitle className="text-foreground">{activity.activityName}</CardTitle>
           </div>
           <div className="flex items-center gap-2">

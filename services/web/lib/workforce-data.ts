@@ -37,7 +37,7 @@ export interface Team {
 export interface ActivityWorkforceRequirement {
   activityId: string
   activityName: string
-  name: string
+  zoneName: string
   zoneId: string
   requirements: {
     discipline: WorkerDiscipline
@@ -396,7 +396,7 @@ export const activityWorkforceRequirements: ActivityWorkforceRequirement[] = [
   {
     activityId: "ACT-001",
     activityName: "Foundation Work",
-    name: "Zone A",
+    zoneName: "Zone A",
     zoneId: "zone-a",
     requirements: [
       { discipline: "civil", role: "engineer", requiredCount: 2, assignedCount: 1, status: "understaffed" },
@@ -413,7 +413,7 @@ export const activityWorkforceRequirements: ActivityWorkforceRequirement[] = [
   {
     activityId: "ACT-002",
     activityName: "Piling Section",
-    name: "Zone B",
+    zoneName: "Zone B",
     zoneId: "zone-b",
     requirements: [
       { discipline: "civil", role: "engineer", requiredCount: 2, assignedCount: 1, status: "understaffed" },
@@ -431,7 +431,7 @@ export const activityWorkforceRequirements: ActivityWorkforceRequirement[] = [
   {
     activityId: "ACT-003",
     activityName: "Electrical Installation",
-    name: "Zone C",
+    zoneName: "Zone C",
     zoneId: "zone-c",
     requirements: [
       { discipline: "electrical", role: "engineer", requiredCount: 1, assignedCount: 1, status: "optimal" },
@@ -446,7 +446,7 @@ export const activityWorkforceRequirements: ActivityWorkforceRequirement[] = [
   {
     activityId: "ACT-004",
     activityName: "Drainage Setup",
-    name: "Zone D",
+    zoneName: "Zone D",
     zoneId: "zone-d",
     requirements: [
       { discipline: "civil", role: "engineer", requiredCount: 1, assignedCount: 0, status: "understaffed" },
@@ -462,7 +462,7 @@ export const activityWorkforceRequirements: ActivityWorkforceRequirement[] = [
   {
     activityId: "ACT-005",
     activityName: "Structural Steel Erection",
-    name: "Zone A",
+    zoneName: "Zone A",
     zoneId: "zone-a",
     requirements: [
       { discipline: "civil", role: "engineer", requiredCount: 2, assignedCount: 1, status: "understaffed" },
@@ -478,7 +478,7 @@ export const activityWorkforceRequirements: ActivityWorkforceRequirement[] = [
   {
     activityId: "ACT-006",
     activityName: "Concrete Pouring",
-    name: "Zone B",
+    zoneName: "Zone B",
     zoneId: "zone-b",
     requirements: [
       { discipline: "civil", role: "engineer", requiredCount: 1, assignedCount: 1, status: "optimal" },

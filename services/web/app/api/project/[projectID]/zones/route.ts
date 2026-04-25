@@ -16,62 +16,45 @@ export async function GET(
     }
 
     const { data, error } = await supabase
-      .from("activity")
+      .from("project_zone")
       .select(`
-        activityid,
+        zoneid,
         projectid,
         name,
         description,
+        activity,
+        status,
         progress,
         lat,
         lng,
-        markerlabel,
-        status,
-        posx,
-        posy,
-        widthpercent,
-        heightpercent,
-        displayorder,
-        createdat,
-        updatedat,
-        imagepath,
-        imageurl
+        markerlabel
       `)
       .eq("projectid", numericProjectId)
-      .order("displayorder", { ascending: true })
+      .order("zoneid", { ascending: true })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Filter activities with valid coordinates and map to camelCase
-    const activities = (data || [])
-      .filter((activity: any) => activity.lat != null && activity.lng != null)
-      .map((activity: any) => ({
-        zoneID: activity.activityid,
-        projectID: activity.projectid,
-        name: activity.name,
-        description: activity.description,
-        activity: activity.description,
-        status: activity.status,
-        progress: activity.progress,
-        lat: Number(activity.lat),
-        lng: Number(activity.lng),
-        markerLabel: activity.markerlabel || activity.name,
-        posX: activity.posx,
-        posY: activity.posy,
-        widthPercent: activity.widthpercent,
-        heightPercent: activity.heightpercent,
-        displayOrder: activity.displayorder,
-        createdAt: activity.createdat,
-        updatedAt: activity.updatedat,
-        imagePath: activity.imagepath,
-        imageUrl: activity.imageurl,
+    // Filter zones with valid coordinates and map to camelCase
+    const zones = (data || [])
+      .filter((zone: any) => zone.lat != null && zone.lng != null)
+      .map((zone: any) => ({
+        zoneID: zone.zoneid,
+        projectID: zone.projectid,
+        name: zone.name,
+        description: zone.description,
+        activity: zone.activity,
+        status: zone.status,
+        progress: zone.progress,
+        lat: Number(zone.lat),
+        lng: Number(zone.lng),
+        markerLabel: zone.markerlabel || zone.name,
       }))
 
-    return NextResponse.json({ zones: activities })
+    return NextResponse.json({ zones })
   } catch (error) {
-    console.error("Get activities error:", error)
+    console.error("Get zones error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

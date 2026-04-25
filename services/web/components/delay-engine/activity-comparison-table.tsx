@@ -61,7 +61,7 @@ export function ActivityComparisonTable({
               >
                 <TableCell>
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">{activity.name}</span>
+                    <span className="text-xs text-muted-foreground">{activity.zoneName}</span>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-foreground">{activity.activityName}</span>
                       {activity.weatherSensitive && (

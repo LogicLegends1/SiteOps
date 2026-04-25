@@ -16,7 +16,7 @@ export async function POST(
     const numericZoneId = Number(zoneId)
 
     if (!Number.isInteger(numericZoneId) || numericZoneId <= 0) {
-      return NextResponse.json({ error: "Invalid activity id" }, { status: 400 })
+      return NextResponse.json({ error: "Invalid zone id" }, { status: 400 })
     }
 
     const formData = await request.formData()
@@ -35,17 +35,17 @@ export async function POST(
     }
 
     const { data: zone, error: zoneError } = await supabase
-      .from("activity")
-      .select("activityid, projectid")
-      .eq("activityid", numericZoneId)
+      .from("project_zone")
+      .select("zoneid, projectid")
+      .eq("zoneid", numericZoneId)
       .single()
 
     if (zoneError || !zone) {
-      return NextResponse.json({ error: "Activity not found" }, { status: 404 })
+      return NextResponse.json({ error: "Zone not found" }, { status: 404 })
     }
 
     const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-")
-    const filePath = `projects/${zone.projectid}/activities/${zone.activityid}/${Date.now()}-${safeFileName}`
+    const filePath = `projects/${zone.projectid}/zones/${zone.zoneid}/${Date.now()}-${safeFileName}`
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
@@ -63,12 +63,12 @@ export async function POST(
     } = supabase.storage.from(BUCKET_NAME).getPublicUrl(filePath)
 
     const { error: updateError } = await supabase
-      .from("activity")
+      .from("project_zone")
       .update({
         imagepath: filePath,
         imageurl: publicUrl,
       })
-      .eq("activityid", numericZoneId)
+      .eq("zoneid", numericZoneId)
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })
@@ -80,7 +80,7 @@ export async function POST(
       imageurl: publicUrl,
     })
   } catch (error) {
-    console.error("Upload activity image error:", error)
+    console.error("Upload zone image error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

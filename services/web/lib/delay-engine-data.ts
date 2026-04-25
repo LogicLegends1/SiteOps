@@ -13,7 +13,7 @@ export interface WeatherForecast {
 export interface ActivityProgress {
   id: string
   zoneId: string
-  name: string
+  zoneName: string
   activityName: string
   plannedProgress: number
   actualProgress: number
@@ -33,7 +33,7 @@ export interface DelayAlert {
   id: string
   activityId: string
   activityName: string
-  name: string
+  zoneName: string
   type: "schedule" | "weather" | "resource" | "dependency"
   severity: RiskLevel
   message: string
@@ -112,7 +112,7 @@ export const activityProgress: ActivityProgress[] = [
   {
     id: "ACT-001",
     zoneId: "zone-a",
-    name: "Zone A",
+    zoneName: "Zone A",
     activityName: "Foundation Work",
     plannedProgress: 85,
     actualProgress: 75,
@@ -130,7 +130,7 @@ export const activityProgress: ActivityProgress[] = [
   {
     id: "ACT-002",
     zoneId: "zone-b",
-    name: "Zone B",
+    zoneName: "Zone B",
     activityName: "Piling Section",
     plannedProgress: 65,
     actualProgress: 40,
@@ -148,7 +148,7 @@ export const activityProgress: ActivityProgress[] = [
   {
     id: "ACT-003",
     zoneId: "zone-c",
-    name: "Zone C",
+    zoneName: "Zone C",
     activityName: "Electrical Installation",
     plannedProgress: 100,
     actualProgress: 100,
@@ -166,7 +166,7 @@ export const activityProgress: ActivityProgress[] = [
   {
     id: "ACT-004",
     zoneId: "zone-d",
-    name: "Zone D",
+    zoneName: "Zone D",
     activityName: "Drainage Setup",
     plannedProgress: 0,
     actualProgress: 0,
@@ -184,7 +184,7 @@ export const activityProgress: ActivityProgress[] = [
   {
     id: "ACT-005",
     zoneId: "zone-a",
-    name: "Zone A",
+    zoneName: "Zone A",
     activityName: "Structural Steel Erection",
     plannedProgress: 30,
     actualProgress: 22,
@@ -202,7 +202,7 @@ export const activityProgress: ActivityProgress[] = [
   {
     id: "ACT-006",
     zoneId: "zone-b",
-    name: "Zone B",
+    zoneName: "Zone B",
     activityName: "Concrete Pouring",
     plannedProgress: 20,
     actualProgress: 8,
@@ -224,7 +224,7 @@ export const delayAlerts: DelayAlert[] = [
     id: "ALERT-001",
     activityId: "ACT-002",
     activityName: "Piling Section",
-    name: "Zone B",
+    zoneName: "Zone B",
     type: "schedule",
     severity: "critical",
     message: "Piling work is 25% behind schedule. Critical path activity at risk.",
@@ -236,7 +236,7 @@ export const delayAlerts: DelayAlert[] = [
     id: "ALERT-002",
     activityId: "ACT-001",
     activityName: "Foundation Work",
-    name: "Zone A",
+    zoneName: "Zone A",
     type: "weather",
     severity: "high",
     message: "Heavy rain forecasted for next 3 days. Foundation curing may be affected.",
@@ -248,7 +248,7 @@ export const delayAlerts: DelayAlert[] = [
     id: "ALERT-003",
     activityId: "ACT-006",
     activityName: "Concrete Pouring",
-    name: "Zone B",
+    zoneName: "Zone B",
     type: "dependency",
     severity: "high",
     message: "Concrete pouring delayed due to piling work delays in Zone B.",
@@ -260,7 +260,7 @@ export const delayAlerts: DelayAlert[] = [
     id: "ALERT-004",
     activityId: "ACT-002",
     activityName: "Piling Section",
-    name: "Zone B",
+    zoneName: "Zone B",
     type: "resource",
     severity: "medium",
     message: "Labour shortage reported. 5 additional skilled workers needed.",
@@ -272,7 +272,7 @@ export const delayAlerts: DelayAlert[] = [
     id: "ALERT-005",
     activityId: "ACT-005",
     activityName: "Structural Steel Erection",
-    name: "Zone A",
+    zoneName: "Zone A",
     type: "weather",
     severity: "medium",
     message: "High winds forecasted. Steel erection may need to pause on 25th.",

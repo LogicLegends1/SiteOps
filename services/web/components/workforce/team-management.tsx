@@ -215,7 +215,7 @@ export function TeamManagement({ selectedWorkers, onClearSelection, onTeamCreate
                   <SelectContent>
                     {activityProgress.map((activity) => (
                       <SelectItem key={activity.id} value={activity.id}>
-                        {activity.activityName} - {activity.name}
+                        {activity.activityName} - {activity.zoneName}
                       </SelectItem>
                     ))}
                   </SelectContent>
