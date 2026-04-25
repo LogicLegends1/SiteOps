@@ -160,9 +160,9 @@ export default function SignupPage() {
                   onChange={(e) => setRole(e.target.value)}
                   disabled={isSubmitting}
                 >
-                  <option value="site_engineer">Site Engineer</option>
-                  <option value="project_manager">Project Manager</option>
-                  <option value="admin">Admin</option>
+                  <option value="SITE_ENGINEER">Site Engineer</option>
+                  <option value="PROJECT_MANAGER">Project Manager</option>
+                  <option value="ADMIN">Admin</option>
                 </select>
               </div>
 
