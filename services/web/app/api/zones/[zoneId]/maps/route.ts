@@ -16,7 +16,7 @@ export async function POST(
     const numericZoneId = Number(zoneId)
 
     if (!Number.isInteger(numericZoneId) || numericZoneId <= 0) {
-      return NextResponse.json({ error: "Invalid zone id" }, { status: 400 })
+      return NextResponse.json({ error: "Invalid activity id" }, { status: 400 })
     }
 
     const formData = await request.formData()
@@ -41,7 +41,7 @@ export async function POST(
       .single()
 
     if (zoneError || !zone) {
-      return NextResponse.json({ error: "Zone not found" }, { status: 404 })
+      return NextResponse.json({ error: "Activity not found" }, { status: 404 })
     }
 
     const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-")
@@ -80,7 +80,7 @@ export async function POST(
       imageurl: publicUrl,
     })
   } catch (error) {
-    console.error("Upload zone image error:", error)
+    console.error("Upload activity image error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
