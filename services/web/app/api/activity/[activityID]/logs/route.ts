@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/superbase/server'
+import { createAdminClient } from '@/lib/superbase/admin'
 
 type RouteContext = {
   params: Promise<{
@@ -54,18 +55,30 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Invalid activity id' }, { status: 400 })
     }
 
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: dbUser, error: dbUserError } = await supabase
+      .from('user')
+      .select('id')
+      .eq('email', user.email)
+      .single()
+
+    if (dbUserError || !dbUser) {
+      return NextResponse.json({ error: 'User not found in database' }, { status: 404 })
+    }
+
     const body = await req.json()
 
-    if (typeof body.description !== 'string') {
+    if (typeof body.description !== 'string' || !body.description.trim()) {
       return NextResponse.json({ error: 'Description is required' }, { status: 400 })
     }
 
     const effectiveUpdatedProgress =
       body.updatedProgress !== undefined ? body.updatedProgress : body.progress
-
-    if (!Number.isInteger(body.siteEngineerID) || body.siteEngineerID <= 0) {
-      return NextResponse.json({ error: 'siteEngineerID must be a positive integer' }, { status: 400 })
-    }
 
     if (
       effectiveUpdatedProgress !== undefined &&
@@ -83,10 +96,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'evidencePhoto must be a string or null' }, { status: 400 })
     }
 
-    const { data, error } = await supabase.rpc('create_activity_log_and_update_progress', {
+    const adminSupabase = createAdminClient()
+    const { data, error } = await adminSupabase.rpc('create_activity_log_and_update_progress', {
       p_activity_id: numericActivityId,
       p_description: body.description.trim(),
-      p_site_engineer_id: body.siteEngineerID,
+      p_site_engineer_id: dbUser.id,
       p_updated_progress:
         effectiveUpdatedProgress === undefined ? null : effectiveUpdatedProgress,
       p_evidence_photo:

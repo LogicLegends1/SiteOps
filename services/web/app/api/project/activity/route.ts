@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Valid project ID is required' }, { status: 400 })
     }
 
-    if (!body.status || !['pending', 'in_progress', 'completed', 'delayed'].includes(body.status)) {
+    if (!body.status || !['PENDING', 'IN_PROGRESS', 'PAUSED', 'COMPLETED', 'CANCELLED'].includes(body.status)) {
       return NextResponse.json({ error: 'Valid status is required' }, { status: 400 })
     }
 

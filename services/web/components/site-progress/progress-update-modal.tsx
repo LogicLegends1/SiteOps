@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -20,9 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { type Activity, type ActivityStatus, getStatusLabel } from "@/lib/site-data"
 import { Spinner } from "@/components/ui/spinner"
-import { Plus, Upload, X, CheckCircle2 } from "lucide-react"
+import { Plus, Upload, X, CheckCircle2, AlertCircle } from "lucide-react"
 
 interface ProgressUpdateModalProps {
   activity: Activity | null
@@ -41,218 +41,210 @@ export function ProgressUpdateModal({ activity, onUpdateSubmitted }: ProgressUpd
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Form state
-  const [updateTitle, setUpdateTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [newStatus, setNewStatus] = useState<ActivityStatus>(activity?.status || "IN_PROGRESS")
-  const [notes, setNotes] = useState("")
-  const [updatedBy, setUpdatedBy] = useState("Site Engineer")
-  const [uploadedImages, setUploadedImages] = useState<string[]>([])
-  const [imagePreview, setImagePreview] = useState<string>("")
+  const [newStatus, setNewStatus] = useState<ActivityStatus>(activity?.status ?? "IN_PROGRESS")
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files && files.length > 0) {
-      const file = files[0]
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const result = reader.result as string
-        setUploadedImages([...uploadedImages, result])
-        setImagePreview("")
-      }
-      reader.readAsDataURL(file)
-    }
+  const resetForm = () => {
+    setDescription("")
+    setNewStatus(activity?.status ?? "IN_PROGRESS")
+    setImageFile(null)
+    setImagePreview(null)
+    setError(null)
+    setShowSuccess(false)
   }
 
-  const removeImage = (index: number) => {
-    setUploadedImages(uploadedImages.filter((_, i) => i !== index))
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onloadend = () => setImagePreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const removeImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
   }
 
   const handleSubmit = async () => {
-    if (!activity || !updateTitle.trim()) return
+    if (!activity || !description.trim()) return
 
     setIsSubmitting(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsSubmitting(false)
+    setError(null)
 
-    // Reset form
-    setUpdateTitle("")
-    setDescription("")
-    setNewStatus(activity.status)
-    setNotes("")
-    setUploadedImages([])
-    setImagePreview("")
+    try {
+      // 1. Upload evidence photo if present
+      let evidencePhotoUrl: string | null = null
+      if (imageFile) {
+        const formData = new FormData()
+        formData.append("file", imageFile)
+        const uploadRes = await fetch(`/api/activity/${activity.zoneID}/logs/evidence`, {
+          method: "POST",
+          body: formData,
+        })
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json()
+          throw new Error(err.error || "Image upload failed")
+        }
+        const { url } = await uploadRes.json()
+        evidencePhotoUrl = url
+      }
 
-    setShowSuccess(true)
-    setTimeout(() => {
-      setShowSuccess(false)
-      setIsOpen(false)
-      onUpdateSubmitted?.()
-    }, 2000)
+      // 2. Update status if changed
+      if (newStatus !== activity.status) {
+        const statusRes = await fetch(`/api/activity/${activity.zoneID}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        })
+        if (!statusRes.ok) {
+          const err = await statusRes.json()
+          throw new Error(err.error || "Status update failed")
+        }
+      }
+
+      // 3. Create log entry
+      const logRes = await fetch(`/api/activity/${activity.zoneID}/logs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: description.trim(),
+          evidencePhoto: evidencePhotoUrl,
+        }),
+      })
+      if (!logRes.ok) {
+        const err = await logRes.json()
+        throw new Error(err.error || "Failed to save progress update")
+      }
+
+      setShowSuccess(true)
+      setTimeout(() => {
+        resetForm()
+        setIsOpen(false)
+        onUpdateSubmitted?.()
+      }, 1500)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  if (!activity) {
-    return null
+  const handleOpenChange = (value: boolean) => {
+    setIsOpen(value)
+    if (!value) resetForm()
   }
+
+  if (!activity) return null
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange} modal={false}>
       <DialogTrigger asChild>
         <Button className="gap-2 w-full">
           <Plus className="h-4 w-4" />
           Add Progress Update
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Progress Update Report</DialogTitle>
+          <DialogTitle>Progress Update</DialogTitle>
           <DialogDescription>
-            {activity.name} - {activity.activity}
+            {activity.name} — {activity.activity}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Success message */}
-          {showSuccess && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success text-success">
-              <CheckCircle2 className="h-5 w-5" />
-              <span className="text-sm font-medium">Progress update submitted successfully!</span>
-            </div>
+        <div className="space-y-5 py-2">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
-          {/* Update Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title" className="font-semibold">
-              Update Title *
-            </Label>
-            <Input
-              id="title"
-              placeholder="e.g., Concrete poured for footing section A"
-              value={updateTitle}
-              onChange={(e) => setUpdateTitle(e.target.value)}
-              className="bg-secondary/50 border-border"
-            />
-            <p className="text-xs text-muted-foreground">
-              Brief summary of work completed or status change
-            </p>
-          </div>
+          {showSuccess && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-700">
+              <CheckCircle2 className="h-5 w-5" />
+              <span className="text-sm font-medium">Progress update saved!</span>
+            </div>
+          )}
 
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description" className="font-semibold">
-              Description / Work Done
+              Description *
             </Label>
-            <Textarea
+            <Input
               id="description"
-              placeholder="Detailed description of activities completed, work in progress, or issues encountered today..."
+              placeholder="e.g. Concrete poured for footing section A"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="bg-secondary/50 border-border min-h-24"
+              disabled={isSubmitting}
+              maxLength={255}
             />
           </div>
 
-          {/* Status Change */}
+          {/* Status */}
           <div className="space-y-2">
-            <Label htmlFor="status" className="font-semibold">
-              Activity Status
-            </Label>
-            <Select value={newStatus} onValueChange={(v) => setNewStatus(v as ActivityStatus)}>
-              <SelectTrigger className="bg-secondary/50 border-border">
+            <Label className="font-semibold">Status</Label>
+            <Select
+              value={newStatus}
+              onValueChange={(v) => setNewStatus(v as ActivityStatus)}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {STATUS_OPTIONS.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {getStatusLabel(status)}
+                {STATUS_OPTIONS.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {getStatusLabel(s)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Notes/Remarks */}
+          {/* Evidence Photo */}
           <div className="space-y-2">
-            <Label htmlFor="notes" className="font-semibold">
-              Notes / Remarks
-            </Label>
-            <Textarea
-              id="notes"
-              placeholder="Any additional notes, risks, or observations... e.g., Material delay due to rain, Electrical conduit installation started"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="bg-secondary/50 border-border min-h-20"
-            />
-          </div>
-
-          {/* Updated By */}
-          <div className="space-y-2">
-            <Label htmlFor="updatedBy" className="font-semibold">
-              Updated By
-            </Label>
-            <Input
-              id="updatedBy"
-              placeholder="Your name/role"
-              value={updatedBy}
-              onChange={(e) => setUpdatedBy(e.target.value)}
-              className="bg-secondary/50 border-border"
-            />
-          </div>
-
-          {/* Image Upload */}
-          <div className="space-y-3">
-            <Label className="font-semibold">Progress Images / Site Photos</Label>
-            <div className="space-y-3">
-              {/* Image preview list */}
-              {uploadedImages.length > 0 && (
-                <div className="grid grid-cols-3 gap-3">
-                  {uploadedImages.map((image, idx) => (
-                    <div
-                      key={idx}
-                      className="relative aspect-square rounded-lg overflow-hidden border border-border"
-                    >
-                      <img
-                        src={image}
-                        alt={`Preview ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        onClick={() => removeImage(idx)}
-                        className="absolute top-1 right-1 p-1 bg-destructive/80 hover:bg-destructive rounded-full text-white transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Upload button */}
-              <div className="flex items-center justify-center w-full">
-                <label
-                  htmlFor="image-upload"
-                  className="flex flex-col items-center justify-center w-full p-6 border-2 border-dashed border-border rounded-lg cursor-pointer bg-secondary/30 hover:bg-secondary/50 transition-colors"
+            <Label className="font-semibold">Evidence Photo</Label>
+            {imagePreview ? (
+              <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-border">
+                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute top-2 right-2 p-1 bg-destructive/80 hover:bg-destructive rounded-full text-white transition-colors"
                 >
-                  <div className="flex flex-col items-center justify-center">
-                    <Upload className="h-6 w-6 text-muted-foreground mb-2" />
-                    <p className="text-sm font-medium text-foreground">Click to upload photos</p>
-                    <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 10MB</p>
-                  </div>
-                  <input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </label>
+                  <X className="h-3 w-3" />
+                </button>
               </div>
-            </div>
+            ) : (
+              <label
+                htmlFor="evidence-upload"
+                className="flex flex-col items-center justify-center w-full p-6 border-2 border-dashed border-border rounded-lg cursor-pointer bg-secondary/30 hover:bg-secondary/50 transition-colors"
+              >
+                <Upload className="h-6 w-6 text-muted-foreground mb-2" />
+                <p className="text-sm font-medium text-foreground">Click to upload photo</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG, WEBP up to 10MB</p>
+                <input
+                  id="evidence-upload"
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  onChange={handleImageChange}
+                  className="hidden"
+                  disabled={isSubmitting}
+                />
+              </label>
+            )}
           </div>
 
-          {/* Submit buttons */}
-          <div className="flex gap-3 pt-4 border-t border-border">
+          {/* Buttons */}
+          <div className="flex gap-3 pt-2 border-t border-border">
             <Button
               variant="outline"
               className="flex-1"
@@ -264,15 +256,15 @@ export function ProgressUpdateModal({ activity, onUpdateSubmitted }: ProgressUpd
             <Button
               className="flex-1"
               onClick={handleSubmit}
-              disabled={isSubmitting || !updateTitle.trim()}
+              disabled={isSubmitting || !description.trim()}
             >
               {isSubmitting ? (
                 <>
                   <Spinner className="mr-2 h-4 w-4" />
-                  Submitting...
+                  Saving...
                 </>
               ) : (
-                "Submit Update"
+                "Save Update"
               )}
             </Button>
           </div>

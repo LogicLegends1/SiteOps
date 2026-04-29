@@ -87,7 +87,7 @@ export default function ActivityProgressPage() {
         </div>
 
         <div className="w-full">
-          <ActivityDetailsPanel activity={selectedActivity} />
+          <ActivityDetailsPanel activity={selectedActivity} onUpdateSubmitted={fetchProjectAndActivities} />
         </div>
       </div>
     </div>
