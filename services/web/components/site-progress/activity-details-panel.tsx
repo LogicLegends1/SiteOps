@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { type Activity } from "@/lib/site-data"
+import { type Activity, type ProgressUpdate } from "@/lib/site-data"
 import { ActivityStatusBadge } from "@/components/site-progress/activity-status-badge"
 import { ActivityTimeline } from "@/components/site-progress/activity-timeline"
 import { ProgressUpdateModal } from "@/components/site-progress/progress-update-modal"
@@ -26,6 +26,7 @@ import { issues, getIssuesByActivityId, getPriorityColor, getIssueStatusColor } 
 
 interface ActivityDetailsPanelProps {
   activity: Activity | null
+  onUpdateSubmitted?: () => void
 }
 
 function formatDate(dateString: string): string {
@@ -51,9 +52,42 @@ function getIssueTypeIcon(type: string) {
   }
 }
 
-export function ActivityDetailsPanel({ activity }: ActivityDetailsPanelProps) {
+export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDetailsPanelProps) {
   const [activeTab, setActiveTab] = useState("overview")
+  const [logs, setLogs] = useState<ProgressUpdate[]>([])
   const activityIssues = activity ? getIssuesByActivityId(activity.zoneID) : []
+
+  const fetchLogs = useCallback(async () => {
+    if (!activity) return
+    try {
+      const res = await fetch(`/api/activity/${activity.zoneID}/logs`)
+      if (!res.ok) return
+      const { logs: raw } = await res.json()
+      const mapped: ProgressUpdate[] = (raw ?? []).map((log: any) => ({
+        id: String(log.logentryid),
+        activityID: log.activityid,
+        title: log.description,
+        description: "",
+        status: activity.status,
+        updatedBy: "Site Engineer",
+        updatedAt: log.timestamp,
+        images: log.evidencephoto ? [log.evidencephoto] : undefined,
+      }))
+      setLogs(mapped)
+    } catch {
+      // silent
+    }
+  }, [activity?.zoneID])
+
+  useEffect(() => {
+    setLogs([])
+    fetchLogs()
+  }, [fetchLogs])
+
+  const handleUpdateSubmitted = useCallback(() => {
+    fetchLogs()
+    onUpdateSubmitted?.()
+  }, [fetchLogs, onUpdateSubmitted])
 
   if (!activity) {
     return (
@@ -189,9 +223,9 @@ export function ActivityDetailsPanel({ activity }: ActivityDetailsPanelProps) {
                 <TrendingUp className="h-4 w-4" />
                 Progress Updates
               </h4>
-              <ProgressUpdateModal activity={activity} />
+              <ProgressUpdateModal activity={activity} onUpdateSubmitted={handleUpdateSubmitted} />
             </div>
-            <ActivityTimeline updates={activity.progressUpdates || []} />
+            <ActivityTimeline updates={logs} />
           </TabsContent>
 
           {/* Blockers Tab */}
