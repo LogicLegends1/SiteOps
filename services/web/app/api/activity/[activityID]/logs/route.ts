@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/superbase/server'
 import { createAdminClient } from '@/lib/superbase/admin'
+import { CurrentUserError, getCurrentDbUser } from '@/lib/superbase/current-user'
 
 type RouteContext = {
   params: Promise<{
@@ -55,21 +56,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Invalid activity id' }, { status: 400 })
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: dbUser, error: dbUserError } = await supabase
-      .from('user')
-      .select('id')
-      .eq('email', user.email)
-      .single()
-
-    if (dbUserError || !dbUser) {
-      return NextResponse.json({ error: 'User not found in database' }, { status: 404 })
-    }
+    const dbUser = await getCurrentDbUser(supabase)
 
     const body = await req.json()
 
@@ -136,6 +123,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
       { status: 201 }
     )
   } catch (error) {
+    if (error instanceof CurrentUserError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
+
     console.error('POST activity log error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
