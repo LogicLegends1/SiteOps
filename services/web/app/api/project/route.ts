@@ -1,7 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/superbase/server'
+import { CurrentUserError, getCurrentDbUser } from '@/lib/superbase/current-user'
 
 const VALID_STATUSES = ['PENDING', 'IN_PROGRESS', 'PAUSED', 'COMPLETED', 'CANCELLED']
+
+export async function GET() {
+  try {
+    const supabase = await createClient()
+
+    const dbUser = await getCurrentDbUser(supabase)
+
+    const { data, error } = await supabase.rpc('get_projects_assigned_to_person', {
+      p_person_id: dbUser.personid,
+    })
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
+    return NextResponse.json({ projects: data ?? [] }, { status: 200 })
+  } catch (error) {
+    if (error instanceof CurrentUserError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
+
+    console.error('GET project list error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {

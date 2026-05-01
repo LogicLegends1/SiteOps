@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo } from "react"
+import { useCallback, useMemo, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -29,56 +29,27 @@ const LeafletMap = dynamic(
   }
 )
 
-const projects: LeafletMapItem[] = [
-  {
-    id: 1,
-    title: "Colombo Metro Tower",
-    lng: 79.860071,
-    lat: 6.926354,
-    description: "IN_PROGRESS",
-    tooltip: "Hover for details",
-  },
-  {
-    id: 2,
-    title: "Kandy Central Highway",
-    lng: 80.6337,
-    lat: 7.2906,
-    description: "IN_PROGRESS",
-    tooltip: "Hover for details",
-  },
-  {
-    id: 3,
-    title: "Galle Port Expansion",
-    lng: 80.217,
-    lat: 6.0367,
-    description: "IN_PROGRESS",
-    tooltip: "Hover for details",
-  },
-  {
-    id: 4,
-    title: "Jaffna Bridge Construction",
-    lng: 80.0255,
-    lat: 9.6615,
-    description: "IN_PROGRESS",
-    tooltip: "Hover for details",
-  },
-  {
-    id: 5,
-    title: "Trincomalee Port Upgrade",
-    lng: 81.233,
-    lat: 8.5877,
-    description: "IN_PROGRESS",
-    tooltip: "Hover for details",
-  },
-  {
-    id: 6,
-    title: "Hambantota Airport Expansion",
-    lng: 81.116,
-    lat: 6.124,
-    description: "IN_PROGRESS",
-    tooltip: "Hover for details",
-  }
-]
+type ProjectFromApi = {
+  projectid: number
+  name: string | null
+  locationlongitude: number | null
+  locationlatitude: number | null
+  projectdiagram?: string | null
+  status: string | null
+}
+
+const mapProjectsToMapItems = (projects: ProjectFromApi[]): LeafletMapItem[] =>
+  projects
+    .filter((p) => typeof p.locationlatitude === "number" && typeof p.locationlongitude === "number")
+    .map((p) => ({
+      id: p.projectid,
+      title: p.name ?? "Untitled project",
+      lng: p.locationlongitude as number,
+      lat: p.locationlatitude as number,
+      description: p.status ?? "Unknown",
+      tooltip: `Project ID: ${p.projectid}`,
+    }))
+
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -116,6 +87,41 @@ export default function DashboardPage() {
     []
   )
 
+  const [projects, setProjects] = useState<LeafletMapItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    setLoading(true)
+
+    fetch('/api/project')
+      .then(async (res) => {
+        const json = await res.json().catch(() => ({}))
+        if (!mounted) return
+        if (!res.ok) {
+          setError(json?.error ?? 'Failed to load projects')
+          setProjects([])
+        } else {
+          setProjects(mapProjectsToMapItems(json.projects ?? []))
+          setError(null)
+        }
+      })
+      .catch(() => {
+        if (!mounted) return
+        setError('Failed to load projects')
+        setProjects([])
+      })
+      .finally(() => {
+        if (!mounted) return
+        setLoading(false)
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [])
+
   return (
     <div className="h-[calc(100dvh-8rem)] min-h-96 overflow-hidden">
       <Card className="flex h-full min-h-0 flex-col overflow-hidden border-border bg-card">
@@ -152,12 +158,21 @@ export default function DashboardPage() {
 
               <CardContent className="min-h-0 flex-1 p-0">
                 <ScrollArea className="h-full">
-                  {projects.length === 0 ? (
+                  {loading ? (
+                    <div className="p-4 text-sm text-muted-foreground">Loading projects…</div>
+                  ) : error ? (
+                    <Empty className="border-none">
+                      <EmptyHeader>
+                        <EmptyTitle>Error</EmptyTitle>
+                        <EmptyDescription>{error}</EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
+                  ) : projects.length === 0 ? (
                     <Empty className="border-none">
                       <EmptyHeader>
                         <EmptyTitle>No projects found</EmptyTitle>
                         <EmptyDescription>
-                          There are no projects to display. Please add a project to get started.
+                          There are no projects to display.
                         </EmptyDescription>
                       </EmptyHeader>
                     </Empty>
