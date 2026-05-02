@@ -25,7 +25,7 @@ import {
   Users,
   Settings,
   LogOut,
-  HardHat,
+  ArrowLeft,
   Wrench,
   ChartNoAxesGantt
 } from "lucide-react"
@@ -106,35 +106,34 @@ export default function ProjectLayout({
   return (
     <SidebarProvider defaultOpen={true}>
       <Sidebar variant="sidebar" collapsible="icon">
-        <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <HardHat className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-              <span className="text-base font-semibold text-foreground">SiteOps</span>
-              <span className="text-xs text-muted-foreground">Access Engineering</span>
-            </div>
+        <SidebarHeader className="border-sidebar-border flex flex-row items-center justify-between px-4 py-4">
+          <Link href="/dashboard" aria-label="Go to dashboard" className="flex items-center gap-3 group-data-[collapsible=icon]:hidden">
+            <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+            <span className="text-base font-semibold text-foreground">Dashboard</span>
           </Link>
+          <SidebarTrigger className="-ml-2 hidden md:inline-flex" />
         </SidebarHeader>
 
-        <SidebarContent className="px-2 py-4">
-          <SidebarMenu>
-            {navItems.map((item) => (
-              <SidebarMenuItem key={item.segment || "overview"}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === getProjectHref(item.segment)}
-                  tooltip={item.title}
-                >
-                  <Link href={getProjectHref(item.segment)}>
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
+        <SidebarContent className="overflow-hidden">
+          <div className="flex h-full flex-col">
+            <SidebarMenu>
+              {navItems.map((item) => (
+                <SidebarMenuItem key={item.segment || "overview"}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === getProjectHref(item.segment)}
+                    tooltip={item.title}
+                  >
+                    <Link href={getProjectHref(item.segment)}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+            <div className="mt-3 hidden flex-1 bg-linear-to-b from-transparent from-75% to-primary/30 opacity-5 group-data-[state=expanded]:block group-data-[state=expanded]:animate-[fadeIn_0.5s_ease-in-out_forwards]" />
+          </div>
         </SidebarContent>
 
         <SidebarFooter className="border-t border-sidebar-border px-2 py-3">
@@ -168,8 +167,7 @@ export default function ProjectLayout({
 
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b border-border bg-background/95 px-6 backdrop-blur supports-backdrop-filter:bg-background/60">
-          <SidebarTrigger className="-ml-2" />
-          <Separator orientation="vertical" className="h-6" />
+          <SidebarTrigger className="md:hidden" />
           <div className="flex-1">
             <h1 className="text-lg font-semibold text-foreground">
               {navItems.find((item) => pathname === getProjectHref(item.segment))?.title || "Project Dashboard"}

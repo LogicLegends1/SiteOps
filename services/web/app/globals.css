@@ -130,3 +130,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes fadeIn {
+  to { opacity: 0.5; }
+}
