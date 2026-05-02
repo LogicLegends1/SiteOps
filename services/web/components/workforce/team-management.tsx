@@ -24,30 +24,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Plus, Users, MapPin, ChevronRight, UserPlus } from "lucide-react"
+import { Plus, Users, ChevronRight, UserPlus } from "lucide-react"
 import {
-  teams,
-  workers,
-  getWorkerById,
   getRoleLabel,
   getDisciplineLabel,
-  type Team,
 } from "@/lib/workforce-data"
+import { type WorkforceTeam, type WorkforceWorker } from "@/lib/workforce-live"
 import { activities } from "@/lib/site-data"
 import { activityProgress } from "@/lib/delay-engine-data"
 
+import { CreateTeamDialog } from "./create-team-dialog"
+
 interface TeamManagementProps {
+  projectId: string
+  teams: WorkforceTeam[]
+  workers: WorkforceWorker[]
   selectedWorkers: string[]
   onClearSelection: () => void
   onTeamCreated: () => void
 }
 
-export function TeamManagement({ selectedWorkers, onClearSelection, onTeamCreated }: TeamManagementProps) {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [newTeamName, setNewTeamName] = useState("")
-  const [selectedActivity, setSelectedActivity] = useState<string>("")
-  const [selectedWorkType, setSelectedWorkType] = useState<string>("")
-  const [selectedLeader, setSelectedLeader] = useState<string>("")
+export function TeamManagement({
+  projectId,
+  teams,
+  workers,
+  selectedWorkers,
+  onClearSelection,
+  onTeamCreated,
+}: TeamManagementProps) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null)
 
   const handleCreateTeam = () => {
@@ -68,14 +72,13 @@ export function TeamManagement({ selectedWorkers, onClearSelection, onTeamCreate
     onTeamCreated()
   }
 
+  const getWorkerById = (id: string) => workers.find((worker) => worker.id === id)
+
   const selectedWorkerDetails = selectedWorkers.map((id) => getWorkerById(id)).filter(Boolean)
 
-  const renderTeamCard = (team: Team) => {
-    const leader = getWorkerById(team.leaderId)
+  const renderTeamCard = (team: WorkforceTeam) => {
+    const leader = team.leaderId ? getWorkerById(team.leaderId) : null
     const members = team.memberIds.map((id) => getWorkerById(id)).filter(Boolean)
-    const assignedActivity = activities.find(
-    (a) => a.id === team.assignedActivityId
-    )
     const isExpanded = expandedTeam === team.id
 
     return (
@@ -94,12 +97,6 @@ export function TeamManagement({ selectedWorkers, onClearSelection, onTeamCreate
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {assignedActivity && (
-              <Badge variant="outline" className="bg-primary/10 text-primary">
-                <MapPin className="h-3 w-3 mr-1" />
-                {assignedActivity.name}
-              </Badge>
-            )}
             <ChevronRight
               className={`h-5 w-5 text-muted-foreground transition-transform ${isExpanded ? "rotate-90" : ""}`}
             />
@@ -110,7 +107,7 @@ export function TeamManagement({ selectedWorkers, onClearSelection, onTeamCreate
           <div className="border-t border-border p-4 bg-muted/30">
             <div className="mb-3">
               <p className="text-xs text-muted-foreground mb-1">Team Leader</p>
-              {leader && (
+              {leader ? (
                 <div className="flex items-center gap-2">
                   <Avatar className="h-6 w-6">
                     <AvatarFallback className="text-xs bg-primary/10 text-primary">
@@ -125,6 +122,10 @@ export function TeamManagement({ selectedWorkers, onClearSelection, onTeamCreate
                     {getRoleLabel(leader.role)}
                   </Badge>
                 </div>
+              ) : (
+                <Badge variant="outline" className="bg-muted text-muted-foreground">
+                  No Leader
+                </Badge>
               )}
             </div>
 
@@ -164,141 +165,11 @@ export function TeamManagement({ selectedWorkers, onClearSelection, onTeamCreate
     <Card className="bg-card border-border">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg text-foreground">Teams</CardTitle>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-1">
-              <Plus className="h-4 w-4" />
-              Create Team
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Create New Team</DialogTitle>
-              <DialogDescription>
-                {selectedWorkers.length > 0
-                  ? `Create a team with ${selectedWorkers.length} selected workers`
-                  : "Select idle workers from the classification panel to add to this team"}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="team-name">Team Name</Label>
-                <Input
-                  id="team-name"
-                  placeholder="e.g., Team Delta"
-                  value={newTeamName}
-                  onChange={(e) => setNewTeamName(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Assign Activity</Label>
-                  <Select value={selectedActivity} onValueChange={setSelectedActivity}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select activity" />
-                    </SelectTrigger>
-
-                    <SelectContent>
-                      {activities.map((activity) => (
-                        <SelectItem key={activity.id} value={activity.id}>
-                          {activity.name} - {activity.activity}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Assign to Activity</Label>
-                <Select value={selectedActivity} onValueChange={setSelectedActivity}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select activity" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activityProgress.map((activity) => (
-                      <SelectItem key={activity.id} value={activity.id}>
-                        {activity.activityName} - {activity.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedWorkers.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Team Leader</Label>
-                  <Select value={selectedLeader} onValueChange={setSelectedLeader}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select team leader" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectedWorkerDetails.map(
-                        (worker) =>
-                          worker && (
-                            <SelectItem key={worker.id} value={worker.id}>
-                              {worker.name} - {getRoleLabel(worker.role)}
-                            </SelectItem>
-                          )
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label>Selected Members ({selectedWorkers.length})</Label>
-                {selectedWorkers.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-border p-4 text-center">
-                    <UserPlus className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      Select idle workers from the classification panel
-                    </p>
-                  </div>
-                ) : (
-                  <ScrollArea className="h-[120px] rounded-lg border border-border p-2">
-                    <div className="space-y-2">
-                      {selectedWorkerDetails.map(
-                        (worker) =>
-                          worker && (
-                            <div
-                              key={worker.id}
-                              className="flex items-center gap-2 rounded-md bg-muted/50 p-2"
-                            >
-                              <Avatar className="h-6 w-6">
-                                <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                                  {worker.name
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm text-foreground">{worker.name}</span>
-                              <Badge variant="secondary" className="text-xs ml-auto">
-                                {getDisciplineLabel(worker.discipline)}
-                              </Badge>
-                            </div>
-                          )
-                      )}
-                    </div>
-                  </ScrollArea>
-                )}
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreateTeam}
-                disabled={!newTeamName || selectedWorkers.length === 0}
-              >
-                Create Team
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <CreateTeamDialog
+          projectId={projectId}
+          workers={workers}
+          onTeamCreated={onTeamCreated}
+        />
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">

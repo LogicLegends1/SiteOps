@@ -1,17 +1,27 @@
 "use client"
 
 import { useState } from "react"
+import { useEffect } from "react"
+import { useParams } from "next/navigation"
+import type { WorkforceWorker, WorkforceTeam } from "@/lib/workforce-live"
 import { WorkforceStats } from "@/components/workforce/workforce-stats"
 import { WorkerClassification } from "@/components/workforce/worker-classification"
 import { TeamManagement } from "@/components/workforce/team-management"
 import { ActivityWorkforceTable } from "@/components/workforce/activity-workforce-table"
 import { WorkforceGapAlerts } from "@/components/workforce/workforce-gap-alerts"
+import { AddWorkerDialog } from "@/components/workforce/add-worker-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Users, UserPlus, X } from "lucide-react"
 
 export default function WorkforcePage() {
+  const params = useParams()
+  const [workers, setWorkers] = useState<WorkforceWorker[] | null>(null)
+  const [teams, setTeams] = useState<WorkforceTeam[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [selectedWorkers, setSelectedWorkers] = useState<string[]>([])
   const [selectionMode, setSelectionMode] = useState(false)
 
@@ -32,41 +42,90 @@ export default function WorkforcePage() {
     setSelectionMode(false)
   }
 
+  useEffect(() => {
+    const projectId = params?.id || params?.projectId || params?.["id"]
+    if (!projectId) return
+
+    let aborted = false
+
+    async function load() {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetch(`/api/project/${projectId}/workforce`)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const json = await res.json()
+        if (aborted) return
+        setWorkers(json.workers ?? [])
+        setTeams(json.teams ?? [])
+      } catch (err: any) {
+        if (!aborted) setError(err?.message || "Failed to load workforce")
+      } finally {
+        if (!aborted) setLoading(false)
+      }
+    }
+
+    load()
+
+    return () => {
+      aborted = true
+    }
+  }, [params])
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Users className="h-6 w-6 text-primary" />
-            Workforce Allocation Dashboard
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage teams, track worker assignments, and identify staffing gaps
-          </p>
+      {/* Header + KPI Strip */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 p-8 rounded-2xl bg-card border-2 shadow-sm">
+        <div className="flex items-center gap-5">
+          <div className="p-4 bg-primary rounded-2xl shadow-md">
+            <Users className="h-8 w-8 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black tracking-tight uppercase leading-tight">
+              Workforce <span className="text-primary font-bold">Allocation</span>
+            </h1>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">
+              Team Capacity and Staffing Monitor
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {selectionMode ? (
-            <>
-              <Badge variant="outline" className="bg-primary/10 text-primary">
-                {selectedWorkers.length} workers selected
-              </Badge>
-              <Button variant="outline" size="sm" onClick={handleClearSelection}>
-                <X className="h-4 w-4 mr-1" />
-                Cancel
-              </Button>
-            </>
-          ) : (
-            <Button size="sm" onClick={() => setSelectionMode(true)}>
-              <UserPlus className="h-4 w-4 mr-1" />
-              Select Workers for Team
-            </Button>
-          )}
-        </div>
+
+        <WorkforceStats />
       </div>
 
-      {/* Stats Overview */}
-      <WorkforceStats />
+      <div className="flex items-center justify-end gap-2">
+        <AddWorkerDialog 
+          projectId={typeof params?.id === 'string' ? params.id : typeof params?.projectId === 'string' ? params.projectId : ''} 
+          onWorkerAdded={() => {
+            // Trigger a re-fetch of the workforce data
+            const projectId = params?.id || params?.projectId || params?.["id"]
+            if (projectId) {
+              fetch(`/api/project/${projectId}/workforce`)
+                .then(res => res.json())
+                .then(json => {
+                   setWorkers(json.workers ?? [])
+                   setTeams(json.teams ?? [])
+                })
+            }
+          }} 
+        />
+        {selectionMode ? (
+          <>
+            <Badge variant="outline" className="bg-primary/10 text-primary">
+              {selectedWorkers.length} workers selected
+            </Badge>
+            <Button variant="outline" size="sm" onClick={handleClearSelection}>
+              <X className="h-4 w-4 mr-1" />
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <Button size="sm" variant="outline" onClick={() => setSelectionMode(true)}>
+            <UserPlus className="h-4 w-4 mr-1" />
+            Select Workers for Team
+          </Button>
+        )}
+      </div>
 
       {/* Selection Mode Banner */}
       {selectionMode && (
@@ -90,28 +149,77 @@ export default function WorkforcePage() {
         </Card>
       )}
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Left Column - Worker Classification */}
-        <WorkerClassification
-          selectedWorkers={selectedWorkers}
-          onWorkerSelect={handleWorkerSelect}
-          selectionMode={selectionMode}
-        />
+      {/* Workforce Views */}
+      <Tabs defaultValue="classification" className="w-full space-y-6">
+        <TabsList className="grid w-full grid-cols-4 max-w-5xl h-12 bg-muted p-1 rounded-xl border-2">
+          <TabsTrigger
+            value="classification"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-black uppercase text-[10px] tracking-widest"
+          >
+            Worker Classification
+          </TabsTrigger>
+          <TabsTrigger
+            value="teams"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-black uppercase text-[10px] tracking-widest"
+          >
+            Teams
+          </TabsTrigger>
+          <TabsTrigger
+            value="distribution"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-black uppercase text-[10px] tracking-widest"
+          >
+            Activity Workforce Distribution
+          </TabsTrigger>
+          <TabsTrigger
+            value="alerts"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-black uppercase text-[10px] tracking-widest"
+          >
+            Workforce Gap Alerts
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Right Column - Teams */}
-        <TeamManagement
-          selectedWorkers={selectedWorkers}
-          onClearSelection={handleClearSelection}
-          onTeamCreated={handleTeamCreated}
-        />
-      </div>
+        <TabsContent value="classification" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <WorkerClassification
+            workers={workers ?? []}
+            selectedWorkers={selectedWorkers}
+            onWorkerSelect={handleWorkerSelect}
+            selectionMode={selectionMode}
+          />
+        </TabsContent>
 
-      {/* Activity Workforce Distribution */}
-      <ActivityWorkforceTable />
+        <TabsContent value="teams" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <TeamManagement
+            projectId={typeof params?.id === 'string' ? params.id : typeof params?.projectId === 'string' ? params.projectId : ''}
+            teams={teams ?? []}
+            workers={workers ?? []}
+            selectedWorkers={selectedWorkers}
+            onClearSelection={handleClearSelection}
+            onTeamCreated={() => {
+              // Trigger a re-fetch of the workforce data
+              setLoading(true)
+              const projectId = typeof params?.id === 'string' ? params.id : typeof params?.projectId === 'string' ? params.projectId : ''
+              if (projectId) {
+                fetch(`/api/project/${projectId}/workforce`)
+                  .then(res => res.json())
+                  .then(json => {
+                    setWorkers(json.workers ?? [])
+                    setTeams(json.teams ?? [])
+                  })
+                  .finally(() => setLoading(false))
+              }
+              handleTeamCreated()
+            }}
+          />
+        </TabsContent>
 
-      {/* Workforce Gap Alerts */}
-      <WorkforceGapAlerts />
+        <TabsContent value="distribution" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <ActivityWorkforceTable />
+        </TabsContent>
+
+        <TabsContent value="alerts" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <WorkforceGapAlerts />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
