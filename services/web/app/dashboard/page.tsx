@@ -87,9 +87,11 @@ export default function DashboardPage() {
     []
   )
 
-  const [projects, setProjects] = useState<LeafletMapItem[]>([])
+  const [projects, setProjects] = useState<ProjectFromApi[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const mapItems = useMemo(() => mapProjectsToMapItems(projects), [projects])
 
   useEffect(() => {
     let mounted = true
@@ -103,7 +105,7 @@ export default function DashboardPage() {
           setError(json?.error ?? 'Failed to load projects')
           setProjects([])
         } else {
-          setProjects(mapProjectsToMapItems(json.projects ?? []))
+          setProjects(json.projects ?? [])
           setError(null)
         }
       })
@@ -131,8 +133,8 @@ export default function DashboardPage() {
         <CardContent className="flex-1 min-h-0 overflow-hidden">
           <div className="flex h-full min-h-0 flex-row gap-4 overflow-hidden">
             <Card className="h-full max-h-full max-w-full aspect-square shrink overflow-hidden p-0">
-              <LeafletMap
-                items={projects}
+                  <LeafletMap
+                items={mapItems}
                 className="h-full"
                 mapClassName="h-full"
                 mapOptions={mapOptions}
@@ -149,7 +151,7 @@ export default function DashboardPage() {
             </Card>
 
             <Card className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              <CardHeader className="shrink-0 border-b border-border pb-3">
+                  <CardHeader className="shrink-0 border-b border-border pb-3">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-base">Project List</CardTitle>
                   <Badge variant="secondary">{projects.length}</Badge>
@@ -179,11 +181,11 @@ export default function DashboardPage() {
                   ) : (
                     <ItemGroup className="gap-2 p-2">
                       {projects.map((project) => {
-                        const status = project.description ?? "Unknown"
+                        const status = project.status ?? "Unknown"
 
                         return (
                           <Item
-                            key={project.id}
+                            key={project.projectid}
                             asChild
                             variant="outline"
                             size="sm"
@@ -191,14 +193,14 @@ export default function DashboardPage() {
                             <button
                               type="button"
                               className="w-full cursor-pointer text-left"
-                              onClick={() => router.push(`/project/${project.id}`)}
+                              onClick={() => router.push(`/project/${project.projectid}`)}
                             >
                               <ItemContent>
                                 <ItemHeader>
-                                  <ItemTitle>{project.title || "Untitled project"}</ItemTitle>
+                                  <ItemTitle>{project.name || "Untitled project"}</ItemTitle>
                                   <Badge variant="outline">{status}</Badge>
                                 </ItemHeader>
-                                <ItemDescription>Project ID: {project.id}</ItemDescription>
+                                <ItemDescription>Project ID: {project.projectid}</ItemDescription>
                               </ItemContent>
                             </button>
                           </Item>

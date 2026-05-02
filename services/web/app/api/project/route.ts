@@ -9,16 +9,30 @@ export async function GET() {
     const supabase = await createClient()
 
     const dbUser = await getCurrentDbUser(supabase)
+    // If user is an operation manager, return all projects.
+    let projectsData: any = null
+    let projectsError: any = null
 
-    const { data, error } = await supabase.rpc('get_projects_assigned_to_person', {
-      p_person_id: dbUser.personid,
-    })
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+    if (dbUser?.role === 'OPERATION_MANAGER') {
+      const res = await supabase
+        .from('project')
+        .select('projectid, name, locationlongitude, locationlatitude, projectdiagram, status')
+      console.log('Projects fetched for OPERATION_MANAGER:', res.data)
+      projectsData = res.data
+      projectsError = res.error
+    } else {
+      const res = await supabase.rpc('get_projects_assigned_to_person', {
+        p_person_id: dbUser.personid,
+      })
+      projectsData = res.data
+      projectsError = res.error
     }
 
-    return NextResponse.json({ projects: data ?? [] }, { status: 200 })
+    if (projectsError) {
+      return NextResponse.json({ error: projectsError.message }, { status: 400 })
+    }
+
+    return NextResponse.json({ projects: projectsData ?? [] }, { status: 200 })
   } catch (error) {
     if (error instanceof CurrentUserError) {
       return NextResponse.json({ error: error.message }, { status: error.status })
