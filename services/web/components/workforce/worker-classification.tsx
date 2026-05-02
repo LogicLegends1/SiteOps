@@ -8,16 +8,13 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-  workers,
   getDisciplineLabel,
   getRoleLabel,
   getStatusColor,
   getExperienceLevelColor,
-  type Worker,
-  type WorkerDiscipline,
-  type WorkerRole,
 } from "@/lib/workforce-data"
-import { HardHat, Zap, Wrench, ClipboardCheck, Shield, Users } from "lucide-react"
+import { type WorkforceWorker, type WorkerDiscipline, type WorkerRole } from "@/lib/workforce-live"
+import { HardHat, Zap, Wrench, ClipboardCheck, Shield, Users, Monitor } from "lucide-react"
 
 const disciplineIcons: Record<WorkerDiscipline, React.ElementType> = {
   civil: HardHat,
@@ -26,26 +23,29 @@ const disciplineIcons: Record<WorkerDiscipline, React.ElementType> = {
   qa: ClipboardCheck,
   safety: Shield,
   general: Users,
+  it: Monitor,
 }
 
 interface WorkerClassificationProps {
+  workers: WorkforceWorker[]
   selectedWorkers: string[]
   onWorkerSelect: (workerId: string, selected: boolean) => void
   selectionMode: boolean
 }
 
 export function WorkerClassification({
+  workers,
   selectedWorkers,
   onWorkerSelect,
   selectionMode,
 }: WorkerClassificationProps) {
   const [activeTab, setActiveTab] = useState<"discipline" | "role" | "experience">("discipline")
 
-  const disciplines: WorkerDiscipline[] = ["civil", "electrical", "mechanical", "qa", "safety", "general"]
-  const roles: WorkerRole[] = ["engineer", "supervisor", "technician", "operator", "skilled-labour", "general-labour"]
+  const disciplines: WorkerDiscipline[] = ["civil", "electrical", "mechanical", "qa", "safety", "general", "it"]
+  const roles: WorkerRole[] = ["engineer", "supervisor", "technician", "operator", "skilled-labour", "general-labour", "developer", "system-admin"]
   const experienceLevels = ["expert", "senior", "mid-level", "junior"]
 
-  const renderWorkerCard = (worker: Worker) => {
+  const renderWorkerCard = (worker: WorkforceWorker) => {
     const isSelected = selectedWorkers.includes(worker.id)
     const DisciplineIcon = disciplineIcons[worker.discipline]
 

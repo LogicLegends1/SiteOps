@@ -1,8 +1,8 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, UserCheck, UserX, AlertTriangle, Briefcase, HardHat } from "lucide-react"
 import { getWorkforceSummary } from "@/lib/workforce-data"
+import { cn } from "@/lib/utils"
 
 export function WorkforceStats() {
   const summary = getWorkforceSummary()
@@ -12,59 +12,71 @@ export function WorkforceStats() {
       title: "Total Workers",
       value: summary.total,
       icon: Users,
-      description: "Registered workforce",
-      color: "text-primary",
+      color: "text-blue-400",
+      border: "border-blue-900/50",
+      bg: "bg-blue-950/20",
     },
     {
       title: "Assigned",
       value: summary.assigned,
       icon: UserCheck,
-      description: "Currently on tasks",
-      color: "text-success",
+      color: "text-green-400",
+      border: "border-green-900/50",
+      bg: "bg-green-950/20",
     },
     {
       title: "Idle",
       value: summary.idle,
       icon: Briefcase,
-      description: "Available for assignment",
-      color: "text-amber-500",
+      color: "text-amber-400",
+      border: "border-amber-900/50",
+      bg: "bg-amber-950/20",
     },
     {
       title: "Unavailable",
       value: summary.unavailable,
       icon: UserX,
-      description: "On leave / absent",
-      color: "text-muted-foreground",
+      color: "text-slate-300",
+      border: "border-slate-700/50",
+      bg: "bg-slate-900/30",
     },
     {
       title: "Teams",
       value: 3,
       icon: HardHat,
-      description: "Active teams",
-      color: "text-primary",
+      color: "text-cyan-400",
+      border: "border-cyan-900/50",
+      bg: "bg-cyan-950/20",
     },
     {
       title: "Workforce Gap",
-      value: summary.totalGap,
+      value: "Flash A",
       icon: AlertTriangle,
-      description: "Positions to fill",
-      color: "text-destructive",
+      color: "text-red-400",
+      border: "border-red-900/50",
+      bg: "bg-red-950/20",
     },
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+    <div className="flex items-center flex-wrap gap-4">
       {stats.map((stat) => (
-        <Card key={stat.title} className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">{stat.title}</CardTitle>
-            <stat.icon className={`h-4 w-4 ${stat.color}`} />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-            <p className="text-xs text-muted-foreground">{stat.description}</p>
-          </CardContent>
-        </Card>
+        <div
+          key={stat.title}
+          className={cn(
+            "flex min-w-[150px] flex-1 items-start gap-3 rounded-xl border p-4 transition-all hover:bg-muted/10",
+            stat.bg,
+            stat.border
+          )}
+        >
+          <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+            <stat.icon className={cn("h-4 w-4", stat.color)} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-200">{stat.title}</span>
+            <span className={cn("mt-1 text-2xl font-bold tracking-tighter", stat.color)}>{stat.value}</span>
+          </div>
+        </div>
       ))}
     </div>
   )

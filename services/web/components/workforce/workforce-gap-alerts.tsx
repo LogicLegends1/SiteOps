@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { AlertTriangle, ArrowRight, Users, Wrench, Zap, HardHat } from "lucide-react"
+import { AlertTriangle, ArrowRight, Users, Wrench, Zap, HardHat, Monitor } from "lucide-react"
 import {
   activityWorkforceRequirements,
   getDisciplineLabel,
@@ -20,6 +20,7 @@ const disciplineIcons: Record<WorkerDiscipline, React.ElementType> = {
   qa: Users,
   safety: Users,
   general: Users,
+  it: Monitor,
 }
 
 export function WorkforceGapAlerts() {

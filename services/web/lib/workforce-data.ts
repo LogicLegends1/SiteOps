@@ -1,6 +1,6 @@
-export type WorkerDiscipline = "civil" | "electrical" | "mechanical" | "qa" | "safety" | "general"
+export type WorkerDiscipline = "civil" | "electrical" | "mechanical" | "qa" | "safety" | "general" | "it"
 
-export type WorkerRole = "engineer" | "supervisor" | "technician" | "operator" | "skilled-labour" | "general-labour"
+export type WorkerRole = "engineer" | "supervisor" | "technician" | "operator" | "skilled-labour" | "general-labour" | "developer" | "system-admin"
 
 export type WorkerStatus = "assigned" | "idle" | "unavailable"
 
@@ -502,8 +502,9 @@ export function getDisciplineLabel(discipline: WorkerDiscipline): string {
     qa: "QA/QC",
     safety: "Safety",
     general: "General",
+    it: "IT",
   }
-  return labels[discipline]
+  return labels[discipline] || "General"
 }
 
 export function getRoleLabel(role: WorkerRole): string {
@@ -514,8 +515,10 @@ export function getRoleLabel(role: WorkerRole): string {
     operator: "Machine Operator",
     "skilled-labour": "Skilled Labour",
     "general-labour": "General Labour",
+    developer: "Developer",
+    "system-admin": "System Admin",
   }
-  return labels[role]
+  return labels[role] || "Unknown Role"
 }
 
 export function getStatusColor(status: WorkerStatus): string {

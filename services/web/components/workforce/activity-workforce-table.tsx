@@ -27,7 +27,6 @@ import {
   getTeamById,
   type ActivityWorkforceRequirement,
 } from "@/lib/workforce-data"
-
 export function ActivityWorkforceTable() {
   const [expandedActivities, setExpandedActivities] = useState<string[]>([])
 
