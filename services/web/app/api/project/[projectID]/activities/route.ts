@@ -19,7 +19,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
 
     const { data: activities, error } = await supabase
       .from("activity")
-      .select("activityid, projectid, description, status")
+      .select("*")
       .eq("projectid", numericProjectId)
 
     if (error) {

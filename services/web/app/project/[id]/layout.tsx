@@ -30,6 +30,7 @@ import {
   ChartNoAxesGantt
 } from "lucide-react"
 import { createClient } from "@/lib/superbase"
+import { ProjectContext, type Project } from "@/app/contexts/project-context"
 
 const navItems = [
   {
@@ -64,6 +65,8 @@ const navItems = [
   },
 ]
 
+
+
 export default function ProjectLayout({
   children,
 }: {
@@ -75,6 +78,7 @@ export default function ProjectLayout({
   const projectId = params.id ?? "1"
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
   const [userName, setUserName] = useState<string>("User")
+  const [project, setProject] = useState<Project | null>(null)
 
   const getProjectHref = (segment: string) =>
     segment ? `/project/${projectId}/${segment}` : `/project/${projectId}`
@@ -96,6 +100,26 @@ export default function ProjectLayout({
     
     fetchUser()
   }, [])
+
+  useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        const response = await fetch(`/api/project/${projectId}`)
+        if (response.ok) {
+          const projectData: {project: Project} = await response.json()
+          setProject(projectData.project)
+        } else {
+          // Navigate back to dashboard if project not found or error occurs
+          router.push("/dashboard")
+        }
+      } catch (error) {
+        // Navigate back to dashboard if an error occurs
+        router.push("/dashboard")
+      }
+    }
+
+    fetchProject()
+  }, [projectId])
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -176,7 +200,9 @@ export default function ProjectLayout({
           <ThemeToggle />
         </header>
         <main className="flex-1 overflow-auto p-6">
-          {children}
+          <ProjectContext.Provider value={{ project, userName }}>
+            {children}
+          </ProjectContext.Provider>
         </main>
       </SidebarInset>
     </SidebarProvider>

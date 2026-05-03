@@ -15,42 +15,18 @@ import {
   AlertCircle,
 } from "lucide-react"
 import Link from "next/link"
-import { SriLankaSitesMap } from "@/components/dashboard/sri-lanka-sites-map"
+import { useProjectContext } from "@/app/contexts/project-context"
+import { useEffect, useState } from "react"
 
-const projectStats = [
-  {
-    title: "Site Progress",
-    value: "68%",
-    description: "Overall completion",
-    icon: MapPin,
-    trend: "+5% this week",
-    href: "/site-progress",
-  },
-  {
-    title: "Delay Risks",
-    value: "3",
-    description: "Activities at risk",
-    icon: AlertTriangle,
-    trend: "2 new alerts",
-    href: "/delay-engine",
-  },
-  {
-    title: "Material Status",
-    value: "2",
-    description: "Low stock items",
-    icon: Package,
-    trend: "Cement, Steel",
-    href: "/material-forecast",
-  },
-  {
-    title: "Workforce",
-    value: "45",
-    description: "Active workers",
-    icon: Users,
-    trend: "5 idle today",
-    href: "/workforce",
-  },
-]
+export type Activity = {
+  activityid: number
+  projectid: number
+  description: string | null
+  status: string
+  progress: number
+  createdat: string | null
+  updatedat: string | null
+}
 
 const recentActivities = [
   {
@@ -135,9 +111,75 @@ function getPriorityColor(priority: string) {
   }
 }
 
-export default function DashboardPage() {
+function formatProjectStatus(status?: string) {
+  if (!status) return "Unknown"
+
+  return status
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ")
+}
+
+export default function ProjectPage() {
   const params = useParams<{ id?: string }>()
-  const projectId = params.id ?? "1"
+  const projectId = params.id
+  const { project } = useProjectContext()
+  const [activities, setActivities] = useState<Activity[]>([])
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      if (!projectId) return
+
+      try {
+        const response = await fetch(`/api/project/${projectId}/activities`)
+        if (response.ok) {
+          const data = await response.json()
+          console.log("Fetched activities:", data)
+          setActivities(data.activities)
+        } else {
+          console.error("Failed to fetch activities")
+        }
+      } catch (error) {
+        console.error("Error fetching activities:", error)
+      }
+    }
+
+    fetchActivities()
+  }, [projectId])
+
+  const recentActivities = activities.slice(0, 5) // Show only the 5 most recent activities
+  const overallProgress = activities.length > 0 ? Math.round(activities.reduce((sum, activity) => sum + activity.progress, 0) / activities.length) : 0
+  const projectStats = [
+    {
+      title: "Site Progress",
+      value: `${overallProgress}%`,
+      description: "Overall completion",
+      icon: MapPin,
+      href: `/project/${projectId}/site-progress`,
+    },
+    {
+      title: "Delay Risks",
+      value: "3",
+      description: "Activities at risk",
+      icon: AlertTriangle,
+      href: "/delay-engine",
+    },
+    {
+      title: "Material Status",
+      value: "2",
+      description: "Low stock items",
+      icon: Package,
+      href: "/material-forecast",
+    },
+    {
+      title: "Workforce",
+      value: "45",
+      description: "Active workers",
+      icon: Users,
+      href: "/workforce",
+    },
+  ]
 
   const getProjectHref = (segment: string) =>
     segment ? `/project/${projectId}/${segment}` : `/project/${projectId}`
@@ -145,21 +187,13 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Welcome Header with Logo Placeholder */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {/* Logo Placeholder */}
-          <div className="h-16 w-16 rounded-lg bg-linear-to-br from-primary to-primary/60 flex items-center justify-center border border-border shadow-lg">
-            <span className="text-primary-foreground font-bold text-xl">AE</span>
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Access Engineering PLC</h1>
-            <p className="text-muted-foreground">Construction Site Operations System</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-sm text-muted-foreground">Current Project</p>
-          <p className="text-lg font-semibold text-foreground">Colombo Metro Tower</p>
-        </div>
+      <div className="flex flex-col items-start justify-between">
+        <p className="text-lg font-semibold text-foreground">
+          {project?.name ?? "Loading project..."}
+        </p>
+        <Badge variant="outline" className="mt-1">
+          {formatProjectStatus(project?.status)}
+        </Badge>
       </div>
 
       {/* Stats Cards */}
@@ -176,10 +210,6 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="text-3xl font-bold text-foreground">{stat.value}</div>
                 <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-                <p className="text-xs text-primary mt-2 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" />
-                  {stat.trend}
-                </p>
               </CardContent>
             </Card>
           </Link>
@@ -205,20 +235,20 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-4">
               {recentActivities.map((activity) => (
                 <div
-                  key={activity.zone}
+                  key={activity.activityid}
                   className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
                 >
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-foreground">
-                        {activity.zone}
+                        {activity.description || "Activity " + activity.activityid}
                       </span>
                       <Badge className={getStatusColor(activity.status)} variant="secondary">
                         {activity.status.replace("-", " ")}
                       </Badge>
                     </div>
-                    <span className="text-xs text-muted-foreground">{activity.activity}</span>
-                    <span className="text-xs text-muted-foreground">{activity.team}</span>
+                    <span className="text-xs text-muted-foreground">{activity.createdat && `Created ${activity.createdat}`}</span>
+                    <span className="text-xs text-muted-foreground">{activity.updatedat}</span>
                   </div>
                   <div className="flex flex-col items-end gap-1 w-24">
                     <span className="text-sm font-medium text-foreground">{activity.progress}%</span>
