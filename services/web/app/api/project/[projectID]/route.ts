@@ -17,13 +17,10 @@ export async function GET(
     const { data, error } = await supabase
       .from("project")
       .select(`
-        projectid,
-        name,
-        locationlatitude,
-        locationlongitude
+        *
       `)
       .eq("projectid", numericProjectId)
-      .single()
+      .maybeSingle()
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
@@ -33,14 +30,9 @@ export async function GET(
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
 
-    const project = {
-      projectID: data.projectid,
-      name: data.name,
-      locationLatitude: Number(data.locationlatitude ?? 6.9271),
-      locationLongitude: Number(data.locationlongitude ?? 80.7789),
-    }
 
-    return NextResponse.json({ project })
+
+    return NextResponse.json({ project: data })
   } catch (error) {
     console.error("Get project error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
