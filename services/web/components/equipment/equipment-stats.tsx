@@ -9,11 +9,11 @@ interface EquipmentStatsProps {
 
 export function EquipmentStats({ summary }: EquipmentStatsProps) {
   const kpis = [
-    { label: "Total Assets", value: summary.total, color: "text-blue-400", border: "border-blue-900/50", bg: "bg-blue-950/20" },
-    { label: "Active Deployment", value: summary.active, color: "text-emerald-400", border: "border-emerald-900/50", bg: "bg-emerald-950/20" },
-    { label: "Idle Inventory", value: summary.idle, color: "text-amber-400", border: "border-amber-900/50", bg: "bg-amber-950/20" },
-    { label: "Offline/Broken", value: summary.underRepair, color: "text-red-400", border: "border-red-900/50", bg: "bg-red-950/20" },
-    { label: "Service Due", value: summary.maintenanceDueCount, color: "text-primary", border: "border-primary/20", bg: "bg-primary/10" },
+    { label: "Total Assets", value: summary.total, color: "text-white" },
+    { label: "Active", value: summary.active, color: "text-emerald-500" },
+    { label: "Idle", value: summary.idle, color: "text-amber-500" },
+    { label: "Down", value: summary.underRepair, color: "text-red-500" },
+    { label: "In Maintenance", value: summary.maintenanceDueCount, color: "text-indigo-400" },
   ]
 
   return (

@@ -1,4 +1,4 @@
-export type EquipmentStatus = "operational" | "under_repair" | "retired"
+export type EquipmentStatus = "active" | "idle" | "down" | "maintenance" | "unassigned"
 
 export interface TechnicalSpecs {
   max_lift_capacity?: string

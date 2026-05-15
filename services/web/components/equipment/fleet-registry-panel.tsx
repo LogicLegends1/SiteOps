@@ -26,7 +26,7 @@ export function FleetRegistryPanel({ equipment }: FleetRegistryPanelProps) {
       <CardHeader className="border-b bg-muted/30 pb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <CardTitle className="text-2xl font-black uppercase tracking-tighter">Fleet Registry</CardTitle>
+            <CardTitle className="text-2xl font-black uppercase tracking-tighter">Asset Registry</CardTitle>
             <p className="text-xs font-bold uppercase tracking-widest text-primary mt-1">Operational Specifications & Reliability</p>
           </div>
           <div className="relative w-full md:w-80">

@@ -26,7 +26,7 @@ export default function EquipmentManagementPage() {
     async function loadData() {
       try {
         setLoading(true)
-        const res = await fetch(`/api/project/${projectId}/equipment`)
+        const res = await fetch(`/api/project/${projectId}/equipment?t=${Date.now()}`, { cache: 'no-store' })
         if (!res.ok) throw new Error("Failed to fetch equipment data")
         const json = await res.json()
         setData(json)
@@ -72,7 +72,7 @@ export default function EquipmentManagementPage() {
           </div>
           <div className="space-y-2">
             <h1 className="text-5xl font-black tracking-tighter uppercase leading-none text-white">
-              FLEET <span className="text-blue-500">CONTROL</span>
+              EQUIPMENT & <span className="text-blue-500">ASSET CONTROL</span>
             </h1>
             <p className="text-xs font-black uppercase tracking-[0.4em] text-zinc-500">
               Operational Intelligence & Asset Reliability
@@ -107,7 +107,7 @@ export default function EquipmentManagementPage() {
 
             <div className="mt-8">
               <TabsContent value="utilization" className="animate-in fade-in zoom-in-95 duration-500 outline-none">
-                <UtilizationDashboard equipments={data.equipment} allocations={[]} />
+                <UtilizationDashboard equipments={data.equipment} stats={data.summary} />
               </TabsContent>
 
               <TabsContent value="registry" className="animate-in fade-in zoom-in-95 duration-500 outline-none">
