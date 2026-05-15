@@ -8,25 +8,16 @@ export async function GET() {
   try {
     const supabase = await createClient()
 
-    const dbUser = await getCurrentDbUser(supabase)
-    // If user is an operation manager, return all projects.
     let projectsData: any = null
     let projectsError: any = null
 
-    if (dbUser?.role === 'OPERATION_MANAGER') {
-      const res = await supabase
-        .from('project')
-        .select('projectid, name, locationlongitude, locationlatitude, projectdiagram, status')
-      console.log('Projects fetched for OPERATION_MANAGER:', res.data)
-      projectsData = res.data
-      projectsError = res.error
-    } else {
-      const res = await supabase.rpc('get_projects_assigned_to_person', {
-        p_person_id: dbUser.personid,
-      })
-      projectsData = res.data
-      projectsError = res.error
-    }
+    // TEMPORARY: Disabled role-based filtering for development to ensure projects are visible.
+    const res = await supabase
+      .from('project')
+      .select('projectid, name, locationlongitude, locationlatitude, projectdiagram, status')
+    
+    projectsData = res.data
+    projectsError = res.error
 
     if (projectsError) {
       return NextResponse.json({ error: projectsError.message }, { status: 400 })
