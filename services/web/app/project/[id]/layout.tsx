@@ -43,11 +43,7 @@ const navItems = [
     segment: "site-progress",
     icon: MapPin,
   },
-  {
-    title: "Predictive Delay Engine",
-    segment: "delay-engine",
-    icon: AlertTriangle,
-  },
+
   {
     title: "Material Forecasting",
     segment: "material-forecast",
