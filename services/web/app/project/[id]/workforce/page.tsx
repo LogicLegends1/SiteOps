@@ -75,7 +75,7 @@ export default function WorkforcePage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header + KPI Strip */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 p-8 rounded-2xl bg-card border-2 shadow-sm">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 rounded-2xl border bg-card/95 p-8 shadow-sm">
         <div className="flex items-center gap-5">
           <div className="p-4 bg-primary rounded-2xl shadow-md">
             <Users className="h-8 w-8 text-primary-foreground" />
@@ -151,7 +151,7 @@ export default function WorkforcePage() {
 
       {/* Workforce Views */}
       <Tabs defaultValue="classification" className="w-full space-y-6">
-        <TabsList className="grid w-full grid-cols-4 max-w-5xl h-12 bg-muted p-1 rounded-xl border-2">
+        <TabsList className="grid h-12 w-full max-w-5xl grid-cols-4 rounded-xl border bg-muted/60 p-1">
           <TabsTrigger
             value="classification"
             className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-black uppercase text-[10px] tracking-widest"

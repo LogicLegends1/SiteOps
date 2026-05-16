@@ -41,17 +41,17 @@ export function AffectedActivitiesPanel({ selectedMaterial, liveMaterials = [] }
   }
 
   return (
-    <Card className="border-2 shadow-sm bg-card overflow-hidden">
-      <CardHeader className="p-4 border-b border-slate-800 bg-slate-900/40">
+    <Card className="overflow-hidden border bg-card shadow-sm">
+      <CardHeader className="border-b bg-muted/30 p-4">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 bg-black/40 border border-slate-700 text-slate-400 rounded-lg flex items-center justify-center shadow-inner">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg border bg-background text-muted-foreground shadow-sm">
             <Activity className="h-4 w-4" />
           </div>
           <div>
-            <CardTitle className="text-xs font-black uppercase tracking-[0.15em] leading-none text-slate-200">
+            <CardTitle className="text-xs font-black uppercase tracking-[0.15em] leading-none text-foreground">
               Affected Activities
             </CardTitle>
-            <CardDescription className="text-[9px] font-bold uppercase tracking-[0.2em] mt-1.5 text-slate-500">
+            <CardDescription className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.2em]">
               {selectedMaterial ? "Specific forecast impact" : "Total operational risk"}
             </CardDescription>
           </div>
@@ -60,7 +60,7 @@ export function AffectedActivitiesPanel({ selectedMaterial, liveMaterials = [] }
       <CardContent className="p-0">
         <ScrollArea className="h-[420px]">
           {filteredActivities.length > 0 ? (
-            <div className="divide-y divide-slate-800/40">
+            <div className="divide-y divide-border">
               {filteredActivities.map((activityName) => {
                 const activityDetails = getActivityDetails(activityName)
                 const affectingMaterials = selectedMaterial
@@ -76,15 +76,15 @@ export function AffectedActivitiesPanel({ selectedMaterial, liveMaterials = [] }
                     key={activityName}
                     className={cn(
                       "py-5 px-6 transition-all duration-200",
-                      hasCritical ? "bg-red-500/[0.04]" : "hover:bg-slate-800/20"
+                      hasCritical ? "bg-destructive/5" : "hover:bg-muted/40"
                     )}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex flex-col gap-1 flex-1 min-w-0 pr-4">
-                        <span className="font-bold text-sm tracking-tight text-white leading-tight truncate">
+                        <span className="truncate text-sm font-bold leading-tight tracking-tight text-foreground">
                           {activityName}
                         </span>
-                        <div className="flex items-center gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
+                        <div className="mt-1 flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                           <span className="flex items-center gap-1.5">
                             <MapPin className="h-3 w-3 text-primary/60" />
                             {activityDetails?.name || "Project Zone Alpha"}
@@ -97,7 +97,7 @@ export function AffectedActivitiesPanel({ selectedMaterial, liveMaterials = [] }
                       </div>
                       <div className={cn(
                         "grow-0 shrink-0 text-[9px] font-black uppercase tracking-[0.1em] border-2 py-1 px-3 rounded-lg shadow-sm font-mono",
-                        hasCritical ? "text-red-500 border-red-500/30 bg-red-950/40" : "text-orange-400 border-orange-500/20 bg-orange-950/20"
+                        hasCritical ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-warning/30 bg-warning/10 text-warning"
                       )}>
                         {hasCritical ? "Critical Path" : "Scheduled"}
                       </div>
@@ -105,20 +105,20 @@ export function AffectedActivitiesPanel({ selectedMaterial, liveMaterials = [] }
  
                     <div className="mt-4 space-y-3">
                       {/* ACTIONABLE METRIC: RUNWAY & IMPACT */}
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-slate-800/60 shadow-inner">
+                      <div className="flex items-center justify-between rounded-xl border bg-muted/30 p-3 shadow-inner">
                         <div className="flex flex-col">
-                          <span className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Operational Runway</span>
+                          <span className="mb-1 text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground">Operational Runway</span>
                           <span className={cn(
                             "text-xs font-bold font-mono tracking-tighter",
-                            hasCritical ? "text-red-400" : "text-orange-400"
+                            hasCritical ? "text-destructive" : "text-warning"
                           )}>
                             {hasCritical ? "0 Days (IMMEDIATE STOP)" : "~4 Days (BUFFER)"}
                           </span>
                         </div>
-                        <div className="h-8 w-px bg-slate-800 mx-2" />
+                        <div className="mx-2 h-8 w-px bg-border" />
                         <div className="flex flex-col text-right">
-                          <span className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Schedule Delay</span>
-                          <span className="text-xs font-bold font-mono text-slate-300 tracking-tighter">
+                          <span className="mb-1 text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground">Schedule Delay</span>
+                          <span className="font-mono text-xs font-bold tracking-tighter text-foreground">
                             +{activityDetails?.daysDelayed || (hasCritical ? 12 : 3)} Days
                           </span>
                         </div>
@@ -126,21 +126,21 @@ export function AffectedActivitiesPanel({ selectedMaterial, liveMaterials = [] }
  
                       {/* REAL EVIDENCE: RESOURCE DEBT */}
                       <div className="space-y-2">
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Resource Debt</span>
+                        <span className="px-1 text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">Resource Debt</span>
                         <div className="grid grid-cols-1 gap-1.5">
                           {affectingMaterials.map((mat) => (
-                            <div key={mat.id} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/40 border border-slate-800/40 hover:border-slate-700/60 transition-colors">
-                              <span className="text-[11px] font-bold text-slate-200">{mat.name}</span>
+                            <div key={mat.id} className="flex items-center justify-between rounded-lg border bg-background p-2.5 transition-colors hover:border-primary/40">
+                              <span className="text-[11px] font-bold text-foreground">{mat.name}</span>
                               <div className="flex items-center gap-3">
                                 <span className={cn(
                                   "text-[9px] font-black uppercase font-mono",
-                                  mat.stockLevel === "critical" ? "text-red-500" : "text-orange-500"
+                                  mat.stockLevel === "critical" ? "text-destructive" : "text-warning"
                                 )}>
                                   {mat.daysUntilShortage}D REMAINING
                                 </span>
                                 <div className={cn(
                                   "h-1.5 w-1.5 rounded-full",
-                                  mat.stockLevel === "critical" ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" : "bg-orange-500"
+                                  mat.stockLevel === "critical" ? "bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.5)]" : "bg-warning"
                                 )} />
                               </div>
                             </div>
@@ -153,7 +153,7 @@ export function AffectedActivitiesPanel({ selectedMaterial, liveMaterials = [] }
               })}
             </div>
           ) : (
-            <div className="h-48 flex flex-col items-center justify-center text-slate-600 opacity-60">
+            <div className="flex h-48 flex-col items-center justify-center text-muted-foreground opacity-70">
               <Package className="h-8 w-8 mb-3 opacity-20" />
               <p className="font-black text-[9px] uppercase tracking-[0.25em]">
                 {selectedMaterial ? "No Disruptions" : "Schedule Stable"}

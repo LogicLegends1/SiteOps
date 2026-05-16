@@ -19,7 +19,7 @@ export function MaintenanceReliabilityPanel({ equipment, logs }: MaintenanceReli
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       {/* MAINTENANCE FORECAST */}
-      <Card className="lg:col-span-4 border-2 bg-card/60 shadow-xl">
+      <Card className="border bg-card shadow-sm lg:col-span-4">
         <CardHeader className="border-b bg-muted/30 p-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-primary/10 rounded-xl">
@@ -43,7 +43,7 @@ export function MaintenanceReliabilityPanel({ equipment, logs }: MaintenanceReli
                   </div>
                   <div className="text-right flex flex-col gap-1">
                     <div className="text-xs font-bold tracking-tighter uppercase">{item.nextServiceDate}</div>
-                    <Badge className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${daysLeft < 7 ? "bg-red-500" : "bg-emerald-500"}`}>
+                    <Badge className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${daysLeft < 7 ? "bg-destructive text-destructive-foreground" : "bg-success text-success-foreground"}`}>
                       {daysLeft} Days
                     </Badge>
                   </div>
@@ -55,7 +55,7 @@ export function MaintenanceReliabilityPanel({ equipment, logs }: MaintenanceReli
       </Card>
 
       {/* RELIABILITY HISTORY LOG */}
-      <Card className="lg:col-span-8 border-2 bg-card/60 shadow-xl">
+      <Card className="border bg-card shadow-sm lg:col-span-8">
         <CardHeader className="border-b bg-muted/30 p-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-amber-500/10 rounded-xl">
@@ -85,11 +85,11 @@ export function MaintenanceReliabilityPanel({ equipment, logs }: MaintenanceReli
                     <TableCell className="px-6 py-6">
                       <div className="flex items-center gap-2.5">
                         {log.issueType === 'breakdown' ? (
-                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          <AlertTriangle className="h-4 w-4 text-destructive" />
                         ) : (
                           <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                         )}
-                        <span className={`text-[11px] font-black uppercase ${log.issueType === 'breakdown' ? "text-red-500" : "text-emerald-500"}`}>
+                        <span className={`text-[11px] font-black uppercase ${log.issueType === 'breakdown' ? "text-destructive" : "text-success"}`}>
                           {log.issueType.replace('_', ' ')}
                         </span>
                       </div>

@@ -14,7 +14,7 @@ export function AllocationManagerPanel({ equipment }: AllocationManagerPanelProp
   const activeDeployments = equipment.filter(e => e.activeActivityId)
 
   return (
-    <Card className="border-2 shadow-sm bg-card overflow-hidden">
+    <Card className="overflow-hidden border bg-card shadow-sm">
       <CardHeader className="border-b bg-muted/20 pb-4">
         <div>
           <CardTitle className="text-xl font-black uppercase tracking-tighter">Site Deployments</CardTitle>
@@ -24,7 +24,7 @@ export function AllocationManagerPanel({ equipment }: AllocationManagerPanelProp
       <CardContent className="p-0">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/10 hover:bg-muted/10 border-b-2">
+            <TableRow className="border-b bg-muted/20 hover:bg-muted/20">
               <TableHead className="text-[10px] font-black uppercase tracking-widest py-4">Asset</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest py-4">Site Zone</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest py-4">Linked Activity</TableHead>
