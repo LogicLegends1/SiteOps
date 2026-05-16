@@ -52,15 +52,22 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     const supabase = await createClient()
     const { projectID } = await context.params
     const numericProjectId = Number(projectID)
+    const { searchParams } = new URL(_req.url)
+    const filter = searchParams.get('filter') || 'project'
 
     // 1. Fetch Equipment with Classes
-    const { data: eqData, error: eqError } = await supabase
+    let eqQuery = supabase
       .from("equipment_item")
       .select(`
         *,
         equipment_class (name)
       `)
-      .eq("projectid", numericProjectId)
+      
+    if (filter === 'project') {
+      eqQuery = eqQuery.eq("projectid", numericProjectId)
+    }
+
+    const { data: eqData, error: eqError } = await eqQuery
 
     if (eqError) throw eqError
 
@@ -120,21 +127,22 @@ export async function GET(_req: NextRequest, context: RouteContext) {
       }
     })
 
-    // -- Summary Stats -- //
+    // -- Summary Stats (Human-Reported Model) -- //
     const total = equipment.length
-    const underRepair = equipment.filter(e => e.status === "under_repair").length
-    const active = equipment.filter(e => e.activeActivityId).length
-    const idle = total - underRepair - active
-
-    const today = new Date()
-    const maintenanceDueCount = equipment.filter(e => {
-      if (!e.nextServiceDate) return false
-      const due = new Date(e.nextServiceDate)
-      return (due.getTime() - today.getTime()) < (7 * 24 * 60 * 60 * 1000) // Due within 7 days
-    }).length
+    const active = equipment.filter(e => e.status === "active").length
+    const idle = equipment.filter(e => e.status === "idle").length
+    const down = equipment.filter(e => e.status === "down").length
+    const maintenance = equipment.filter(e => e.status === "maintenance").length
+    const unassigned = equipment.filter(e => e.status === "unassigned").length
 
     const response: EquipmentResponse = {
-      summary: { total, active, idle, underRepair, maintenanceDueCount },
+      summary: { 
+        total, 
+        active, 
+        idle, 
+        underRepair: down, 
+        maintenanceDueCount: maintenance 
+      },
       equipment,
       maintenanceLogs
     }

@@ -59,7 +59,7 @@ const navItems = [
     icon: Users,
   },
   {
-    title: "Equipment Allocation",
+    title: "Equipment & Assets",
     segment: "equipment",
     icon: Wrench,
   },

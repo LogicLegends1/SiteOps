@@ -8,11 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, ShieldCheck, ShieldAlert, Cpu } from "lucide-react"
 import { type EquipmentItem } from "@/lib/equipment-data"
 
-interface FleetRegistryPanelProps {
+interface EquipmentRegistryPanelProps {
   equipment: EquipmentItem[]
 }
 
-export function FleetRegistryPanel({ equipment }: FleetRegistryPanelProps) {
+export function EquipmentRegistryPanel({ equipment }: EquipmentRegistryPanelProps) {
   const [searchTerm, setSearchTerm] = useState("")
 
   const filtered = equipment.filter(e => 
@@ -26,8 +26,8 @@ export function FleetRegistryPanel({ equipment }: FleetRegistryPanelProps) {
       <CardHeader className="border-b bg-muted/30 pb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <CardTitle className="text-2xl font-black uppercase tracking-tighter">Fleet Registry</CardTitle>
-            <p className="text-xs font-bold uppercase tracking-widest text-primary mt-1">Operational Specifications & Reliability</p>
+            <CardTitle className="text-2xl font-black uppercase tracking-tighter">Asset Catalog</CardTitle>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary mt-1">Operational Specifications & Deployment Tracking</p>
           </div>
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -45,6 +45,7 @@ export function FleetRegistryPanel({ equipment }: FleetRegistryPanelProps) {
           <TableHeader>
             <TableRow className="bg-muted/20 hover:bg-muted/20 border-b-2">
               <TableHead className="text-xs font-black uppercase tracking-wider py-5 px-6">Equipment Unit</TableHead>
+              <TableHead className="text-xs font-black uppercase tracking-wider py-5 px-6">Model / Specification</TableHead>
               <TableHead className="text-xs font-black uppercase tracking-wider py-5 px-6">Tech Specs</TableHead>
               <TableHead className="text-xs font-black uppercase tracking-wider py-5 px-6 text-center">Reliability</TableHead>
               <TableHead className="text-xs font-black uppercase tracking-wider py-5 px-6 text-center">Status</TableHead>
@@ -63,8 +64,13 @@ export function FleetRegistryPanel({ equipment }: FleetRegistryPanelProps) {
                   </div>
                 </TableCell>
                 <TableCell className="py-6 px-6">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 shadow-inner">
+                    <span className="text-xs font-black text-white uppercase">{(item.technicalSpecs as any)?.model || "Standard"}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="py-6 px-6">
                   <div className="flex flex-wrap gap-2.5">
-                    {Object.entries(item.technicalSpecs).map(([key, value]) => (
+                    {Object.entries(item.technicalSpecs).filter(([k]) => k !== 'model').map(([key, value]) => (
                       <div key={key} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-muted-foreground/10">
                         <Cpu className="h-3.5 w-3.5 text-primary" />
                         <span className="text-[10px] font-bold uppercase text-muted-foreground">{key.replace(/_/g, ' ')}:</span>
