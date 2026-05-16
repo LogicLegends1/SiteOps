@@ -13,12 +13,12 @@ PROJECT_ID = 1
 
 # Equipment Class Mapping
 CLASS_MAP = {
-    "Lifting & Cranes": 1,
-    "Earthmoving": 2,
-    "Concreting": 3,
-    "Foundation & Piling": 4,
-    "Logistics & Transport": 5,
-    "Compaction": 6
+    "Cranes & Lifting Gear": 1,
+    "Heavy Earthmovers": 2,
+    "Concrete Fleet": 3,
+    "Drilling & Piling Rigs": 4,
+    "Trucks & Transport": 5,
+    "Rollers & Compactors": 6
 }
 
 def seed_data():
@@ -29,7 +29,7 @@ def seed_data():
     try:
         supabase.table("equipment_assignment").delete().neq("activityid", -1).execute()
         supabase.table("equipment_maintenance_log").delete().neq("logid", -1).execute()
-        supabase.table("equipment_item").delete().eq("projectid", PROJECT_ID).execute()
+        supabase.table("equipment_item").delete().neq("projectid", -1).execute()
     except Exception as e:
         print(f"Cleanup warning (non-critical): {e}")
 
@@ -41,93 +41,103 @@ def seed_data():
     
     activity_ids = [a['activityid'] for a in activities]
     
-    # 3. DEFINE ASSETS
+    # 3. DEFINE ASSETS (Functional Name, Model, SN Prefix, Specs)
     equipment_classes = [
-        {"name": "Earthmoving", "items": [
-            ("Caterpillar 320 Next Gen", "SN-EX-001", {"bucket": "1.2m3", "weight": "22t"}),
-            ("Komatsu PC210LC-11", "SN-EX-002", {"bucket": "1.1m3", "power": "123kW"}),
-            ("Caterpillar D6 Dozer", "SN-DZ-001", {"blade": "3.3m", "power": "161kW"}),
-            ("Case 580 Super N", "SN-BH-001", {"depth": "4.4m"}),
-            ("Volvo L120H", "SN-WL-001", {"bucket": "3.5m3"}),
-            ("JCB 3CX Eco", "SN-BH-002", {"power": "68kW"}),
-            ("Bobcat S650", "SN-SS-001", {"payload": "1.2t"}),
-            ("John Deere 850L", "SN-DZ-002", {"power": "168kW"})
+        {"name": "Heavy Earthmovers", "items": [
+            ("Excavator", "Cat 320", "SN-EX-001", {"bucket": "1.2m3", "weight": "22t"}),
+            ("Excavator", "Komatsu PC210", "SN-EX-002", {"bucket": "1.1m3", "power": "123kW"}),
+            ("Dozer", "Cat D6", "SN-DZ-001", {"blade": "3.3m", "power": "161kW"}),
+            ("Backhoe", "Case 580", "SN-BH-001", {"depth": "4.4m"}),
+            ("Wheel Loader", "Volvo L120H", "SN-WL-001", {"bucket": "3.5m3"}),
+            ("Backhoe", "JCB 3CX", "SN-BH-002", {"power": "68kW"}),
+            ("Skid Steer", "Bobcat S650", "SN-SS-001", {"payload": "1.2t"}),
+            ("Dozer", "JD 850L", "SN-DZ-002", {"power": "168kW"})
         ]},
-        {"name": "Concreting", "items": [
-            ("Putzmeister BSF 36-4", "SN-CP-001", {"reach": "36m", "output": "160m3/h"}),
-            ("Schwing S 36 X", "SN-CP-002", {"reach": "35m"}),
-            ("Mack Granite Mixer X3", "SN-MT-001", {"capacity": "9m3"}),
-            ("Kenworth T880 Mixer", "SN-MT-002", {"capacity": "10m3"}),
-            ("Liebherr HTM 905", "SN-MT-003", {"capacity": "9m3"}),
-            ("Peterbilt 567 Mixer", "SN-MT-004", {"capacity": "11m3"})
+        {"name": "Concrete Fleet", "items": [
+            ("Concrete Pump", "Putzmeister 36m", "SN-CP-001", {"reach": "36m", "output": "160m3/h"}),
+            ("Concrete Pump", "Schwing 35m", "SN-CP-002", {"reach": "35m"}),
+            ("Concrete Mixer", "Mack Granite", "SN-MT-001", {"capacity": "9m3"}),
+            ("Concrete Mixer", "Kenworth T880", "SN-MT-002", {"capacity": "10m3"}),
+            ("Concrete Mixer", "Liebherr HTM", "SN-MT-003", {"capacity": "9m3"}),
+            ("Concrete Mixer", "Peterbilt 567", "SN-MT-004", {"capacity": "11m3"})
         ]},
-        {"name": "Logistics & Transport", "items": [
-            ("Mercedes-Benz Arocs", "SN-DT-001", {"payload": "32t"}),
-            ("Scania P450 XT", "SN-DT-002", {"payload": "30t"}),
-            ("Volvo FMX 460", "SN-DT-003", {"payload": "32t"}),
-            ("Isuzu FSR 700", "SN-FB-001", {"length": "7m"}),
-            ("MAN TGS 41.400", "SN-DT-004", {"payload": "40t"})
+        {"name": "Trucks & Transport", "items": [
+            ("Tipper Truck", "MB Arocs", "SN-DT-001", {"payload": "32t"}),
+            ("Tipper Truck", "Scania P450", "SN-DT-002", {"payload": "30t"}),
+            ("Tipper Truck", "Volvo FMX", "SN-DT-003", {"payload": "32t"}),
+            ("Flatbed Truck", "Isuzu FSR", "SN-FB-001", {"length": "7m"}),
+            ("Heavy Tipper", "MAN TGS", "SN-DT-004", {"payload": "40t"})
         ]},
-        {"name": "Lifting & Cranes", "items": [
-            ("Potain MDT 319", "SN-TC-001", {"max_lift": "12t", "jib": "70m"}),
-            ("Liebherr LTM 1100", "SN-MC-001", {"capacity": "100t"}),
-            ("Manitowoc MLC300", "SN-CC-001", {"capacity": "300t"}),
-            ("Grove GMK5250L", "SN-MC-002", {"capacity": "250t"}),
-            ("Sany SCC1500", "SN-CC-002", {"capacity": "150t"})
+        {"name": "Cranes & Lifting Gear", "items": [
+            ("Tower Crane", "Potain MDT", "SN-TC-001", {"max_lift": "12t", "jib": "70m"}),
+            ("Mobile Crane", "Liebherr 100t", "SN-MC-001", {"capacity": "100t"}),
+            ("Crawler Crane", "Manitowoc 300t", "SN-CC-001", {"capacity": "300t"}),
+            ("Mobile Crane", "Grove 250t", "SN-MC-002", {"capacity": "250t"}),
+            ("Crawler Crane", "Sany 150t", "SN-CC-002", {"capacity": "150t"})
         ]},
-        {"name": "Foundation & Piling", "items": [
-            ("Bauer BG 24 H", "SN-DR-001", {"max_depth": "65m", "torque": "235kNm"}),
-            ("Liebherr LB 28", "SN-DR-002", {"max_depth": "70m"}),
-            ("Junttan PMx22", "SN-PR-001", {"hammer": "5t"}),
-            ("Casagrande B175", "SN-DR-003", {"depth": "60m"})
+        {"name": "Drilling & Piling Rigs", "items": [
+            ("Drilling Rig", "Bauer BG 24", "SN-DR-001", {"max_depth": "65m", "torque": "235kNm"}),
+            ("Drilling Rig", "Liebherr LB 28", "SN-DR-002", {"max_depth": "70m"}),
+            ("Pile Driver", "Junttan PMx22", "SN-PR-001", {"hammer": "5t"}),
+            ("Drilling Rig", "Casagrande B175", "SN-DR-003", {"depth": "60m"})
         ]},
-        {"name": "Compaction", "items": [
-            ("Hamm H13i", "SN-RO-001", {"drum": "2.1m", "weight": "13t"}),
-            ("Caterpillar CS56B", "SN-RO-002", {"drum": "2.1m"}),
-            ("Bomag BW 213 DH-5", "SN-RO-003", {"power": "115kW"}),
-            ("Dynapac CA3500D", "SN-RO-004", {"weight": "12t"})
+        {"name": "Rollers & Compactors", "items": [
+            ("Smooth Drum Roller", "Hamm H13i", "SN-RO-001", {"drum": "2.1m", "weight": "13t"}),
+            ("Soil Compactor", "Cat CS56B", "SN-RO-002", {"drum": "2.1m"}),
+            ("Padfoot Roller", "Bomag 213", "SN-RO-003", {"power": "115kW"}),
+            ("Vibratory Roller", "Dynapac 12t", "SN-RO-004", {"weight": "12t"})
         ]}
     ]
 
     all_equipment = []
-    print("Generating assets...")
-    for cls_info in equipment_classes:
-        class_id = CLASS_MAP[cls_info['name']]
-        for name, sn, specs in cls_info['items']:
-            # Human-reported status model
-            # 60% chance active/idle, 20% unassigned, 20% down/maint
-            roll = random.random()
-            if roll < 0.5: status = "active"
-            elif roll < 0.7: status = "idle"
-            elif roll < 0.85: status = "unassigned"
-            elif roll < 0.93: status = "maintenance"
-            else: status = "down"
+    PROJECT_IDS = [1, 2, 3, 4]
+    
+    for current_project_id in PROJECT_IDS:
+        print(f"Generating fleet for Project {current_project_id}...")
+        for cls_info in equipment_classes:
+            class_id = CLASS_MAP[cls_info['name']]
+            for clean_name, model_name, base_sn, specs in cls_info['items']:
+                num_units = random.randint(2, 5)
+                for unit_idx in range(1, num_units + 1):
+                    roll = random.random()
+                    if roll < 0.5: status = "active"
+                    elif roll < 0.7: status = "idle"
+                    elif roll < 0.85: status = "unassigned"
+                    elif roll < 0.93: status = "maintenance"
+                    else: status = "down"
 
-            service_days = random.randint(-10, 30)
-            next_service = (datetime.now() + timedelta(days=service_days)).strftime("%Y-%m-%d")
-            
-            eq_item = {
-                "projectid": PROJECT_ID,
-                "name": name,
-                "classid": class_id,
-                "serial_number": sn,
-                "status": status,
-                "technical_specs": specs,
-                "next_service_date": next_service
-            }
-            res = supabase.table("equipment_item").insert(eq_item).execute()
-            if res.data:
-                all_equipment.append(res.data[0])
+                    service_days = random.randint(-10, 30)
+                    next_service = (datetime.now() + timedelta(days=service_days)).strftime("%Y-%m-%d")
+                    
+                    full_specs = specs.copy()
+                    full_specs["model"] = model_name
 
-    print(f"SUCCESS: Seeded {len(all_equipment)} assets with 5-state model.")
+                    eq_item = {
+                        "projectid": current_project_id,
+                        "name": f"{clean_name} #P{current_project_id}-{unit_idx:02d}",
+                        "classid": class_id,
+                        "serial_number": f"{base_sn}-P{current_project_id}-{unit_idx:02d}",
+                        "status": status,
+                        "technical_specs": full_specs,
+                        "next_service_date": next_service
+                    }
+                    res = supabase.table("equipment_item").insert(eq_item).execute()
+                    if res.data:
+                        all_equipment.append(res.data[0])
+
+    print(f"SUCCESS: Seeded {len(all_equipment)} assets total across {len(PROJECT_IDS)} projects.")
 
     # 4. CREATE ACTIVE ASSIGNMENTS
     print("Deploying assets to activities...")
-    # Deployments only for 'active' and 'idle' statuses
     deployable = [e for e in all_equipment if e['status'] in ['active', 'idle']]
     
     for eq in deployable:
-        act_id = random.choice(activity_ids)
+        # Fetch activities for the SPECIFIC project the equipment belongs to
+        activities = supabase.table("activity").select("activityid").eq("projectid", eq['projectid']).execute().data
+        if not activities:
+            continue
+        
+        act_id = random.choice([a['activityid'] for a in activities])
         assignment = {
             "itemid": eq['itemid'],
             "activityid": act_id,

@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { EquipmentStats } from "@/components/equipment/equipment-stats"
 import { UtilizationDashboard } from "@/components/equipment/utilization-dashboard"
-import { FleetRegistryPanel } from "@/components/equipment/fleet-registry-panel"
+import { EquipmentRegistryPanel } from "@/components/equipment/equipment-registry-panel"
 import { AllocationManagerPanel } from "@/components/equipment/allocation-manager-panel"
 import { MaintenanceReliabilityPanel } from "@/components/equipment/maintenance-reliability-panel"
 import { type EquipmentResponse } from "@/lib/equipment-data"
@@ -19,6 +19,7 @@ export default function EquipmentManagementPage() {
   const [data, setData] = useState<EquipmentResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [filter, setFilter] = useState<'project' | 'company'>('project')
 
   useEffect(() => {
     if (!projectId) return
@@ -26,7 +27,7 @@ export default function EquipmentManagementPage() {
     async function loadData() {
       try {
         setLoading(true)
-        const res = await fetch(`/api/project/${projectId}/equipment?t=${Date.now()}`, { cache: 'no-store' })
+        const res = await fetch(`/api/project/${projectId}/equipment?filter=${filter}&t=${Date.now()}`, { cache: 'no-store' })
         if (!res.ok) throw new Error("Failed to fetch equipment data")
         const json = await res.json()
         setData(json)
@@ -38,13 +39,13 @@ export default function EquipmentManagementPage() {
     }
 
     loadData()
-  }, [projectId])
+  }, [projectId, filter])
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] gap-4 opacity-50">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <span className="text-xs font-black uppercase tracking-[0.3em]">Syncing Fleet Intelligence...</span>
+        <span className="text-xs font-black uppercase tracking-[0.3em]">Synchronizing Asset Registry...</span>
       </div>
     )
   }
@@ -95,7 +96,7 @@ export default function EquipmentManagementPage() {
                 Operational Status
               </TabsTrigger>
               <TabsTrigger value="registry" className="flex-1 rounded-xl data-[state=active]:bg-blue-600 data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all">
-                Asset Specifications
+                Asset Catalog
               </TabsTrigger>
               <TabsTrigger value="deployments" className="flex-1 rounded-xl data-[state=active]:bg-blue-600 data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all">
                 Deployment Map
@@ -107,11 +108,16 @@ export default function EquipmentManagementPage() {
 
             <div className="mt-8">
               <TabsContent value="utilization" className="animate-in fade-in zoom-in-95 duration-500 outline-none">
-                <UtilizationDashboard equipments={data.equipment} stats={data.summary} />
+                <UtilizationDashboard 
+                  equipments={data.equipment} 
+                  stats={data.summary} 
+                  filter={filter} 
+                  setFilter={setFilter} 
+                />
               </TabsContent>
 
               <TabsContent value="registry" className="animate-in fade-in zoom-in-95 duration-500 outline-none">
-                <FleetRegistryPanel equipment={data.equipment} />
+                <EquipmentRegistryPanel equipment={data.equipment} />
               </TabsContent>
 
               <TabsContent value="deployments" className="animate-in fade-in zoom-in-95 duration-500 outline-none">

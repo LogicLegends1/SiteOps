@@ -52,15 +52,22 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     const supabase = await createClient()
     const { projectID } = await context.params
     const numericProjectId = Number(projectID)
+    const { searchParams } = new URL(_req.url)
+    const filter = searchParams.get('filter') || 'project'
 
     // 1. Fetch Equipment with Classes
-    const { data: eqData, error: eqError } = await supabase
+    let eqQuery = supabase
       .from("equipment_item")
       .select(`
         *,
         equipment_class (name)
       `)
-      .eq("projectid", numericProjectId)
+      
+    if (filter === 'project') {
+      eqQuery = eqQuery.eq("projectid", numericProjectId)
+    }
+
+    const { data: eqData, error: eqError } = await eqQuery
 
     if (eqError) throw eqError
 

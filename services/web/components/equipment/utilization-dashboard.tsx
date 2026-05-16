@@ -9,9 +9,11 @@ import { Activity, AlertCircle, AlertTriangle, Clock, Construction } from "lucid
 interface UtilizationDashboardProps {
   equipments: any[]
   stats: any
+  filter: 'project' | 'company'
+  setFilter: (filter: 'project' | 'company') => void
 }
 
-export function UtilizationDashboard({ equipments, stats: propStats }: UtilizationDashboardProps) {
+export function UtilizationDashboard({ equipments, stats: propStats, filter, setFilter }: UtilizationDashboardProps) {
   // Extract active IDs directly from the equipment objects
   const activeEqIds = useMemo(() => {
     return new Set(
@@ -55,32 +57,51 @@ export function UtilizationDashboard({ equipments, stats: propStats }: Utilizati
     <div className="space-y-10">
       {/* ANALYTICAL FLEET MATRIX */}
       <div className="rounded-[2.5rem] bg-zinc-950 border border-zinc-800 shadow-2xl">
-        <div className="p-8 border-b border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
-          <div>
-            <h3 className="text-lg font-black uppercase tracking-tight text-white">Asset Operational Matrix</h3>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Real-time capacity and deployment audit</p>
+        <div className="p-8 border-b border-zinc-800 bg-zinc-900/30 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <h3 className="text-lg font-black uppercase tracking-tight text-white">Asset Operational Status</h3>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Current deployment and equipment availability breakdown</p>
           </div>
-          <div className="flex gap-4">
-             <div className="flex items-center gap-1.5">
-                <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span className="text-[9px] font-black uppercase text-zinc-500">Active</span>
-             </div>
-             <div className="flex items-center gap-1.5">
-                <div className="h-2 w-2 rounded-full bg-amber-500" />
-                <span className="text-[9px] font-black uppercase text-zinc-500">Idle</span>
-             </div>
-             <div className="flex items-center gap-1.5">
-                <div className="h-2 w-2 rounded-full bg-red-600" />
-                <span className="text-[9px] font-black uppercase text-zinc-500">Down</span>
-             </div>
-             <div className="flex items-center gap-1.5">
-                <div className="h-2 w-2 rounded-full bg-indigo-500" />
-                <span className="text-[9px] font-black uppercase text-zinc-500">Maint</span>
-             </div>
-             <div className="flex items-center gap-1.5">
-                <div className="h-2 w-2 rounded-full bg-zinc-600" />
-                <span className="text-[9px] font-black uppercase text-zinc-500">Yard</span>
-             </div>
+          
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <select 
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as 'project' | 'company')}
+                className="appearance-none bg-zinc-900/80 border border-zinc-700 hover:border-zinc-500 focus:border-blue-500 transition-colors text-white text-[10px] font-black uppercase tracking-widest py-2 pl-4 pr-10 rounded-xl outline-none cursor-pointer shadow-lg"
+              >
+                <option value="project">Current Project Scope</option>
+                <option value="company">All Company Assets</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-zinc-400">
+                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+              </div>
+            </div>
+
+            <div className="h-8 w-px bg-zinc-800 hidden md:block" />
+
+            <div className="flex gap-4">
+              <div className="flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                  <span className="text-[9px] font-black uppercase text-zinc-500 tracking-tighter">Active</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]" />
+                  <span className="text-[9px] font-black uppercase text-zinc-500 tracking-tighter">Idle</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-full bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.4)]" />
+                  <span className="text-[9px] font-black uppercase text-zinc-500 tracking-tighter">Down</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
+                  <span className="text-[9px] font-black uppercase text-zinc-500 tracking-tighter">Maint</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-full bg-zinc-600 shadow-[0_0_8px_rgba(82,82,91,0.4)]" />
+                  <span className="text-[9px] font-black uppercase text-zinc-500 tracking-tighter">Yard</span>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -119,7 +140,7 @@ export function UtilizationDashboard({ equipments, stats: propStats }: Utilizati
             return (
               <div key={className} className="grid grid-cols-12 items-center p-4 hover:bg-zinc-900/40 transition-all group border-b border-zinc-900 last:border-none">
                 <div className="col-span-3 flex flex-col justify-center">
-                  <span className="text-sm font-black text-white uppercase group-hover:text-blue-500 transition-colors leading-none tracking-tighter">{className}</span>
+                  <span className="text-xs font-semibold text-zinc-400 group-hover:text-white transition-colors">{className}</span>
                 </div>
                 
                 <div className="col-span-4 px-2">
