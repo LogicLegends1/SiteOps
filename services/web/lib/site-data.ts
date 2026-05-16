@@ -35,11 +35,13 @@ export const activities: WorkforceActivityMeta[] = [
 
 export interface Activity {
   activityID: number
+  zoneID: number
   projectID: number
   name: string
   description: string | null
   activity: string | null
   status: ActivityStatus
+  progress: number
   lat: number
   lng: number
   markerLabel: string

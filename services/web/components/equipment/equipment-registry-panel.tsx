@@ -22,7 +22,7 @@ export function EquipmentRegistryPanel({ equipment }: EquipmentRegistryPanelProp
   )
 
   return (
-    <Card className="border-2 shadow-sm bg-card overflow-hidden">
+    <Card className="overflow-hidden border bg-card shadow-sm">
       <CardHeader className="border-b bg-muted/30 pb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
@@ -64,8 +64,8 @@ export function EquipmentRegistryPanel({ equipment }: EquipmentRegistryPanelProp
                   </div>
                 </TableCell>
                 <TableCell className="py-6 px-6">
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 shadow-inner">
-                    <span className="text-xs font-black text-white uppercase">{(item.technicalSpecs as any)?.model || "Standard"}</span>
+                  <div className="flex items-center gap-2 rounded-xl border bg-muted/30 px-4 py-2 shadow-inner">
+                    <span className="text-xs font-black uppercase text-foreground">{(item.technicalSpecs as any)?.model || "Standard"}</span>
                   </div>
                 </TableCell>
                 <TableCell className="py-6 px-6">
@@ -97,7 +97,7 @@ export function EquipmentRegistryPanel({ equipment }: EquipmentRegistryPanelProp
                 <TableCell className="py-6 px-6 text-center">
                    <Badge 
                     className={`text-[10px] font-black uppercase px-3 py-1 rounded-full shadow-md ${
-                      item.status === 'operational' ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
+                      item.status === 'active' ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"
                     }`}
                   >
                     {item.status.replace('_', ' ')}

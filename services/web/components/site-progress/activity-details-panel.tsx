@@ -10,10 +10,11 @@ import { ActivityStatusBadge } from "@/components/site-progress/activity-status-
 import { ActivityTimeline } from "@/components/site-progress/activity-timeline"
 import { ProgressUpdateModal } from "@/components/site-progress/progress-update-modal"
 import { cn } from "@/lib/utils"
+import { fetchWeatherForecast, transformWeatherData } from "@/lib/weather-api"
+import { weatherForecast, type WeatherForecast } from "@/lib/delay-engine-data"
 import {
   Calendar,
   Users,
-  User,
   Clock,
   MapPin,
   Activity as ActivityIcon,
@@ -21,8 +22,14 @@ import {
   AlertTriangle,
   MessageSquare,
   TrendingUp,
+  Cloud,
+  CloudRain,
+  CloudLightning,
+  Droplets,
+  Sun,
+  Wind,
 } from "lucide-react"
-import { issues, getIssuesByActivityId, getPriorityColor, getIssueStatusColor } from "@/lib/issues-data"
+import { getIssuesByActivityId, getPriorityColor, getIssueStatusColor } from "@/lib/issues-data"
 
 interface ActivityDetailsPanelProps {
   activity: Activity | null
@@ -52,10 +59,48 @@ function getIssueTypeIcon(type: string) {
   }
 }
 
+function getWeatherIcon(condition: WeatherForecast["condition"]) {
+  switch (condition) {
+    case "sunny":
+      return Sun
+    case "cloudy":
+      return Cloud
+    case "rainy":
+      return CloudRain
+    case "stormy":
+      return CloudLightning
+    default:
+      return Cloud
+  }
+}
+
+function getImpactBadgeClass(impact: WeatherForecast["impactLevel"]) {
+  switch (impact) {
+    case "severe":
+      return "bg-destructive text-destructive-foreground"
+    case "moderate":
+      return "bg-warning text-warning-foreground"
+    case "low":
+      return "bg-amber-500 text-white"
+    case "none":
+      return "bg-success text-success-foreground"
+    default:
+      return "bg-muted text-muted-foreground"
+  }
+}
+
 export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDetailsPanelProps) {
   const [activeTab, setActiveTab] = useState("overview")
   const [logs, setLogs] = useState<ProgressUpdate[]>([])
+  const [activityWeather, setActivityWeather] = useState<WeatherForecast[]>([])
+  const [loadingWeather, setLoadingWeather] = useState(false)
+  const [weatherError, setWeatherError] = useState<string | null>(null)
   const activityIssues = activity ? getIssuesByActivityId(activity.zoneID) : []
+  const hasActivityCoordinates =
+    typeof activity?.lat === "number" && typeof activity?.lng === "number"
+  const activityCoordinateLabel = hasActivityCoordinates
+    ? `${activity.lat.toFixed(4)}, ${activity.lng.toFixed(4)}`
+    : "No coordinates"
 
   const fetchLogs = useCallback(async () => {
     if (!activity) return
@@ -83,6 +128,43 @@ export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDe
     setLogs([])
     fetchLogs()
   }, [fetchLogs])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadActivityWeather() {
+      setActivityWeather([])
+      setWeatherError(null)
+
+      if (!activity) return
+
+      if (typeof activity.lat !== "number" || typeof activity.lng !== "number") {
+        setWeatherError("This activity does not have a latitude and longitude.")
+        return
+      }
+
+      try {
+        setLoadingWeather(true)
+        const raw = await fetchWeatherForecast(activity.lat, activity.lng)
+        const forecast = transformWeatherData(raw)
+        if (!cancelled) setActivityWeather(forecast)
+      } catch (error) {
+        console.error("Activity weather fetch failed:", error)
+        if (!cancelled) {
+          setActivityWeather(weatherForecast)
+          setWeatherError("Live weather could not be loaded, so sample forecast data is shown.")
+        }
+      } finally {
+        if (!cancelled) setLoadingWeather(false)
+      }
+    }
+
+    loadActivityWeather()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activity?.zoneID, activity?.lat, activity?.lng])
 
   const handleUpdateSubmitted = useCallback(() => {
     fetchLogs()
@@ -127,7 +209,7 @@ export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDe
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
         <div className="border-b border-border px-6">
-          <TabsList className="grid w-full grid-cols-4 bg-transparent">
+          <TabsList className="grid w-full grid-cols-5 bg-transparent">
             <TabsTrigger value="overview" className="border-b-2 border-transparent data-[state=active]:border-primary text-xs">
               <ActivityIcon className="h-3 w-3 mr-1.5" />
               Overview
@@ -135,6 +217,10 @@ export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDe
             <TabsTrigger value="timeline" className="border-b-2 border-transparent data-[state=active]:border-primary text-xs">
               <TrendingUp className="h-3 w-3 mr-1.5" />
               Timeline
+            </TabsTrigger>
+            <TabsTrigger value="weather" className="border-b-2 border-transparent data-[state=active]:border-primary text-xs">
+              <Cloud className="h-3 w-3 mr-1.5" />
+              Weather
             </TabsTrigger>
             <TabsTrigger value="blockers" className="border-b-2 border-transparent data-[state=active]:border-primary text-xs">
               <AlertTriangle className="h-3 w-3 mr-1.5" />
@@ -226,6 +312,83 @@ export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDe
               <ProgressUpdateModal activity={activity} onUpdateSubmitted={handleUpdateSubmitted} />
             </div>
             <ActivityTimeline updates={logs} />
+          </TabsContent>
+
+          {/* Weather Tab */}
+          <TabsContent value="weather" className="space-y-4 mt-0">
+            <div className="flex items-center justify-between gap-3">
+              <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Cloud className="h-4 w-4" />
+                Activity Weather Forecast
+              </h4>
+              <Badge variant="outline" className="text-xs">
+                {activityCoordinateLabel}
+              </Badge>
+            </div>
+
+            {weatherError && (
+              <div className="rounded-lg border border-warning/50 bg-warning/5 p-3 text-xs text-muted-foreground">
+                {weatherError}
+              </div>
+            )}
+
+            {loadingWeather ? (
+              <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                Loading activity forecast...
+              </div>
+            ) : activityWeather.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Cloud className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">No forecast data available</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-2">
+                  {activityWeather.map((day) => {
+                    const Icon = getWeatherIcon(day.condition)
+                    return (
+                      <div key={day.date} className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">{formatDate(day.date)}</span>
+                          <Icon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex items-end justify-between gap-2">
+                          <span className="text-xl font-bold text-foreground">{day.temperature}C</span>
+                          <Badge className={cn("text-[10px] capitalize", getImpactBadgeClass(day.impactLevel))}>
+                            {day.impactLevel}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
+                          <span>{day.precipitation}% rain</span>
+                          <span>{day.windSpeed} km/h</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border">
+                    <Wind className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Avg. Wind Speed</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {Math.round(activityWeather.reduce((total, day) => total + day.windSpeed, 0) / activityWeather.length)} km/h
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border">
+                    <Droplets className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Rain Risk Days</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {activityWeather.filter((day) => day.precipitation > 30).length} days
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </TabsContent>
 
           {/* Blockers Tab */}

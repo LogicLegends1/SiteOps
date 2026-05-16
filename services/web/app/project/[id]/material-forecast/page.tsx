@@ -53,7 +53,7 @@ export default function MaterialForecastPage() {
   return (
     <div className="flex flex-col gap-6 pb-10">
       {/* PROFESSIONAL DASHBOARD HEADER */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-8 rounded-2xl bg-card border-2 shadow-sm">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6 rounded-2xl border bg-card/95 p-8 shadow-sm">
         <div className="flex items-center gap-5">
           <div className="p-4 bg-primary rounded-2xl shadow-md">
             <Package className="h-8 w-8 text-primary-foreground" />
@@ -68,21 +68,20 @@ export default function MaterialForecastPage() {
           </div>
         </div>
 
-        {/* HIGH-CONTRAST KPI TILES (DARK THEME OPTIMIZED) */}
         <div className="flex items-center flex-wrap gap-4">
           {[
-            { label: "Total Assets", value: stats.totalMaterials, color: "text-blue-400", border: "border-blue-900/50", bg: "bg-blue-950/20" },
-            { label: "Critical Stock", value: stats.criticalCount, color: "text-red-400", border: "border-red-900/50", bg: "bg-red-950/20" },
-            { label: "Low Buffers", value: stats.lowStockCount, color: "text-orange-400", border: "border-orange-900/50", bg: "bg-orange-950/20" },
-            { label: "Usage Spikes", value: stats.usageSpikes, color: "text-amber-400", border: "border-amber-900/50", bg: "bg-amber-950/20" },
+            { label: "Total Assets", value: stats.totalMaterials, color: "text-blue-600 dark:text-blue-400", border: "border-blue-200 dark:border-blue-900/50", bg: "bg-blue-50 dark:bg-blue-950/20" },
+            { label: "Critical Stock", value: stats.criticalCount, color: "text-red-600 dark:text-red-400", border: "border-red-200 dark:border-red-900/50", bg: "bg-red-50 dark:bg-red-950/20" },
+            { label: "Low Buffers", value: stats.lowStockCount, color: "text-orange-600 dark:text-orange-400", border: "border-orange-200 dark:border-orange-900/50", bg: "bg-orange-50 dark:bg-orange-950/20" },
+            { label: "Usage Spikes", value: stats.usageSpikes, color: "text-amber-600 dark:text-amber-400", border: "border-amber-200 dark:border-amber-900/50", bg: "bg-amber-50 dark:bg-amber-950/20" },
             { label: "Active Alerts", value: stats.activeAlerts, color: "text-primary", border: "border-primary/20", bg: "bg-primary/10" },
           ].map((stat, i) => (
             <div key={i} className={cn(
-              "flex flex-col min-w-[120px] p-4 rounded-xl border transition-all hover:bg-muted/10",
+              "flex min-w-[120px] flex-col rounded-xl border p-4 transition-all hover:shadow-sm",
               stat.bg,
               stat.border
             )}>
-              <span className="text-[10px] font-black uppercase text-slate-200 tracking-wider font-mono">{stat.label}</span>
+              <span className="font-mono text-[10px] font-black uppercase tracking-wider text-muted-foreground">{stat.label}</span>
               <span className={cn("text-2xl font-bold tracking-tighter mt-1", stat.color)}>{stat.value}</span>
             </div>
           ))}
@@ -91,7 +90,7 @@ export default function MaterialForecastPage() {
 
       {/* NAVIGATION: Tabbed Interface */}
       <Tabs defaultValue="ops" className="w-full space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-2xl h-12 bg-muted p-1 rounded-xl border-2">
+        <TabsList className="grid h-12 w-full max-w-2xl grid-cols-3 rounded-xl border bg-muted/60 p-1">
           <TabsTrigger value="ops" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-black uppercase text-[10px] tracking-widest gap-2">
             Alerts & Incidents
           </TabsTrigger>
@@ -112,7 +111,7 @@ export default function MaterialForecastPage() {
             <div className="lg:col-span-4 space-y-6">
               <AffectedActivitiesPanel selectedMaterial={selectedMaterial} liveMaterials={liveMaterials} />
               
-              <Card className="border-2 bg-card/40 backdrop-blur-md">
+              <Card className="border bg-card shadow-sm">
                 <CardHeader className="pb-3 border-b border-dashed">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
@@ -142,8 +141,8 @@ export default function MaterialForecastPage() {
 
         {/* TAB 2: INVENTORY LEDGER (LOGISTICAL) */}
         <TabsContent value="inventory" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-           <Card className="border-2 shadow-2xl bg-card overflow-hidden">
-             <CardHeader className="border-b bg-muted/20 pb-6 pt-8">
+           <Card className="overflow-hidden border bg-card shadow-sm">
+             <CardHeader className="border-b bg-muted/30 pb-6 pt-8">
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-4">
                  <div className="flex items-center gap-4">
                    <div className="p-3 bg-primary rounded-xl shadow-lg shadow-primary/20">

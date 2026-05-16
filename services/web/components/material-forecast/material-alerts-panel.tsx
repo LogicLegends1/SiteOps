@@ -97,7 +97,7 @@ export function MaterialAlertsPanel({ materialsList = [] }: { materialsList?: Ma
     return (
       <div
         className={cn(
-          "group relative overflow-hidden transition-all border-b border-border/40 hover:bg-white/5 cursor-pointer",
+          "group relative cursor-pointer overflow-hidden border-b border-border/40 transition-all hover:bg-muted/40",
           isExpanded && "bg-muted/30 pb-4"
         )}
         onClick={() => setExpandedId(isExpanded ? null : alert.id)}
@@ -107,16 +107,16 @@ export function MaterialAlertsPanel({ materialsList = [] }: { materialsList?: Ma
           <div className="flex items-center gap-4 w-[280px] shrink-0">
             <div className={cn(
               "p-3 rounded-2xl border flex items-center justify-center shrink-0",
-              alert.severity === "critical" ? "bg-red-950/20 border-red-500/40 text-red-500" : "bg-slate-800/20 border-slate-700 text-slate-500"
+              alert.severity === "critical" ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-warning/30 bg-warning/10 text-warning"
             )}>
               <AlertTypeIcon type={alert.type} />
             </div>
             <div className="flex flex-col gap-1 overflow-hidden">
                <span className={cn(
               "text-sm font-bold tracking-tight truncate",
-              alert.severity === "critical" ? "text-slate-100" : "text-slate-400"
+              alert.severity === "critical" ? "text-foreground" : "text-muted-foreground"
             )} title={alert.materialName}>{alert.materialName}</span>
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               ID: {alert.materialId}
             </span>
             </div>
@@ -126,57 +126,57 @@ export function MaterialAlertsPanel({ materialsList = [] }: { materialsList?: Ma
           <div className="hidden lg:flex flex-1 items-center gap-8">
             {/* Balance */}
             <div className="flex flex-col gap-1 min-w-[100px]">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-600">Balance</span>
-              <span className="text-xs font-bold font-mono text-slate-200">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">Balance</span>
+              <span className="font-mono text-xs font-bold text-foreground">
                 {Math.max(0, material?.available || 0).toFixed(2)} <span className="opacity-40">{material?.unit}</span>
               </span>
             </div>
             
             {/* Burn Rate */}
             <div className="flex flex-col gap-1 min-w-[100px]">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-600">Daily Burn</span>
-              <span className="text-xs font-bold font-mono text-slate-200">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">Daily Burn</span>
+              <span className="font-mono text-xs font-bold text-foreground">
                 {material?.dailyAvgConsumption?.toFixed(2) || 0} <span className="opacity-40">/ DAY</span>
               </span>
             </div>
 
             {/* Runway */}
             <div className="flex flex-col gap-1 min-w-[120px]">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-600">Runway</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">Runway</span>
               {material?.daysUntilShortage !== null && material?.daysUntilShortage !== undefined ? (
                 <div className="flex items-center gap-2">
                   <span className={cn(
                     "text-xs font-black font-mono",
-                    Math.max(0, material.daysUntilShortage) <= 3 ? "text-red-500" : "text-orange-400"
+                    Math.max(0, material.daysUntilShortage) <= 3 ? "text-destructive" : "text-warning"
                   )}>
                     {Math.max(0, material.daysUntilShortage)} DAYS
                   </span>
-                  <div className="h-1 w-8 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-1 w-8 overflow-hidden rounded-full bg-muted">
                     <div 
                       className={cn(
                         "h-full rounded-full transition-all",
-                        Math.max(0, material.daysUntilShortage) <= 3 ? "bg-red-500" : "bg-orange-500"
+                        Math.max(0, material.daysUntilShortage) <= 3 ? "bg-destructive" : "bg-warning"
                       )} 
                       style={{ width: `${Math.min(100, (Math.max(0, material.daysUntilShortage) / 14) * 100)}%` }}
                     />
                   </div>
                 </div>
               ) : (
-                <span className="text-xs font-bold text-slate-500">STABLE</span>
+                <span className="text-xs font-bold text-muted-foreground">STABLE</span>
               )}
             </div>
 
             {/* Status Label (Integrated) */}
             <div className="flex flex-col gap-1 min-w-[100px]">
-               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-600">Stock Status</span>
+               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">Stock Status</span>
                <div className="flex items-center gap-2">
                  <span className={cn(
                     "h-1.5 w-1.5 rounded-full shrink-0",
-                    alert.severity === "critical" ? "bg-red-500 animate-pulse" : "bg-slate-500"
+                    alert.severity === "critical" ? "bg-destructive animate-pulse" : "bg-warning"
                   )} />
                  <span className={cn(
                   "text-xs font-bold font-mono tracking-tight",
-                  alert.severity === "critical" ? "text-red-500" : "text-orange-400"
+                  alert.severity === "critical" ? "text-destructive" : "text-warning"
                 )}>
                   {getAlertTypeLabel(alert.type)}
                 </span>
@@ -188,10 +188,10 @@ export function MaterialAlertsPanel({ materialsList = [] }: { materialsList?: Ma
 
           {/* Time & Expand */}
           <div className="flex items-center gap-6 ml-auto">
-             <span className="text-xs font-mono text-slate-500 font-medium tracking-tight whitespace-nowrap">
+             <span className="whitespace-nowrap font-mono text-xs font-medium tracking-tight text-muted-foreground">
               {new Date(alert.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
             </span>
-            {isExpanded ? <ChevronUp className="h-6 w-6 text-slate-500" /> : <ChevronDown className="h-6 w-6 text-slate-500" />}
+            {isExpanded ? <ChevronUp className="h-6 w-6 text-muted-foreground" /> : <ChevronDown className="h-6 w-6 text-muted-foreground" />}
           </div>
         </div>
 
@@ -199,12 +199,12 @@ export function MaterialAlertsPanel({ materialsList = [] }: { materialsList?: Ma
         {isExpanded && (
           <div className="pl-24 pr-12 pb-8 space-y-6 animate-in slide-in-from-top-2 duration-300">
             {/* Minimal Detail Card */}
-            <div className="flex items-start gap-4 py-4 px-6 rounded-xl bg-slate-900/30 border border-slate-800/50">
+            <div className="flex items-start gap-4 rounded-xl border bg-muted/30 px-6 py-4">
                <div className={cn(
                  "mt-1.5 h-1.5 w-1.5 rounded-full shrink-0",
-                 alert.severity === "critical" ? "bg-red-500 animate-pulse" : "bg-slate-500"
+                 alert.severity === "critical" ? "bg-destructive animate-pulse" : "bg-warning"
                )} />
-               <p className="text-[11px] font-mono font-medium text-slate-400 leading-relaxed uppercase tracking-wide">
+               <p className="font-mono text-[11px] font-medium uppercase leading-relaxed tracking-wide text-muted-foreground">
                   {alert.message}
                </p>
             </div>
@@ -216,7 +216,7 @@ export function MaterialAlertsPanel({ materialsList = [] }: { materialsList?: Ma
                   <Button 
                     size="sm"
                     onClick={(e) => { e.stopPropagation(); handleRestockRequest(alert); }}
-                    className="h-8 bg-sky-600 hover:bg-sky-500 text-white font-black uppercase text-[10px] tracking-widest px-6 rounded-lg shadow-lg shadow-sky-900/20"
+                    className="h-8 rounded-lg bg-primary px-6 text-[10px] font-black uppercase tracking-widest text-primary-foreground shadow-sm hover:bg-primary/90"
                   >
                     <ShoppingCart className="h-3.5 w-3.5 mr-2" />
                     PROCURE
@@ -227,19 +227,19 @@ export function MaterialAlertsPanel({ materialsList = [] }: { materialsList?: Ma
                     size="sm"
                     variant="ghost"
                     onClick={(e) => { e.stopPropagation(); handleAcknowledge(alert.id); }}
-                    className="h-8 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white hover:bg-white/5 px-4 rounded-lg"
+                    className="h-8 rounded-lg px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-muted hover:text-foreground"
                   >
                     DISMISS
                   </Button>
                 )}
               </div>
 
-               <div className="flex items-center gap-3 bg-slate-900/40 pl-4 pr-1 py-1 rounded-full border border-slate-800/50">
-                  <span className="text-[9px] font-black uppercase text-slate-600 tracking-tighter">Critical Impact:</span>
+               <div className="flex items-center gap-3 rounded-full border bg-muted/30 py-1 pl-4 pr-1">
+                  <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">Critical Impact:</span>
                   <div className="flex -space-x-2">
                     {alert.affectedActivities.slice(0, 3).map((_, i) => (
-                      <div key={i} className="w-6 h-6 rounded-full border border-slate-950 bg-slate-800 flex items-center justify-center shadow-md">
-                        <Activity className="h-3 w-3 text-slate-500" />
+                      <div key={i} className="flex h-6 w-6 items-center justify-center rounded-full border bg-background shadow-sm">
+                        <Activity className="h-3 w-3 text-muted-foreground" />
                       </div>
                     ))}
                   </div>
@@ -252,33 +252,33 @@ export function MaterialAlertsPanel({ materialsList = [] }: { materialsList?: Ma
   }
 
   return (
-    <Card className="border-2 shadow-sm bg-card overflow-hidden">
-      <CardHeader className="py-5 px-6 border-b-2 bg-muted/30 flex flex-row items-center justify-between">
+    <Card className="overflow-hidden border bg-card shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/30 px-6 py-5">
         <div className="flex items-center gap-4">
-          <div className="h-12 w-12 bg-black text-white rounded-2xl flex items-center justify-center shadow-md">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
             <Bell className="h-6 w-6" />
           </div>
           <CardTitle className="text-base font-black tracking-widest uppercase">System Alerts</CardTitle>
         </div>
         {activeAlerts.length > 0 && (
-          <Badge className="font-black text-xs px-4 py-1.5 bg-red-600 hover:bg-red-600 text-white uppercase tracking-widest shadow-md border-none">
+          <Badge className="border-none bg-destructive px-4 py-1.5 text-xs font-black uppercase tracking-widest text-destructive-foreground shadow-sm hover:bg-destructive">
             {activeAlerts.length} Attention Required
           </Badge>
         )}
       </CardHeader>
       
       <Tabs defaultValue="active" className="w-full">
-        <div className="px-6 py-3 bg-slate-900/40 border-b border-slate-800/60">
-          <TabsList className="flex w-fit h-10 bg-black/40 p-1 rounded-xl border border-slate-800/50 gap-1">
+        <div className="border-b bg-muted/30 px-6 py-3">
+          <TabsList className="flex h-10 w-fit gap-1 rounded-xl border bg-background p-1">
             <TabsTrigger 
               value="active" 
-              className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-500 font-black uppercase text-[10px] tracking-[0.15em] px-8 h-8 transition-all hover:text-slate-300"
+              className="h-8 rounded-lg px-8 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground transition-all hover:text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
             >
               PENDING
             </TabsTrigger>
             <TabsTrigger 
               value="acknowledged" 
-              className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-500 font-black uppercase text-[10px] tracking-[0.15em] px-8 h-8 transition-all hover:text-slate-300"
+              className="h-8 rounded-lg px-8 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground transition-all hover:text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
             >
               RESOLVED
             </TabsTrigger>

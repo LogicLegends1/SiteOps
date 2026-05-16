@@ -208,7 +208,7 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                   <p className="text-[10px] font-black text-muted-foreground uppercase opacity-70">Stock Out In</p>
                   <p className={cn(
                     "text-xl font-black tracking-tighter uppercase",
-                    projectedDays < 7 ? "text-red-600" : "text-green-600"
+                    projectedDays < 7 ? "text-destructive" : "text-success"
                   )}>
                     {projectedDays} Days
                   </p>
@@ -243,12 +243,12 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                         <stop offset="100%" stopColor="#ef4444" stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                     <XAxis
                       dataKey="date"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fontSize: 11, fontWeight: 600, fill: "#94a3b8" }}
+                      tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }}
                       tickFormatter={(value) => {
                         const date = new Date(value)
                         return date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()
@@ -259,41 +259,41 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                       yAxisId="stock"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fontSize: 11, fontWeight: 600, fill: "#94a3b8" }}
+                      tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }}
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "#020617",
-                        border: "1px solid #1e293b",
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
                         borderRadius: "8px",
                         fontWeight: 600,
                         fontSize: "12px",
-                        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5)"
+                        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.16)"
                       }}
-                      itemStyle={{ color: "#f8fafc" }}
+                      itemStyle={{ color: "hsl(var(--foreground))" }}
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
                           const stockData = payload.find(p => p.dataKey === 'stock')?.payload || payload[0].payload;
                           const isForecast = stockData.type === 'forecast';
                           return (
-                            <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl shadow-2xl space-y-2 min-w-[200px]">
-                              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2 mb-2 flex items-center justify-between">
+                            <div className="min-w-[200px] space-y-2 rounded-xl border bg-card p-4 text-card-foreground shadow-xl">
+                              <p className="mb-2 flex items-center justify-between border-b pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                                 {new Date(label).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
                               </p>
                               <div className="flex flex-col gap-1">
                                 <div className="flex items-center justify-between gap-8 text-[11px] font-bold">
-                                  <span className="text-slate-400 uppercase">Projected Stock</span>
-                                  <span className="font-black text-white font-mono">{Number(stockData.stock).toLocaleString()} {currentMaterial.unit}</span>
+                                  <span className="uppercase text-muted-foreground">Projected Stock</span>
+                                  <span className="font-mono font-black text-foreground">{Number(stockData.stock).toLocaleString()} {currentMaterial.unit}</span>
                                 </div>
                                 {isForecast && (
-                                  <div className="mt-2 pt-2 border-t border-slate-900 flex flex-col gap-1">
+                                  <div className="mt-2 flex flex-col gap-1 border-t pt-2">
                                     <div className="flex items-center justify-between gap-8 text-[9px] font-bold">
                                       <span className="text-emerald-500 uppercase opacity-70">Best Case</span>
                                       <span className="text-emerald-400 font-mono">{Number(stockData.optimistic).toLocaleString()}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-8 text-[9px] font-bold">
-                                      <span className="text-red-500 uppercase opacity-70">Worst Case</span>
-                                      <span className="text-red-400 font-mono">{Number(stockData.pessimistic).toLocaleString()}</span>
+                                      <span className="text-destructive uppercase opacity-70">Worst Case</span>
+                                      <span className="font-mono text-destructive">{Number(stockData.pessimistic).toLocaleString()}</span>
                                     </div>
                                   </div>
                                 )}
@@ -374,12 +374,12 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                 {/* CHART 2: DAILY BURN HISTOGRAM */}
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={data.filter(d => d.dailyBurn !== undefined)} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                     <XAxis
                       dataKey="date"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fontSize: 11, fontWeight: 600, fill: "#94a3b8" }}
+                      tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }}
                       tickFormatter={(value) => {
                         const date = new Date(value)
                         return date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()
@@ -390,30 +390,30 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                       yAxisId="burn"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fontSize: 11, fontWeight: 600, fill: "#94a3b8" }}
+                      tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }}
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "#020617",
-                        border: "1px solid #1e293b",
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
                         borderRadius: "8px",
                         fontWeight: 600,
                         fontSize: "12px",
-                        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5)"
+                        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.16)"
                       }}
-                      itemStyle={{ color: "#f8fafc" }}
+                      itemStyle={{ color: "hsl(var(--foreground))" }}
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
                           const burnData = payload[0].payload;
                           return (
-                            <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl shadow-2xl space-y-2 min-w-[150px]">
-                              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2 mb-2 flex items-center justify-between">
+                            <div className="min-w-[150px] space-y-2 rounded-xl border bg-card p-4 text-card-foreground shadow-xl">
+                              <p className="mb-2 flex items-center justify-between border-b pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                                 {new Date(label).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                                {burnData.isBurst && <AlertTriangle className="h-3 w-3 text-red-500" />}
+                                {burnData.isBurst && <AlertTriangle className="h-3 w-3 text-destructive" />}
                               </p>
                               <div className="flex items-center justify-between gap-6 text-[11px] font-bold mt-1">
-                                <span className={cn("uppercase", burnData.isBurst ? "text-red-400" : "text-amber-500")}>Daily Burn</span>
-                                <span className={cn("font-black font-mono", burnData.isBurst ? "text-red-400" : "text-amber-500")}>-{Number(burnData.dailyBurn).toLocaleString()}</span>
+                                <span className={cn("uppercase", burnData.isBurst ? "text-destructive" : "text-warning")}>Daily Burn</span>
+                                <span className={cn("font-mono font-black", burnData.isBurst ? "text-destructive" : "text-warning")}>-{Number(burnData.dailyBurn).toLocaleString()}</span>
                               </div>
                             </div>
                           );
@@ -473,7 +473,7 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                       <Button 
                         variant="default"
                         onClick={() => setSimulationAmount(Number(simInput) || 0)}
-                        className="h-14 px-8 bg-blue-600 hover:bg-blue-700 font-black uppercase text-[10px] tracking-widest text-white transition-colors"
+                        className="h-14 px-8 font-black uppercase text-[10px] tracking-widest transition-colors"
                       >
                         Apply
                       </Button>
@@ -483,7 +483,7 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                           setSimulationAmount(0)
                           setSimInput("")
                         }}
-                        className="h-14 px-8 border border-border/50 font-black uppercase text-[10px] tracking-widest hover:bg-red-950/20 hover:text-red-400 transition-colors"
+                        className="h-14 border border-border/50 px-8 text-[10px] font-black uppercase tracking-widest transition-colors hover:bg-destructive/10 hover:text-destructive"
                       >
                         Reset
                       </Button>
@@ -493,11 +493,11 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                   <div className="flex flex-col items-center justify-center px-10 border-l border-border/20 h-24">
                     <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">Impacted Runway</p>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-bold tracking-tighter text-blue-400">{projectedDays}</span>
-                      <span className="text-xs font-bold uppercase text-blue-400/60">Days</span>
+                      <span className="text-4xl font-bold tracking-tighter text-primary">{projectedDays}</span>
+                      <span className="text-xs font-bold uppercase text-primary/60">Days</span>
                     </div>
                     {simulationAmount > 0 && (
-                      <Badge className="mt-2 bg-green-950/20 text-green-400 hover:bg-green-950/30 border border-green-900/50 font-bold text-[9px] uppercase tracking-widest px-3">
+                      <Badge className="mt-2 border border-success/30 bg-success/10 px-3 text-[9px] font-bold uppercase tracking-widest text-success hover:bg-success/15">
                         +{projectedDays - (currentMaterial.daysUntilShortage || 0)} Day Extension
                       </Badge>
                     )}
