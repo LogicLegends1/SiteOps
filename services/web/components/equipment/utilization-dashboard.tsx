@@ -224,7 +224,7 @@ export function UtilizationDashboard({ equipments, stats: propStats, filter, set
                       </div>
                       <div className="flex flex-col gap-1">
                          <span className="text-xs font-black uppercase text-foreground">{stalled.lastActivity}</span>
-                         <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground">Down Machine: {stalled.name}</span>
+                         <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground">Down Machine: {stalled.name.replace(/#P\d+-/, "#")}</span>
                       </div>
                    </div>
                  ))
@@ -243,7 +243,7 @@ export function UtilizationDashboard({ equipments, stats: propStats, filter, set
                {equipments.filter(e => e.status === 'active').slice(0, 3).map((eq, i) => (
                  <div key={i} className="flex items-center justify-between rounded-2xl border bg-muted/30 p-5">
                     <div className="flex flex-col gap-1">
-                       <span className="text-xs font-black uppercase text-foreground">{eq.name}</span>
+                       <span className="text-xs font-black uppercase text-foreground">{eq.name.replace(/#P\d+-/, "#")}</span>
                        <span className="text-[10px] font-bold uppercase italic text-muted-foreground">Last Active: {new Date().toLocaleDateString()}</span>
                     </div>
                     <Badge className="border-none bg-muted text-[8px] font-black text-muted-foreground">STABLE</Badge>

@@ -56,7 +56,7 @@ export function EquipmentRegistryPanel({ equipment }: EquipmentRegistryPanelProp
               <TableRow key={item.id} className="border-b hover:bg-muted/10 transition-colors">
                 <TableCell className="py-6 px-6">
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-base font-black tracking-tight">{item.name}</span>
+                    <span className="text-base font-black tracking-tight">{item.name.replace(/#P\d+-/, "#")}</span>
                     <div className="flex items-center gap-2">
                        <span className="text-[10px] font-black uppercase text-primary bg-primary/10 px-2 py-0.5 rounded-full">{item.className}</span>
                        <span className="text-[10px] font-mono text-muted-foreground font-bold">S/N: {item.serialNumber}</span>
@@ -97,7 +97,11 @@ export function EquipmentRegistryPanel({ equipment }: EquipmentRegistryPanelProp
                 <TableCell className="py-6 px-6 text-center">
                    <Badge 
                     className={`text-[10px] font-black uppercase px-3 py-1 rounded-full shadow-md ${
-                      item.status === 'active' ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"
+                      item.status === 'active' ? "bg-emerald-500 text-white" :
+                      item.status === 'idle' ? "bg-amber-500 text-white" :
+                      item.status === 'down' || item.status === 'under_repair' || item.status === 'broken' ? "bg-red-600 text-white" :
+                      item.status === 'maintenance' ? "bg-indigo-500 text-white" :
+                      "bg-zinc-600 text-white"
                     }`}
                   >
                     {item.status.replace('_', ' ')}
