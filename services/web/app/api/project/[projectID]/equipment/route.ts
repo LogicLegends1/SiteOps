@@ -123,7 +123,11 @@ export async function GET(_req: NextRequest, context: RouteContext) {
         technicalSpecs: (row.technical_specs as TechnicalSpecs) ?? {},
         reliabilityScore,
         activeActivityId: activeAssign ? String(activeAssign.activityid) : null,
-        activeZoneId: activeAssign ? String(activeAssign.zoneid) : null
+        activeZoneId: activeAssign ? String(activeAssign.zoneid) : null,
+        assignedDate: activeAssign?.start_date ? String(activeAssign.start_date) : null,
+        estimatedEndDate: activeAssign?.start_date 
+          ? new Date(new Date(activeAssign.start_date).getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] 
+          : null
       }
     })
 
