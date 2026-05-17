@@ -114,7 +114,7 @@ def seed_data():
 
                     eq_item = {
                         "projectid": current_project_id,
-                        "name": f"{clean_name} #P{current_project_id}-{unit_idx:02d}",
+                        "name": f"{clean_name} #{unit_idx:02d}",
                         "classid": class_id,
                         "serial_number": f"{base_sn}-P{current_project_id}-{unit_idx:02d}",
                         "status": status,

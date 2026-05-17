@@ -38,7 +38,7 @@ export function MaintenanceReliabilityPanel({ equipment, logs }: MaintenanceReli
               return (
                 <div key={item.id} className="p-6 flex items-center justify-between hover:bg-muted/10 transition-colors">
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-sm font-black tracking-tight">{item.name}</span>
+                    <span className="text-sm font-black tracking-tight">{item.name.replace(/#P\d+-/, "#")}</span>
                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{item.className}</span>
                   </div>
                   <div className="text-right flex flex-col gap-1">
@@ -95,7 +95,7 @@ export function MaintenanceReliabilityPanel({ equipment, logs }: MaintenanceReli
                       </div>
                     </TableCell>
                     <TableCell className="px-6 py-6 font-black text-sm">
-                      {asset?.name || "Unknown Asset"}
+                      {asset?.name ? asset.name.replace(/#P\d+-/, "#") : "Unknown Asset"}
                     </TableCell>
                     <TableCell className="px-6 py-6">
                       <div className="flex flex-col gap-2 max-w-[350px]">

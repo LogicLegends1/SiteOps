@@ -36,7 +36,7 @@ export function AllocationManagerPanel({ equipment }: AllocationManagerPanelProp
               activeDeployments.map((item) => (
                 <TableRow key={item.id} className="border-b hover:bg-muted/5 transition-colors">
                   <TableCell className="py-5 font-black text-sm tracking-tight">
-                    {item.name}
+                    {item.name.replace(/#P\d+-/, "#")}
                   </TableCell>
                   <TableCell className="py-5">
                     <div className="flex items-center gap-2">

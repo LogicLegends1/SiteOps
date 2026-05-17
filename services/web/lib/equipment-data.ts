@@ -37,6 +37,8 @@ export interface EquipmentItem {
   reliabilityScore: number // Calculated 0-100
   activeActivityId: string | null
   activeZoneId: string | null
+  assignedDate?: string | null
+  estimatedEndDate?: string | null
 }
 
 export interface EquipmentSummary {
