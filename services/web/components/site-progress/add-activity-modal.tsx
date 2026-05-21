@@ -50,6 +50,7 @@ export function AddActivityModal({
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [status, setStatus] = useState<ActivityStatus>("PENDING")
+  const [deadline, setDeadline] = useState("")
   const [lat, setLat] = useState("")
   const [lng, setLng] = useState("")
 
@@ -57,6 +58,7 @@ export function AddActivityModal({
     setName("")
     setDescription("")
     setStatus("PENDING")
+    setDeadline("")
     setLat("")
     setLng("")
     setError(null)
@@ -82,6 +84,7 @@ export function AddActivityModal({
         name: name.trim(),
         description: description.trim() || null,
         status,
+        deadline: deadline || null,
         lat: lat ? parseFloat(lat) : null,
         lng: lng ? parseFloat(lng) : null,
       }
@@ -136,7 +139,7 @@ export function AddActivityModal({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <DialogHeader>
           <DialogTitle>Create New Activity</DialogTitle>
           <DialogDescription>
@@ -214,6 +217,18 @@ export function AddActivityModal({
                 </SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Deadline */}
+          <div className="space-y-2">
+            <Label htmlFor="deadline">Deadline</Label>
+            <Input
+              id="deadline"
+              type="date"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+              disabled={isLoading}
+            />
           </div>
 
           {/* Coordinates */}

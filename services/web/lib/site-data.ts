@@ -52,6 +52,7 @@ export interface Activity {
   displayOrder?: number | null
   createdAt?: string | null
   updatedAt?: string | null
+  deadline?: string | null
   imagePath?: string | null
   imageUrl?: string | null
   assignedTeam?: string | null
