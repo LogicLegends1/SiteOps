@@ -19,6 +19,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Valid status is required' }, { status: 400 })
     }
 
+    if (body.deadline !== undefined && body.deadline !== null && body.deadline !== '') {
+      if (typeof body.deadline !== 'string' || Number.isNaN(Date.parse(body.deadline))) {
+        return NextResponse.json({ error: 'Deadline must be a valid date' }, { status: 400 })
+      }
+    }
+
     if (body.progress !== undefined) {
       if (typeof body.progress !== 'number' || body.progress < 0 || body.progress > 100) {
         return NextResponse.json({ error: 'Progress must be a number between 0 and 100' }, { status: 400 })
@@ -59,11 +65,15 @@ export async function POST(req: NextRequest) {
       insertData.lng = body.lng
     }
 
+    if (body.deadline !== undefined && body.deadline !== null && body.deadline !== '') {
+      insertData.deadline = body.deadline
+    }
+
     // Insert into database
     const { data, error } = await supabase
       .from('activity')
       .insert([insertData])
-      .select('activityid, projectid, name, description, status, progress, lat, lng, markerlabel')
+      .select('activityid, projectid, name, description, status, progress, lat, lng, markerlabel, deadline')
       .single()
 
     if (error) {
@@ -81,6 +91,7 @@ export async function POST(req: NextRequest) {
       lat: data.lat,
       lng: data.lng,
       markerLabel: data.markerlabel || data.name,
+      deadline: data.deadline,
     }
 
     return NextResponse.json({ activity }, { status: 201 })

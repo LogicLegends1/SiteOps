@@ -14,7 +14,7 @@ export async function GET() {
     // TEMPORARY: Disabled role-based filtering for development to ensure projects are visible.
     const res = await supabase
       .from('project')
-      .select('projectid, name, locationlongitude, locationlatitude, projectdiagram, status')
+      .select('projectid, name, locationlongitude, locationlatitude, projectdiagram, status, projectdeadline')
     
     projectsData = res.data
     projectsError = res.error
@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
       locationlongitude?: number | null
       locationlatitude?: number | null
       projectdiagram?: string | null
+      projectdeadline?: string | null
     } = {
       name: body.name.trim(),
       status: body.status,
@@ -85,11 +86,23 @@ export async function POST(req: NextRequest) {
       insertData.projectdiagram = body.projectDiagram ? body.projectDiagram.trim() : null
     }
 
+    if (body.deadlineDate !== undefined) {
+      if (body.deadlineDate !== null && typeof body.deadlineDate !== 'string') {
+        return NextResponse.json({ error: 'deadlineDate must be a string (ISO date) or null' }, { status: 400 })
+      }
+
+      if (body.deadlineDate !== null && isNaN(Date.parse(body.deadlineDate))) {
+        return NextResponse.json({ error: 'deadlineDate must be a valid date string' }, { status: 400 })
+      }
+
+      insertData.projectdeadline = body.deadlineDate ? body.deadlineDate : null
+    }
+
     // Insert into database
     const { data, error } = await supabase
       .from('project')
       .insert([insertData])
-      .select('projectid, name, locationlongitude, locationlatitude, projectdiagram, status')
+      .select('projectid, name, locationlongitude, locationlatitude, projectdiagram, status, projectdeadline')
       .single()
 
     if (error) {
