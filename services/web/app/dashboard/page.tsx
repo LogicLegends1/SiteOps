@@ -16,6 +16,7 @@ import {
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import dynamic from "next/dynamic"
 import type { LeafletMapItem } from "@/components/ui/leaflet-map"
+import { CreateProjectDialog } from "@/components/dashboard/create-project-dialog"
 
 const LeafletMap = dynamic(
   () => import("@/components/ui/leaflet-map").then((mod) => ({ default: mod.LeafletMap })),
@@ -32,22 +33,45 @@ const LeafletMap = dynamic(
 type ProjectFromApi = {
   projectid: number
   name: string | null
-  locationlongitude: number | null
-  locationlatitude: number | null
+  locationlongitude: number | string | null
+  locationlatitude: number | string | null
   projectdiagram?: string | null
   status: string | null
 }
 
 const mapProjectsToMapItems = (projects: ProjectFromApi[]): LeafletMapItem[] =>
-  projects
-    .filter((p) => typeof p.locationlatitude === "number" && typeof p.locationlongitude === "number")
-    .map((p) => ({
-      id: p.projectid,
-      title: p.name ?? "Untitled project",
-      lng: p.locationlongitude as number,
-      lat: p.locationlatitude as number,
-      description: p.status ?? "Unknown",
-      tooltip: `Project ID: ${p.projectid}`,
+  [...projects]
+    .sort((a, b) => a.projectid - b.projectid)
+    .map((p) => {
+      // some backends store coordinates as strings — coerce to numbers when possible
+      const lat =
+        typeof p.locationlatitude === "number"
+          ? p.locationlatitude
+          : typeof p.locationlatitude === "string" && p.locationlatitude.trim() !== ""
+          ? Number(p.locationlatitude)
+          : null
+
+      const lng =
+        typeof p.locationlongitude === "number"
+          ? p.locationlongitude
+          : typeof p.locationlongitude === "string" && p.locationlongitude.trim() !== ""
+          ? Number(p.locationlongitude)
+          : null
+
+      return {
+        raw: p,
+        lat: Number.isFinite(lat as number) ? (lat as number) : null,
+        lng: Number.isFinite(lng as number) ? (lng as number) : null,
+      }
+    })
+    .filter((x) => x.lat !== null && x.lng !== null)
+    .map((x) => ({
+      id: x.raw.projectid,
+      title: x.raw.name ?? "Untitled project",
+      lng: x.lng as number,
+      lat: x.lat as number,
+      description: x.raw.status ?? "Unknown",
+      tooltip: `Project ID: ${x.raw.projectid}`,
     }))
 
 
@@ -83,74 +107,89 @@ export default function DashboardPage() {
       autoFitToMarkers: true,
       fitPadding: [60, 60] as [number, number],
       maxZoom: 19,
+      scrollWheelZoom: true,
+      zoomControl: true,
+      enableBoxSelection: true,
     }),
     []
   )
+
+  const [selectedProjectIds, setSelectedProjectIds] = useState<number[]>([])
 
   const [projects, setProjects] = useState<ProjectFromApi[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const loadProjects = useCallback(async () => {
+    setLoading(true)
+
+    try {
+      const res = await fetch("/api/project")
+      const json = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setError(json?.error ?? "Failed to load projects")
+        setProjects([])
+        return
+      }
+
+      const sortedProjects = (json.projects ?? []).slice().sort((a: ProjectFromApi, b: ProjectFromApi) => {
+        return a.projectid - b.projectid
+      })
+
+      setProjects(sortedProjects)
+      setError(null)
+    } catch {
+      setError("Failed to load projects")
+      setProjects([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const mapItems = useMemo(() => mapProjectsToMapItems(projects), [projects])
 
   useEffect(() => {
-    let mounted = true
-    setLoading(true)
-
-    fetch('/api/project')
-      .then(async (res) => {
-        const json = await res.json().catch(() => ({}))
-        if (!mounted) return
-        if (!res.ok) {
-          setError(json?.error ?? 'Failed to load projects')
-          setProjects([])
-        } else {
-          setProjects(json.projects ?? [])
-          setError(null)
-        }
-      })
-      .catch(() => {
-        if (!mounted) return
-        setError('Failed to load projects')
-        setProjects([])
-      })
-      .finally(() => {
-        if (!mounted) return
-        setLoading(false)
-      })
-
-    return () => {
-      mounted = false
-    }
-  }, [])
+    void loadProjects()
+  }, [loadProjects])
 
   return (
     <div className="h-[calc(100dvh-8rem)] min-h-96 overflow-hidden">
       <Card className="flex h-full min-h-0 flex-col overflow-hidden border-border bg-card">
         <CardHeader className="shrink-0">
-          <CardTitle className="text-foreground text-xl">Projects</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-foreground text-xl">Projects</CardTitle>
+            <CreateProjectDialog onCreated={loadProjects} />
+          </div>
         </CardHeader>
         <CardContent className="flex-1 min-h-0 overflow-hidden">
           <div className="flex h-full min-h-0 flex-row gap-4 overflow-hidden">
-            <Card className="h-full max-h-full max-w-full aspect-square shrink overflow-hidden p-0">
+            <Card className="h-full min-w-0 w-3/5 shrink-0 overflow-hidden p-0 rounded-lg">
                   <LeafletMap
-                items={mapItems}
-                className="h-full"
-                mapClassName="h-full"
-                mapOptions={mapOptions}
-                markerOptions={{
-                  getTooltipContent: createProjectTooltip,
-                  tooltipPermanent: false,
-                  tooltipDirection: "top",
-                  tooltipOffset: [0, -12],
-                }}
-                onMarkerClick={({ item }) => {
-                  router.push(`/project/${item.id}`)
-                }}
-              />
+                    items={mapItems}
+                    className="h-full w-full rounded-l-lg"
+                    mapClassName="h-full w-full"
+                    mapOptions={mapOptions}
+                    markerOptions={{
+                      selectedItemId: selectedProjectIds[0] ?? undefined,
+                      getTooltipContent: createProjectTooltip,
+                      tooltipPermanent: false,
+                      tooltipDirection: "top",
+                      tooltipOffset: [0, -12],
+                    }}
+                    enableBoxSelection
+                    onSelection={(ids) => {
+                      // ids are marker ids (same as project ids)
+                      const numeric = ids.map((i) => Number(i))
+                      setSelectedProjectIds(numeric)
+                    }}
+                    onMarkerClick={({ item }) => {
+                      router.push(`/project/${item.id}`)
+                    }}
+                  />
             </Card>
 
-            <Card className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            <Card className="flex min-w-0 w-2/5 flex-col overflow-hidden rounded-lg">
                   <CardHeader className="shrink-0 border-b border-border pb-3">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-base">Project List</CardTitle>
@@ -187,7 +226,7 @@ export default function DashboardPage() {
                           <Item
                             key={project.projectid}
                             asChild
-                            variant="outline"
+                            variant={selectedProjectIds.includes(project.projectid) ? "muted" : "outline"}
                             size="sm"
                           >
                             <button

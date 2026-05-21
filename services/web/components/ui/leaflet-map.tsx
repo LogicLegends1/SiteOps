@@ -49,6 +49,8 @@ export interface LeafletMapProps {
   loadingContent?: ReactNode
   mapOptions?: LeafletMapOptions
   markerOptions?: LeafletMarkerOptions
+  enableBoxSelection?: boolean
+  onSelection?: (selectedIds: LeafletMapItemId[]) => void
   onMapClick?: (args: { event: L.LeafletMouseEvent; map: L.Map }) => void
   onMarkerClick?: (args: { item: LeafletMapItem; event: L.LeafletMouseEvent; marker: L.Marker }) => void
   onMarkerHover?: (args: {
@@ -149,6 +151,8 @@ export function LeafletMap({
   loadingContent,
   mapOptions,
   markerOptions,
+  enableBoxSelection: enableBoxSelectionProp,
+  onSelection,
   onMapClick,
   onMarkerClick,
   onMarkerHover,
@@ -181,6 +185,8 @@ export function LeafletMap({
   const tooltipDirection = markerOptions?.tooltipDirection ?? "top"
   const tooltipOffset = markerOptions?.tooltipOffset ?? DEFAULT_TOOLTIP_OFFSET
   const tooltipOffsetKey = pointExpressionKey(tooltipOffset)
+
+  const enableBoxSelection = enableBoxSelectionProp ?? (mapOptions as any)?.enableBoxSelection ?? false
 
   const removeHoverTooltip = useCallback(() => {
     hoveredMarkerRef.current = null
@@ -282,8 +288,70 @@ export function LeafletMap({
 
     map.on("move zoom resize", updateTooltip)
 
+    // Box selection (click+drag while holding Shift) implementation
+    let isDragging = false
+    let startPoint: L.Point | null = null
+    let selectionRect: L.Rectangle | null = null
+
+    const onMouseDown = (e: L.LeafletMouseEvent) => {
+      // require shift key for box selection to avoid interfering with panning
+      // note: e.originalEvent may be undefined in some cases
+      const orig = (e as any)?.originalEvent as MouseEvent | undefined
+      if (!orig || !orig.shiftKey) return
+      isDragging = true
+      startPoint = map.latLngToLayerPoint(e.latlng)
+      if (selectionRect) {
+        selectionRect.remove()
+        selectionRect = null
+      }
+    }
+
+    const onMouseMove = (e: L.LeafletMouseEvent) => {
+      if (!isDragging || !startPoint) return
+      const currentPoint = map.latLngToLayerPoint(e.latlng)
+      const p1 = map.layerPointToLatLng(startPoint)
+      const p2 = map.layerPointToLatLng(currentPoint)
+      const bounds = L.latLngBounds(p1, p2)
+      if (!selectionRect) {
+        selectionRect = L.rectangle(bounds, { color: "#3b82f6", weight: 1, fillOpacity: 0.12 }).addTo(map)
+      } else {
+        selectionRect.setBounds(bounds)
+      }
+    }
+
+    const onMouseUp = (e: L.LeafletMouseEvent) => {
+      if (!isDragging) return
+      isDragging = false
+      if (!selectionRect) return
+      const bounds = selectionRect.getBounds()
+      // gather selected marker ids
+      const selected: LeafletMapItemId[] = []
+      markersRef.current.forEach((marker, id) => {
+        if (bounds.contains(marker.getLatLng())) {
+          selected.push(id)
+        }
+      })
+      selectionRect.remove()
+      selectionRect = null
+      startPoint = null
+      // call callback if provided
+      ;(map as any)._onSelection?.(selected)
+    }
+
+    // register handlers if enabled
+    if (enableBoxSelection) {
+      map.on("mousedown", onMouseDown)
+      map.on("mousemove", onMouseMove)
+      map.on("mouseup", onMouseUp)
+    }
+
     return () => {
       map.off("move zoom resize", updateTooltip)
+      if (enableBoxSelection) {
+        map.off("mousedown")
+        map.off("mousemove")
+        map.off("mouseup")
+      }
       markersRef.current.forEach((marker) => marker.remove())
       markersRef.current.clear()
       removeHoverTooltip()
@@ -302,7 +370,24 @@ export function LeafletMap({
     mapTileAttribution,
     removeHoverTooltip,
     updateHoverTooltipPosition,
+    enableBoxSelection,
   ])
+
+  // expose selection handler to map instance so mouseup can trigger callback
+  useEffect(() => {
+    if (!mapRef.current) return
+    const map = mapRef.current as any
+    map._onSelection = (selected: LeafletMapItemId[]) => {
+      try {
+        onSelection?.(selected)
+      } catch (err) {
+        // ignore
+      }
+    }
+    return () => {
+      if (map) map._onSelection = undefined
+    }
+  }, [onSelection])
 
   useEffect(() => {
     if (!mapRef.current) return
