@@ -39,6 +39,7 @@ export interface EquipmentItem {
   activeZoneId: string | null
   assignedDate?: string | null
   estimatedEndDate?: string | null
+  projectId?: number | string | null
 }
 
 export interface EquipmentSummary {
@@ -47,10 +48,18 @@ export interface EquipmentSummary {
   idle: number
   underRepair: number
   maintenanceDueCount: number
+  unassigned?: number
+  serviceDueCount?: number
 }
 
 export interface EquipmentResponse {
   summary: EquipmentSummary
   equipment: EquipmentItem[]
   maintenanceLogs: MaintenanceLog[]
+  totalCount?: number
+  filteredCount?: number
+  uniqueClasses?: string[]
+  uniqueProjects?: string[]
+  uniqueZones?: string[]
+  immediateRisks?: EquipmentItem[]
 }

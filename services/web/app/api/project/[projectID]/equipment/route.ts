@@ -101,6 +101,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
       itemid,
       name,
       classid,
+      projectid,
       serial_number,
       status,
       next_service_date,
@@ -123,7 +124,9 @@ export async function GET(_req: NextRequest, context: RouteContext) {
       const response: EquipmentResponse = {
         summary: { total: 0, active: 0, idle: 0, underRepair: 0, maintenanceDueCount: 0 },
         equipment: [],
-        maintenanceLogs: []
+        maintenanceLogs: [],
+        totalCount: 0,
+        filteredCount: 0
       }
       return NextResponse.json(response)
     }
@@ -177,6 +180,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
         className: (row.equipment_class as any)?.name ?? "Unknown",
         serialNumber: readString(row, ["serial_number"]),
         status: row.status as any,
+        projectId: row.projectid ? String(row.projectid) : null,
         nextServiceDate: readNullableString(row, ["next_service_date"]),
         lastServiceDate: readNullableString(row, ["last_service_date"]),
         technicalSpecs: (row.technical_specs as TechnicalSpecs) ?? {},
@@ -198,16 +202,82 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     const maintenance = equipment.filter(e => e.status === "maintenance").length
     const unassigned = equipment.filter(e => e.status === "unassigned").length
 
+    // Extract query parameters for paging and filtering
+    const pageParam = searchParams.get('page')
+    const page = pageParam ? Math.max(1, Number(pageParam)) : null
+    const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 10
+    const search = searchParams.get('search') || null
+    const classNameFilter = searchParams.get('class') || null
+    const statusFilter = searchParams.get('status') || null
+    const projectFilter = searchParams.get('project') || null
+    const zoneFilter = searchParams.get('zone') || null
+    const maintFilter = searchParams.get('maint') || null
+
+    // Apply filtering server-side
+    const filteredEq = equipment.filter(item => {
+      // 1. Search Query
+      if (search) {
+        const q = search.toLowerCase();
+        const matchName = item.name.toLowerCase().includes(q);
+        const matchId = item.id.toLowerCase().includes(q);
+        const matchSerial = (item.serialNumber || "").toLowerCase().includes(q);
+        const matchClass = (item.className || "").toLowerCase().includes(q);
+        const matchModel = ((item.technicalSpecs as any)?.model || "").toLowerCase().includes(q);
+        if (!matchName && !matchId && !matchSerial && !matchClass && !matchModel) return false;
+      }
+      // 2. Class Filter
+      if (classNameFilter && classNameFilter !== "all" && item.className !== classNameFilter) return false;
+      // 3. Status Filter
+      if (statusFilter && statusFilter !== "all" && (item.status || "").toLowerCase().trim() !== statusFilter) return false;
+      // 4. Project Filter
+      if (projectFilter && projectFilter !== "all" && String(item.projectId) !== projectFilter) return false;
+      // 5. Zone Filter
+      if (zoneFilter && zoneFilter !== "all" && String(item.activeZoneId) !== zoneFilter) return false;
+      // 6. Maintenance Filter
+      if (maintFilter && maintFilter !== "all") {
+        const isDue = item.nextServiceDate && new Date(item.nextServiceDate).getTime() < Date.now() + 7 * 86400000;
+        const isOverdue = item.nextServiceDate && new Date(item.nextServiceDate).getTime() < Date.now();
+        if (maintFilter === "service_due" && !isDue) return false;
+        if (maintFilter === "overdue" && !isOverdue) return false;
+        if (maintFilter === "up_to_date" && isDue) return false;
+      }
+      return true;
+    });
+
+    // Paginate
+    let paginatedEq = filteredEq;
+    if (page !== null) {
+      const start = (page - 1) * limit;
+      const end = start + limit;
+      paginatedEq = filteredEq.slice(start, end);
+    }
+
+    const uniqueClasses = Array.from(new Set(equipment.map(e => e.className))).filter(Boolean) as string[]
+    const uniqueProjects = Array.from(new Set(equipment.map(e => e.projectId))).filter(Boolean) as string[]
+    const uniqueZones = Array.from(new Set(equipment.map(e => e.activeZoneId))).filter(Boolean) as string[]
+
+    const serviceDueCount = equipment.filter(e => e.nextServiceDate && new Date(e.nextServiceDate).getTime() < Date.now() + 7 * 86400000).length
+
+    const immediateRisks = equipment.filter(e => e.status === "down")
+
     const response: EquipmentResponse = {
       summary: { 
         total, 
         active, 
         idle, 
         underRepair: down, 
-        maintenanceDueCount: maintenance 
+        maintenanceDueCount: maintenance,
+        unassigned,
+        serviceDueCount
       },
-      equipment,
-      maintenanceLogs
+      equipment: paginatedEq,
+      maintenanceLogs: maintenanceLogs.filter(l => paginatedEq.some(e => e.id === l.itemId)),
+      totalCount: total,
+      filteredCount: filteredEq.length,
+      uniqueClasses,
+      uniqueProjects,
+      uniqueZones,
+      immediateRisks
     }
 
     return NextResponse.json(response)
