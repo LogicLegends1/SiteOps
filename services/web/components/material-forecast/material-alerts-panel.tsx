@@ -53,6 +53,16 @@ export function MaterialAlertsPanel({
     }
   }
 
+  const getZoneForAlert = (alertId: string) => {
+    const zones = ["Zone A", "Zone B", "Zone C", "Zone D"]
+    let hash = 0
+    for (let i = 0; i < alertId.length; i++) {
+      hash = alertId.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    const index = Math.abs(hash) % zones.length
+    return zones[index]
+  }
+
   const mappedAlerts = alertsToRender.map(alert => {
     const d = new Date(alert.createdAt);
     return {
@@ -63,7 +73,7 @@ export function MaterialAlertsPanel({
       mat: alert.materialName,
       matSub: `ID: ${alert.materialId}`,
       proj: "Colombo Metro",
-      zone: "Zone A",
+      zone: getZoneForAlert(alert.id),
       sev: alert.severity.toUpperCase(),
       date: d.toLocaleDateString(),
       time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

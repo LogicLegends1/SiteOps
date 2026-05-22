@@ -102,6 +102,58 @@ export default function MaterialForecastPage() {
     return { val, offset, strokeColor };
   });
 
+  // Dynamic Zones Summary
+  const zonesList = ["Zone A", "Zone B", "Zone C", "Zone D"];
+  const getZoneForAlert = (alertId: string) => {
+    let hash = 0
+    for (let i = 0; i < alertId.length; i++) {
+      hash = alertId.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    const index = Math.abs(hash) % zonesList.length
+    return zonesList[index]
+  }
+
+  const alertsByZone = liveAlerts.reduce((acc: Record<string, number>, alert: any) => {
+    const z = getZoneForAlert(alert.id);
+    acc[z] = (acc[z] || 0) + 1;
+    return acc;
+  }, {});
+
+  const zoneColors = {
+    "Zone A": "bg-cyan-500",
+    "Zone B": "bg-purple-500",
+    "Zone C": "bg-yellow-500",
+    "Zone D": "bg-emerald-500",
+  };
+
+  const strokeColors = {
+    "Zone A": "#0ea5e9",
+    "Zone B": "#a855f7",
+    "Zone C": "#eab308",
+    "Zone D": "#10b981",
+  };
+
+  const dynamicZoneStats = zonesList.map(z => {
+    const count = alertsByZone[z] || 0;
+    const pct = liveAlerts.length > 0 ? Math.round((count / liveAlerts.length) * 100) : 0;
+    return {
+      label: z,
+      count,
+      pct: pct + '%',
+      color: zoneColors[z as keyof typeof zoneColors] || "bg-zinc-500",
+      strokeColor: strokeColors[z as keyof typeof strokeColors] || "#71717a",
+      val: pct
+    };
+  });
+
+  let zoneOffset = 0;
+  const zoneSegments = dynamicZoneStats.map(stat => {
+    const val = stat.val;
+    const offset = zoneOffset;
+    zoneOffset -= val;
+    return { ...stat, offset };
+  });
+
   return (
     <div className="flex flex-col gap-6 pb-10">
       {/* TABS SWITCHER */}
@@ -179,6 +231,52 @@ export default function MaterialForecastPage() {
                 </div>
                 <button className="w-full text-center mt-6 text-[10px] font-bold text-cyan-500 hover:text-cyan-400 uppercase tracking-wider">
                   View all alerts →
+                </button>
+              </div>
+
+              {/* ALERTS BY ZONE */}
+              <div className="bg-[#11141D] border border-zinc-800/60 rounded-xl overflow-hidden shadow-lg p-5">
+                <h3 className="text-[11px] font-bold text-white uppercase tracking-wider mb-6">Alerts by Zone</h3>
+                <div className="flex items-center gap-6">
+                  {/* Donut Chart */}
+                  <div className="relative h-28 w-28 shrink-0 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                      <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#1f2937" strokeWidth="4"></circle>
+                      {zoneSegments.map((segment, idx) => (
+                        <circle 
+                          key={idx}
+                          cx="18" cy="18" r="15.915" 
+                          fill="transparent" 
+                          stroke={segment.strokeColor} 
+                          strokeWidth="4" 
+                          strokeDasharray={`${segment.val} ${100 - segment.val}`} 
+                          strokeDashoffset={segment.offset}
+                        ></circle>
+                      ))}
+                    </svg>
+                    <div className="absolute flex flex-col items-center justify-center">
+                      <span className="text-2xl font-bold text-white leading-none">{liveAlerts.length}</span>
+                      <span className="text-[8px] text-zinc-500 uppercase mt-0.5">Total Alerts</span>
+                    </div>
+                  </div>
+                  {/* Legend */}
+                  <div className="flex flex-col gap-2.5 flex-1">
+                    {zoneSegments.map(stat => (
+                      <div key={stat.label} className="flex items-center justify-between text-[10px]">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-1.5 h-1.5 rounded-full ${stat.color}`}></div>
+                          <span className="text-zinc-300">{stat.label}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-zinc-400">{stat.count}</span>
+                          <span className="text-zinc-600 w-8 text-right">({stat.pct})</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <button className="w-full text-center mt-6 text-[10px] font-bold text-cyan-500 hover:text-cyan-400 uppercase tracking-wider">
+                  View zone details →
                 </button>
               </div>
 

@@ -45,7 +45,7 @@ const navItems = [
   },
 
   {
-    title: "Material Forecasting",
+    title: "Materials",
     segment: "material-forecast",
     icon: Package,
   },
