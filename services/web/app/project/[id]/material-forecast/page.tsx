@@ -31,7 +31,10 @@ export default function MaterialForecastPage() {
     activeAlerts: 0
   })
 
+  const [isLoadingAlerts, setIsLoadingAlerts] = useState(true)
+
   useEffect(() => {
+    setIsLoadingAlerts(true)
     // 1. Fetch High-Level Telemetry Stats (Fast)
     fetch("http://localhost:8000/predict/shortage/stats/1")
       .then(res => res.json())
@@ -46,7 +49,11 @@ export default function MaterialForecastPage() {
       // mats is now {data: [...], total: X}
       setLiveMaterials(mats?.data || [])
       setLiveAlerts(alts || [])
-    }).catch(console.error)
+      setIsLoadingAlerts(false)
+    }).catch(err => {
+      console.error(err)
+      setIsLoadingAlerts(false)
+    })
   }, [])
 
   const stats = liveStats // Use the server-provided stats instead of local calculation
@@ -126,7 +133,7 @@ export default function MaterialForecastPage() {
         {activeTab === "ops" && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-9">
-              <MaterialAlertsPanel materialsList={liveMaterials} liveAlerts={liveAlerts} />
+              <MaterialAlertsPanel materialsList={liveMaterials} liveAlerts={liveAlerts} isLoading={isLoadingAlerts} />
             </div>
             <div className="lg:col-span-3 space-y-6">
               {/* RISK SUMMARY */}

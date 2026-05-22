@@ -23,6 +23,7 @@ import {
   Activity,
   ChevronDown,
   ChevronRight,
+  Loader2,
 } from "lucide-react"
 
 interface StockOverviewProps {
@@ -195,7 +196,15 @@ function CategoryPagingSection({
 
       <div className="overflow-hidden rounded-2xl border-2 bg-card/40 backdrop-blur-sm shadow-sm">
         <div className={`flex flex-col min-h-[400px] transition-opacity duration-300 ${isPageLoading ? "opacity-40 pointer-events-none" : "opacity-100"}`}>
-          {materials.map((material, idx) => {
+          {isPageLoading && materials.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] gap-3">
+              <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                Analyzing Stock Ledger...
+              </span>
+            </div>
+          ) : (
+            materials.map((material, idx) => {
             const total = material.totalStock || 1
             const usedPercentage = (material.consumed / total) * 100
             const availablePercentage = Math.min(
@@ -278,7 +287,7 @@ function CategoryPagingSection({
                 <div className={`hidden md:block w-1.5 h-10 rounded-full transition-all duration-300 ${isSelected ? "bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)]" : "bg-transparent group-hover:bg-primary/20"}`} />
               </div>
             )
-          })}
+          }))}
         </div>
 
         {/* PAGINATION FOOTER */}

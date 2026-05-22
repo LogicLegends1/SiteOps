@@ -21,11 +21,20 @@ import {
   List,
   AlertCircle,
   Calendar,
-  FileWarning
+  FileWarning,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function MaterialAlertsPanel({ materialsList = [], liveAlerts = [] }: { materialsList?: Material[], liveAlerts?: any[] }) {
+export function MaterialAlertsPanel({ 
+  materialsList = [], 
+  liveAlerts = [], 
+  isLoading = false 
+}: { 
+  materialsList?: Material[], 
+  liveAlerts?: any[], 
+  isLoading?: boolean 
+}) {
   const [activeTab, setActiveTab] = useState("pending")
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -179,57 +188,81 @@ export function MaterialAlertsPanel({ materialsList = [], liveAlerts = [] }: { m
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800/60">
-            {paginatedAlerts.map((alert) => (
-              <tr key={alert.id} className="hover:bg-zinc-800/20 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="flex items-start gap-3">
-                    <alert.icon className={cn("h-4 w-4 mt-0.5", alert.iconColor)} />
-                    <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-zinc-200">{alert.title}</span>
-                      <span className="text-[10px] text-zinc-500 mt-0.5">{alert.sub}</span>
-                    </div>
+            {isLoading ? (
+              <tr>
+                <td colSpan={8} className="py-20 text-center">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <Loader2 className="h-8 w-8 text-cyan-500 animate-spin" />
+                    <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                      Synchronizing Alert Matrix...
+                    </span>
                   </div>
-                </td>
-                <td className="px-4 py-4">
-                  <span className={cn("text-[9px] font-bold px-2 py-1 rounded border uppercase tracking-wider", getTypeColor(alert.type))}>
-                    {alert.type}
-                  </span>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex flex-col">
-                    <span className="text-xs text-zinc-300">{alert.mat}</span>
-                    <span className="text-[10px] text-zinc-500 mt-0.5">{alert.matSub}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex flex-col">
-                    <span className="text-xs text-zinc-300">{alert.proj}</span>
-                    <span className="text-[10px] text-zinc-500 mt-0.5">{alert.zone}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <span className={cn("text-[9px] font-bold px-2 py-1 rounded border uppercase tracking-wider", getSevColor(alert.sev))}>
-                    {alert.sev}
-                  </span>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex flex-col">
-                    <span className="text-xs text-zinc-300">{alert.date}</span>
-                    <span className="text-[10px] text-zinc-500 mt-0.5">{alert.time}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <span className="text-[9px] font-bold px-2 py-1 rounded border border-red-500/20 bg-red-500/10 text-red-500 uppercase tracking-wider">
-                    {alert.status}
-                  </span>
-                </td>
-                <td className="px-4 py-4 text-right text-zinc-500">
-                  <button className="hover:text-white transition-colors">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </button>
                 </td>
               </tr>
-            ))}
+            ) : paginatedAlerts.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="py-20 text-center">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <FileWarning className="h-8 w-8 text-zinc-600" />
+                    <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                      No Alerts Found
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              paginatedAlerts.map((alert) => (
+                <tr key={alert.id} className="hover:bg-zinc-800/20 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-start gap-3">
+                      <alert.icon className={cn("h-4 w-4 mt-0.5", alert.iconColor)} />
+                      <div className="flex flex-col">
+                        <span className="text-xs font-semibold text-zinc-200">{alert.title}</span>
+                        <span className="text-[10px] text-zinc-500 mt-0.5">{alert.sub}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className={cn("text-[9px] font-bold px-2 py-1 rounded border uppercase tracking-wider", getTypeColor(alert.type))}>
+                      {alert.type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-zinc-300">{alert.mat}</span>
+                      <span className="text-[10px] text-zinc-500 mt-0.5">{alert.matSub}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-zinc-300">{alert.proj}</span>
+                      <span className="text-[10px] text-zinc-500 mt-0.5">{alert.zone}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className={cn("text-[9px] font-bold px-2 py-1 rounded border uppercase tracking-wider", getSevColor(alert.sev))}>
+                      {alert.sev}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-zinc-300">{alert.date}</span>
+                      <span className="text-[10px] text-zinc-500 mt-0.5">{alert.time}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="text-[9px] font-bold px-2 py-1 rounded border border-red-500/20 bg-red-500/10 text-red-500 uppercase tracking-wider">
+                      {alert.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 text-right text-zinc-500">
+                    <button className="hover:text-white transition-colors">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
