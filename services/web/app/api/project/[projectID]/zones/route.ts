@@ -35,7 +35,8 @@ export async function GET(
         createdat,
         updatedat,
         imagepath,
-        imageurl
+        imageurl,
+        deadline
       `)
       .eq("projectid", numericProjectId)
       .order("displayorder", { ascending: true })
@@ -67,6 +68,8 @@ export async function GET(
         updatedAt: activity.updatedat,
         imagePath: activity.imagepath,
         imageUrl: activity.imageurl,
+        deadline: activity.deadline ?? null,
+        expectedCompletion: activity.deadline ?? null,
       }))
 
     return NextResponse.json({ zones: activities })

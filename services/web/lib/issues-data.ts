@@ -36,6 +36,28 @@ export const issues: Issue[] = [
     owner: "Maintenance Team",
     createdAt: "2026-04-02",
   },
+  {
+    id: "ISS-003",
+    activityID: 1,
+    title: "Rebar spacing variance",
+    description: "Inspection flagged spacing outside tolerance on grid B.",
+    type: "safety-issue",
+    priority: "critical",
+    status: "open",
+    owner: "QA Lead",
+    createdAt: "2026-05-10",
+  },
+  {
+    id: "ISS-004",
+    activityID: 3,
+    title: "Cable tray backlog",
+    description: "Awaiting delivery of 300mm cable trays for level 2.",
+    type: "material-delay",
+    priority: "medium",
+    status: "open",
+    owner: "Procurement",
+    createdAt: "2026-05-12",
+  },
 ]
 
 export function getIssuesByActivityId(activityID: number) {

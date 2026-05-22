@@ -3,8 +3,8 @@
 import { useEffect, useRef } from "react"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { type Activity, type Project } from "@/lib/site-data"
+import { cn } from "@/lib/utils"
 
 interface LeafletMapProps {
   activities: Activity[]
@@ -12,37 +12,28 @@ interface LeafletMapProps {
   loading?: boolean
   onActivitySelect: (activity: Activity) => void
   selectedActivityId?: number
+  className?: string
 }
 
-// Create a function to get marker icons that's called at runtime
-const getMarkerIcons = () => {
-  const markerIcon = L.icon({
-    iconUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-    iconRetinaUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-    shadowUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-  })
+const DEFAULT_MARKER_COLOR = "#94a3b8"
+const SELECTED_MARKER_COLOR = "#22d3ee"
 
-  const selectedMarkerIcon = L.icon({
-    iconUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-    iconRetinaUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-    shadowUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-    iconSize: [30, 50],
-    iconAnchor: [15, 50],
-    popupAnchor: [1, -37],
-    shadowSize: [41, 41],
+function createPinIcon(color: string, size = 32) {
+  return L.divIcon({
+    className: "site-progress-marker",
+    html: `<div style="
+      width:${size}px;
+      height:${size}px;
+      background:${color};
+      border:3px solid #fff;
+      border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);
+      box-shadow:0 2px 8px rgba(0,0,0,0.4);
+    "></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size],
+    popupAnchor: [0, -size + 4],
   })
-
-  return { markerIcon, selectedMarkerIcon }
 }
 
 export function LeafletMap({
@@ -51,18 +42,16 @@ export function LeafletMap({
   loading,
   onActivitySelect,
   selectedActivityId,
+  className,
 }: LeafletMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Map<number, L.Marker>>(new Map())
 
-  // Initialize map
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) {
-      return
-    }
+    if (!mapContainerRef.current || mapRef.current) return
 
-    const defaultCenter: [number, number] = [6.9271, 80.7789] // Sri Lanka center
+    const defaultCenter: [number, number] = [6.9271, 80.7789]
     const mapCenter: [number, number] =
       project &&
       typeof project.locationLatitude === "number" &&
@@ -70,107 +59,130 @@ export function LeafletMap({
         ? [project.locationLatitude, project.locationLongitude]
         : defaultCenter
 
-    const map = L.map(mapContainerRef.current).setView(mapCenter, 13)
+    const map = L.map(mapContainerRef.current, {
+      zoomControl: true,
+      attributionControl: false,
+    }).setView(mapCenter, 13)
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
     }).addTo(map)
 
     mapRef.current = map
 
     return () => {
-      // Don't destroy the map on unmount in strict mode
+      // kept for strict-mode; invalidateSize handles resize
     }
   }, [project])
 
-  // Update markers when activities change
   useEffect(() => {
     if (!mapRef.current) return
 
-    // Clear existing markers
     markersRef.current.forEach((marker) => {
       mapRef.current?.removeLayer(marker)
     })
     markersRef.current.clear()
 
-    const { markerIcon, selectedMarkerIcon } = getMarkerIcons()
+    const defaultIcon = createPinIcon(DEFAULT_MARKER_COLOR, 28)
+    const selectedIcon = createPinIcon(SELECTED_MARKER_COLOR, 36)
 
-    // Add new markers
     activities.forEach((activity) => {
-      // Skip activities without valid coordinates
-      if (typeof activity.lat !== "number" || typeof activity.lng !== "number") {
-        return
-      }
+      if (typeof activity.lat !== "number" || typeof activity.lng !== "number") return
 
       const isSelected = selectedActivityId === activity.zoneID
       const marker = L.marker([activity.lat, activity.lng], {
-        icon: isSelected ? selectedMarkerIcon : markerIcon,
+        icon: isSelected ? selectedIcon : defaultIcon,
         title: activity.name,
+        zIndexOffset: isSelected ? 1000 : 0,
       })
         .bindPopup(
-          `<div class="font-semibold">${activity.name}</div>
-           <div class="text-sm text-gray-600">${activity.activity || "No activity"}</div>
-           <div class="text-xs mt-1">Progress: ${activity.progress}%</div>`
+          `<div style="font-family:system-ui,sans-serif;min-width:120px">
+            <div style="font-weight:600;margin-bottom:4px">${activity.name}</div>
+            <div style="font-size:12px;color:#64748b">${activity.activity || ""}</div>
+          </div>`
         )
         .bindTooltip(activity.markerLabel || activity.name, {
-          permanent: true,
+          permanent: !isSelected,
           direction: "right",
-          offset: [12, 0],
-          className: "leaflet-label",
+          offset: [14, 0],
+          className: isSelected ? "leaflet-label leaflet-label-selected" : "leaflet-label",
         })
-        .on("click", () => {
-          onActivitySelect(activity)
-        })
+        .on("click", () => onActivitySelect(activity))
         .addTo(mapRef.current!)
 
       markersRef.current.set(activity.zoneID, marker)
     })
   }, [activities, selectedActivityId, onActivitySelect])
 
-  // Auto-fit map to show all markers
   useEffect(() => {
     if (!mapRef.current || markersRef.current.size === 0) return
-
     const markers = Array.from(markersRef.current.values())
-    if (markers.length === 0) return
-
     const group = new L.FeatureGroup(markers)
-    mapRef.current.fitBounds(group.getBounds(), { padding: [50, 50] })
+    mapRef.current.fitBounds(group.getBounds(), { padding: [36, 36], maxZoom: 15 })
   }, [activities])
 
+  useEffect(() => {
+    if (!mapRef.current || selectedActivityId == null) return
+    const marker = markersRef.current.get(selectedActivityId)
+    if (!marker) return
+    const latlng = marker.getLatLng()
+    mapRef.current.panTo(latlng, { animate: true })
+  }, [selectedActivityId])
+
+  useEffect(() => {
+    const timer = setTimeout(() => mapRef.current?.invalidateSize(), 150)
+    return () => clearTimeout(timer)
+  }, [className])
+
+  useEffect(() => {
+    const id = "site-progress-leaflet-styles"
+    if (document.getElementById(id)) return
+    const style = document.createElement("style")
+    style.id = id
+    style.textContent = `
+      .leaflet-label { background: rgba(15,23,42,0.92) !important; border: 1px solid #334155 !important;
+        color: #e2e8f0 !important; font-size: 11px !important; font-weight: 500 !important;
+        padding: 2px 6px !important; border-radius: 4px !important; }
+      .leaflet-label-selected { border-color: #22d3ee !important; color: #22d3ee !important; font-weight: 600 !important; }
+      .site-progress-marker { background: transparent !important; border: none !important; }
+    `
+    document.head.appendChild(style)
+  }, [])
+
   return (
-    <Card className="bg-card border-border h-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-foreground">Site Map</CardTitle>
-            <CardDescription>Click markers to view activity details</CardDescription>
+    <div
+      className={cn(
+        "relative w-full h-full bg-secondary/30 overflow-hidden",
+        className
+      )}
+      >
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground bg-background/40 z-10 pointer-events-none">
+            Loading map...
           </div>
+        )}
+
+        <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
+
+        <div className="absolute bottom-2 left-2 text-[10px] text-muted-foreground bg-background/80 px-2 py-1 rounded z-[400] pointer-events-none">
+          © OpenStreetMap
         </div>
-      </CardHeader>
-
-      <CardContent>
-        <div className="relative w-full bg-secondary/30 border border-border overflow-hidden rounded-lg pointer-events-auto">
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground bg-background/40 z-10 pointer-events-none">
-              Loading activities...
-            </div>
-          )}
-
-          <div
-            ref={mapContainerRef}
-            className="h-96 w-full"
-            style={{
-              border: "1px solid var(--border)",
-            }}
-          />
-
-          <div className="absolute bottom-2 left-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded z-[400] pointer-events-none">
-            © OpenStreetMap
-          </div>
+        <div className="absolute bottom-2 right-2 flex items-center gap-3 text-[10px] text-muted-foreground bg-background/80 px-2 py-1 rounded z-[400] pointer-events-none">
+          <span className="flex items-center gap-1">
+            <span
+              className="inline-block w-2.5 h-2.5 rounded-sm rotate-45 border border-white shadow-sm"
+              style={{ background: DEFAULT_MARKER_COLOR }}
+            />
+            Activity
+          </span>
+          <span className="flex items-center gap-1">
+            <span
+              className="inline-block w-3 h-3 rounded-sm rotate-45 border border-white shadow-sm"
+              style={{ background: SELECTED_MARKER_COLOR }}
+            />
+            Selected
+          </span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
   )
 }

@@ -1,0 +1,172 @@
+import type { Activity } from "@/lib/site-data"
+
+export interface SubtaskUpdate {
+  id: string
+  description: string
+  updatedAt: string
+  updatedBy: string
+  images?: string[]
+}
+
+export interface Subtask {
+  id: string
+  activityID: number
+  title: string
+  dueDate: string
+  completed: boolean
+  order: number
+  updates: SubtaskUpdate[]
+}
+
+const SUBTASK_TEMPLATES: Record<string, { title: string; offsetDays: number }[]> = {
+  foundation: [
+    { title: "Site Preparation", offsetDays: 0 },
+    { title: "Excavation", offsetDays: 4 },
+    { title: "Foundation Concrete", offsetDays: 11 },
+    { title: "Curing & Testing", offsetDays: 14 },
+  ],
+  piling: [
+    { title: "Survey & Marking", offsetDays: 0 },
+    { title: "Pile Installation", offsetDays: 5 },
+    { title: "Load Testing", offsetDays: 12 },
+  ],
+  electrical: [
+    { title: "Conduit Routing", offsetDays: 0 },
+    { title: "Panel Installation", offsetDays: 7 },
+    { title: "Wiring & Testing", offsetDays: 14 },
+  ],
+  drainage: [
+    { title: "Trench Excavation", offsetDays: 0 },
+    { title: "Pipe Laying", offsetDays: 6 },
+    { title: "Backfill & Inspection", offsetDays: 12 },
+  ],
+  default: [
+    { title: "Planning & Setup", offsetDays: 0 },
+    { title: "Primary Work", offsetDays: 7 },
+    { title: "Quality Check", offsetDays: 14 },
+    { title: "Final Sign-off", offsetDays: 21 },
+  ],
+}
+
+function pickTemplate(activity: Activity) {
+  const label = `${activity.name} ${activity.activity ?? ""}`.toLowerCase()
+  if (label.includes("foundation")) return SUBTASK_TEMPLATES.foundation
+  if (label.includes("pil")) return SUBTASK_TEMPLATES.piling
+  if (label.includes("electr")) return SUBTASK_TEMPLATES.electrical
+  if (label.includes("drain")) return SUBTASK_TEMPLATES.drainage
+  return SUBTASK_TEMPLATES.default
+}
+
+function addDays(base: Date, days: number): string {
+  const d = new Date(base)
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split("T")[0]
+}
+
+/** Deterministic completion pattern from activity id (until DB-backed subtasks exist). */
+function defaultCompleted(activityID: number, index: number, total: number): boolean {
+  const completedCount = Math.min(total - 1, (activityID % total) + 1)
+  return index < completedCount
+}
+
+export function buildSubtasksForActivity(activity: Activity): Subtask[] {
+  const template = pickTemplate(activity)
+  const baseDate = activity.startDate
+    ? new Date(activity.startDate)
+    : new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
+
+  return template.map((item, index) => {
+    const completed = defaultCompleted(activity.zoneID, index, template.length)
+    return {
+      id: `${activity.zoneID}-sub-${index + 1}`,
+      activityID: activity.zoneID,
+      title: item.title,
+      dueDate: addDays(baseDate, item.offsetDays),
+      completed,
+      order: index + 1,
+      updates: completed
+        ? [
+            {
+              id: `${activity.zoneID}-sub-${index + 1}-u1`,
+              description: `${item.title} completed on site.`,
+              updatedAt: addDays(baseDate, item.offsetDays + 1),
+              updatedBy: "Site Engineer",
+            },
+          ]
+        : [],
+    }
+  })
+}
+
+export function buildSubtasksMap(activities: Activity[]): Record<number, Subtask[]> {
+  const map: Record<number, Subtask[]> = {}
+  for (const activity of activities) {
+    map[activity.zoneID] = buildSubtasksForActivity(activity)
+  }
+  return map
+}
+
+export function calculateProgressFromSubtasks(subtasks: Subtask[]): number {
+  if (!subtasks.length) return 0
+  const completed = subtasks.filter((s) => s.completed).length
+  return Math.round((completed / subtasks.length) * 100)
+}
+
+export function getSubtaskCounts(subtasks: Subtask[]) {
+  const completed = subtasks.filter((s) => s.completed).length
+  return { completed, total: subtasks.length }
+}
+
+export function getActivityDeadline(activity: Activity): string | null {
+  if (activity.deadline) return activity.deadline.split("T")[0]
+  if (activity.expectedCompletion) return activity.expectedCompletion.split("T")[0]
+  return null
+}
+
+export type TrackLabel = "On Track" | "Behind"
+
+/** Parse YYYY-MM-DD (or ISO prefix) as local calendar date — avoids UTC shift bugs. */
+export function parseDateOnlyLocal(value: unknown): Date | null {
+  if (value == null || value === "") return null
+
+  let datePart: string | null = null
+  if (typeof value === "string") {
+    datePart = value.split("T")[0]
+  } else if (value instanceof Date) {
+    datePart = `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`
+  }
+
+  if (!datePart) return null
+  const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return null
+
+  const y = Number(match[1])
+  const m = Number(match[2])
+  const d = Number(match[3])
+  const parsed = new Date(y, m - 1, d, 0, 0, 0, 0)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function startOfToday(now: Date = new Date()): Date {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+}
+
+/** Incomplete subtask whose due date is on or before today (deadline missed). */
+export function isSubtaskOverdue(subtask: Subtask, now: Date = new Date()): boolean {
+  if (subtask.completed) return false
+
+  const due = parseDateOnlyLocal(subtask.dueDate)
+  if (!due) return false
+
+  const today = startOfToday(now)
+  return due.getTime() <= today.getTime()
+}
+
+/**
+ * Behind if any incomplete subtask is past its due date; otherwise On Track.
+ * Activities with no subtasks are treated as On Track.
+ */
+export function getTrackLabelFromSubtasks(subtasks: Subtask[]): TrackLabel {
+  if (!subtasks.length) return "On Track"
+  return subtasks.some(subtask => isSubtaskOverdue(subtask)) ? "Behind" : "On Track"
+}
