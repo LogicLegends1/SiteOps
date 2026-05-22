@@ -54,37 +54,96 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     const numericProjectId = Number(projectID)
     const { searchParams } = new URL(_req.url)
     const filter = searchParams.get('filter') || 'project'
+    const summarize = searchParams.get('summarize') || null
 
-    // 1. Fetch Equipment with Classes
-    let eqQuery = supabase
-      .from("equipment_item")
-      .select(`
-        *,
-        equipment_class (name)
-      `)
-      
+    // Lightweight RPC path: return counts per equipment class for the project
+    if (summarize === 'classes') {
+      const { data: counts, error: countsError } = await supabase.rpc('equipment_count_by_class', { p_project_id: numericProjectId })
+      if (countsError) throw countsError
+      return NextResponse.json({ classCounts: counts })
+    }
+
+    // Lightweight status-only path: return counts without joins or log lookups
+    if (summarize === 'status') {
+      let query = supabase.from("equipment_item").select("status")
+      if (filter === 'project') {
+        query = query.eq("projectid", numericProjectId)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+
+      const summary = {
+        total: 0,
+        active: 0,
+        idle: 0,
+        down: 0,
+        maintenance: 0,
+        unassigned: 0,
+      }
+
+      for (const row of data || []) {
+        summary.total += 1
+
+        const status = String(row.status ?? "").toLowerCase().trim()
+        if (status === 'active' || status === 'operational') summary.active += 1
+        else if (status === 'idle') summary.idle += 1
+        else if (status === 'down' || status === 'under_repair' || status === 'broken') summary.down += 1
+        else if (status === 'maintenance') summary.maintenance += 1
+        else if (status === 'unassigned') summary.unassigned += 1
+      }
+
+      return NextResponse.json({ summary })
+    }
+
+    // 1. Fetch Equipment with required columns and class name
+    const eqSelect = `
+      itemid,
+      name,
+      classid,
+      serial_number,
+      status,
+      next_service_date,
+      last_service_date,
+      technical_specs,
+      equipment_class (name)
+    `
+
+    let eqQuery = supabase.from("equipment_item").select(eqSelect)
     if (filter === 'project') {
       eqQuery = eqQuery.eq("projectid", numericProjectId)
     }
 
     const { data: eqData, error: eqError } = await eqQuery
-
     if (eqError) throw eqError
 
-    // 2. Fetch Active Assignments
+    // If no equipment for this filter/project, return early (avoid extra DB calls)
+    const itemIds = (eqData ?? []).map((r: any) => r.itemid).filter(Boolean)
+    if (itemIds.length === 0) {
+      const response: EquipmentResponse = {
+        summary: { total: 0, active: 0, idle: 0, underRepair: 0, maintenanceDueCount: 0 },
+        equipment: [],
+        maintenanceLogs: []
+      }
+      return NextResponse.json(response)
+    }
+
+    // 2. Fetch Active Assignments -- only for the items we care about
     const { data: assignData, error: assignError } = await supabase
       .from("equipment_assignment")
-      .select("*")
+      .select("itemid, activityid, zoneid, start_date, end_date")
       .is("end_date", null)
+      .in("itemid", itemIds)
 
     if (assignError) throw assignError
 
-    // 3. Fetch Maintenance Logs for these items
-    const itemIds = (eqData ?? []).map(r => r.itemid)
+    // 3. Fetch Maintenance Logs for these items, limited to recent window and only needed columns
+    const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
     const { data: logData, error: logError } = await supabase
       .from("equipment_maintenance_log")
-      .select("*")
+      .select("logid, itemid, issue_type, description, reported_at, resolved_at, downtime_hours, resolution_notes")
       .in("itemid", itemIds)
+      .gte("reported_at", cutoff)
       .order("reported_at", { ascending: false })
 
     if (logError) throw logError
