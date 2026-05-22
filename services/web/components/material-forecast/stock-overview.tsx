@@ -224,7 +224,7 @@ function CategoryPagingSection({
                 {/* Material Identity */}
                 <div className="flex-1 min-w-[200px]">
                   <div className="flex items-center gap-2">
-                    <span className="font-black text-lg tracking-tight">{material.name}</span>
+                    <span className="font-semibold text-xs text-zinc-200 tracking-tight">{material.name}</span>
                     <Badge
                       variant="secondary"
                       className={`${getStockLevelColor(material.stockLevel)} text-[9px] py-0 px-1.5 h-4 uppercase font-black tracking-tighter shadow-sm`}
@@ -232,18 +232,18 @@ function CategoryPagingSection({
                       {material.stockLevel}
                     </Badge>
                   </div>
-                  <div className="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-widest opacity-60">
+                  <div className="text-[10px] text-zinc-500 mt-0.5">
                     ID: {material.id} • {material.unit}
                   </div>
                 </div>
 
                 {/* Stock Usage Bar */}
                 <div className="w-full md:w-80 space-y-2">
-                  <div className="flex justify-between items-end text-[10px] font-black uppercase text-muted-foreground tracking-tighter">
+                  <div className="flex justify-between items-end text-[9px] font-bold uppercase text-zinc-500 tracking-widest">
                     <span className="flex items-center gap-1.5">
                       <Activity className="h-3 w-3" /> Utilization Pulse
                     </span>
-                    <span className="text-foreground bg-background px-2 py-0.5 rounded border">
+                    <span className="text-zinc-300 bg-zinc-900/60 px-2 py-0.5 rounded border border-zinc-700/50">
                       {material.available.toLocaleString()} {material.unit} REMAINING
                     </span>
                   </div>
@@ -262,16 +262,16 @@ function CategoryPagingSection({
                 {/* Metrics */}
                 <div className="flex items-center gap-10 md:gap-16 px-4">
                   <div className="flex flex-col items-center">
-                    <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Rate / Day</span>
+                    <span className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest">Rate / Day</span>
                     <div className="flex items-center gap-2 mt-1.5">
                       <TrendIconComponent trend={material.consumptionTrend} />
-                      <span className="text-base font-black tracking-tighter">{material.dailyAvgConsumption}</span>
+                      <span className="text-xs font-bold text-zinc-200 tracking-tight">{material.dailyAvgConsumption}</span>
                     </div>
                   </div>
 
                   <div className="flex flex-col items-center min-w-[100px]">
-                    <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Exhaustion</span>
-                    <div className={`flex items-center gap-1.5 text-sm font-black mt-1.5 ${
+                    <span className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest">Exhaustion</span>
+                    <div className={`flex items-center gap-1.5 text-xs font-bold mt-1.5 ${
                       material.daysUntilShortage !== null && material.daysUntilShortage <= 5 
                         ? "text-destructive" 
                         : material.daysUntilShortage !== null && material.daysUntilShortage <= 15 
