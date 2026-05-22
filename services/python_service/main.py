@@ -269,31 +269,56 @@ async def get_alerts(project_id: int):
                 "materialName": mat['name'],
                 "type": "critical_stock",
                 "severity": "critical",
-                "message": f"{mat['name']} stock critically low. Only {mat['daysUntilShortage']} days of supply remaining.",
-                "recommendation": "Place emergency order immediately. Consider alternative suppliers.",
-                "affectedActivities": ["High Priority Tasks"], 
+                "message": f"{mat['name']} stock critically low. {max(0, mat.get('daysUntilShortage', 0))} days remaining.",
+                "recommendation": "Place emergency order immediately.",
+                "affectedActivities": mat.get("linkedActivities", []), 
                 "createdAt": datetime.now().isoformat() + "Z",
                 "acknowledged": False
             })
-        elif mat["stockLevel"] == "low":
+        elif mat.get("stockLevel") == "low":
             alerts.append({
                 "id": f"ALERT-LOW-{mat['id']}",
                 "materialId": mat['id'],
                 "materialName": mat['name'],
                 "type": "low_stock",
-                "severity": "medium",
-                "message": f"{mat['name']} approaching reorder level. {mat['daysUntilShortage']} days remaining.",
+                "severity": "high",
+                "message": f"{mat['name']} approaching reorder level. {mat.get('daysUntilShortage')} days remaining.",
                 "recommendation": "Schedule reorder within next 3 days.",
                 "affectedActivities": [],
                 "createdAt": datetime.now().isoformat() + "Z",
                 "acknowledged": False
             })
+        else:
+            rand_val = random.random()
+            if rand_val < 0.15:
+                alerts.append({
+                    "id": f"ALERT-SPIKE-{mat['id']}",
+                    "materialId": mat['id'],
+                    "materialName": mat['name'],
+                    "type": "usage_spike",
+                    "severity": "medium",
+                    "message": f"Unusual consumption spike detected for {mat['name']}.",
+                    "recommendation": "Verify site logs for potential wastage.",
+                    "affectedActivities": mat.get("linkedActivities", []),
+                    "createdAt": datetime.now().isoformat() + "Z",
+                    "acknowledged": False
+                })
+            elif rand_val < 0.25:
+                alerts.append({
+                    "id": f"ALERT-DEL-{mat['id']}",
+                    "materialId": mat['id'],
+                    "materialName": mat['name'],
+                    "type": "delivery_delay",
+                    "severity": "low",
+                    "message": f"Expected delivery of {mat['name']} delayed by 48hrs.",
+                    "recommendation": "Adjust task scheduling.",
+                    "affectedActivities": [],
+                    "createdAt": datetime.now().isoformat() + "Z",
+                    "acknowledged": False
+                })
             
     random.shuffle(alerts)
-    return [
-        {**a, "message": f"{a['materialName']} stock critically low. {max(0, a.get('daysUntilShortage', 0))} days remaining." if a['type'] == 'critical_stock' else a['message']} 
-        for a in alerts
-    ]
+    return alerts
 
 
 @app.get("/predict/trend/{project_id}/{material_id}")
