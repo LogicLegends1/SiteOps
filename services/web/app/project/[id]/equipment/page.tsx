@@ -117,27 +117,8 @@ export default function UnifiedEquipmentDashboard() {
   return (
     <div className="flex flex-col gap-6 min-h-screen bg-[#0A0D14] text-zinc-300 pb-12 font-sans selection:bg-blue-500/30">
       
-      {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-6 pt-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Equipment & Assets</h1>
-          <p className="text-sm text-zinc-500 mt-1">Fleet visibility, utilization, and reliability</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-zinc-300 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded-md transition-colors">
-            <Download className="h-4 w-4" /> Export
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-black bg-cyan-400 hover:bg-cyan-300 rounded-md transition-colors shadow-[0_0_15px_rgba(34,211,238,0.3)]">
-            <Plus className="h-4 w-4" /> Add Asset
-          </button>
-          <button className="p-2 text-zinc-400 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded-md transition-colors">
-            <Activity className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
       {/* KPI CARDS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4 px-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4 px-6 pt-6">
         {/* Total Assets */}
         <div className="flex flex-col gap-3 p-4 bg-[#11141D] border border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
           <div className="flex justify-between items-start">

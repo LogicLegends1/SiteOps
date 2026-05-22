@@ -194,14 +194,6 @@ export async function GET(_req: NextRequest, context: RouteContext) {
       }
     })
 
-    // -- Summary Stats (Human-Reported Model) -- //
-    const total = equipment.length
-    const active = equipment.filter(e => e.status === "active").length
-    const idle = equipment.filter(e => e.status === "idle").length
-    const down = equipment.filter(e => e.status === "down").length
-    const maintenance = equipment.filter(e => e.status === "maintenance").length
-    const unassigned = equipment.filter(e => e.status === "unassigned").length
-
     // Extract query parameters for paging and filtering
     const pageParam = searchParams.get('page')
     const page = pageParam ? Math.max(1, Number(pageParam)) : null
@@ -212,6 +204,23 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     const projectFilter = searchParams.get('project') || null
     const zoneFilter = searchParams.get('zone') || null
     const maintFilter = searchParams.get('maint') || null
+
+    // Determine stats equipment list filtered by project/zone (if selected)
+    let statsEq = equipment
+    if (projectFilter && projectFilter !== "all") {
+      statsEq = statsEq.filter(e => String(e.projectId) === projectFilter)
+    }
+    if (zoneFilter && zoneFilter !== "all") {
+      statsEq = statsEq.filter(e => String(e.activeZoneId) === zoneFilter)
+    }
+
+    // -- Summary Stats (Human-Reported Model) based on selected project/zone -- //
+    const total = statsEq.length
+    const active = statsEq.filter(e => e.status === "active").length
+    const idle = statsEq.filter(e => e.status === "idle").length
+    const down = statsEq.filter(e => e.status === "down").length
+    const maintenance = statsEq.filter(e => e.status === "maintenance").length
+    const unassigned = statsEq.filter(e => e.status === "unassigned").length
 
     // Apply filtering server-side
     const filteredEq = equipment.filter(item => {
@@ -256,9 +265,9 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     const uniqueProjects = Array.from(new Set(equipment.map(e => e.projectId))).filter(Boolean) as string[]
     const uniqueZones = Array.from(new Set(equipment.map(e => e.activeZoneId))).filter(Boolean) as string[]
 
-    const serviceDueCount = equipment.filter(e => e.nextServiceDate && new Date(e.nextServiceDate).getTime() < Date.now() + 7 * 86400000).length
+    const serviceDueCount = statsEq.filter(e => e.nextServiceDate && new Date(e.nextServiceDate).getTime() < Date.now() + 7 * 86400000).length
 
-    const immediateRisks = equipment.filter(e => e.status === "down")
+    const immediateRisks = statsEq.filter(e => e.status === "down")
 
     const response: EquipmentResponse = {
       summary: { 
