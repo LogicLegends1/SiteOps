@@ -134,3 +134,9 @@
 @keyframes fadeIn {
   to { opacity: 0.5; }
 }
+
+@layer components {
+  .donut-chart-legend-item {
+    @apply flex w-full items-center justify-between rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-3 py-2 text-left transition-colors hover:border-zinc-700 hover:bg-zinc-800/50;
+  }
+}
