@@ -32,6 +32,12 @@ function initialsFromName(name: string): string {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
 }
 
+/**
+ * Presence labels for Team On Site (not live GPS / login status):
+ * - away:     worker.isavailable === false
+ * - online:   available AND team is linked to an activity (workforce_team.activityid)
+ * - offline:  available but no activity assignment on their team
+ */
 function presenceStatus(isAvailable: boolean, hasActivity: boolean): "online" | "away" | "offline" {
   if (!isAvailable) return "away"
   if (hasActivity) return "online"

@@ -37,7 +37,7 @@ interface ActivityDetailsPanelProps {
   subtasks: Subtask[]
   progressPercent: number
   onToggleSubtask?: (subtaskId: string) => void
-  onSubtaskUpdate?: (subtaskId: string, description: string) => void
+  onSubtaskUpdate?: (subtaskId: string, description: string, evidencePhotoUrl?: string) => void
   onUpdateSubmitted?: () => void
 }
 
@@ -154,8 +154,8 @@ export function ActivityDetailsPanel({
   }, [activity?.zoneID, activity?.lat, activity?.lng])
 
   const handleSubtaskUpdate = useCallback(
-    (subtaskId: string, description: string) => {
-      onSubtaskUpdate?.(subtaskId, description)
+    (subtaskId: string, description: string, evidencePhotoUrl?: string) => {
+      onSubtaskUpdate?.(subtaskId, description, evidencePhotoUrl)
     },
     [onSubtaskUpdate]
   )

@@ -1,119 +1,99 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Users, MapPin } from "lucide-react"
-
-export type OnSiteMember = {
-  id: string
-  name: string
-  initials: string
-  role: string
-  status: "online" | "away" | "offline"
-  location: string
-}
+import type { OnSiteMember } from "@/lib/site-team-types"
 
 interface TeamOnSitePanelProps {
-  projectId: number
+  members: OnSiteMember[]
+  loading?: boolean
+  error?: string | null
 }
 
 function statusBadgeClass(status: OnSiteMember["status"]) {
   switch (status) {
     case "online":
-      return "bg-primary/20 text-primary border-primary/30"
+      return "bg-primary/15 text-primary border-primary/30"
     case "away":
-      return "bg-warning/20 text-warning border-warning/30"
+      return "bg-warning/15 text-warning border-warning/30"
     default:
-      return "bg-muted text-muted-foreground"
+      return "bg-muted/50 text-muted-foreground"
   }
 }
 
-export function TeamOnSitePanel({ projectId }: TeamOnSitePanelProps) {
-  const [members, setMembers] = useState<OnSiteMember[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+function statusDot(status: OnSiteMember["status"]) {
+  switch (status) {
+    case "online":
+      return "bg-primary shadow-[0_0_6px_hsl(var(--primary))]"
+    case "away":
+      return "bg-warning"
+    default:
+      return "bg-muted-foreground"
+  }
+}
 
-  useEffect(() => {
-    let cancelled = false
-
-    async function load() {
-      setLoading(true)
-      setError(null)
-      try {
-        const res = await fetch(`/api/project/${projectId}/workforce/on-site`, {
-          cache: "no-store",
-        })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || "Failed to load team")
-        if (!cancelled) setMembers(data.members ?? [])
-      } catch (e) {
-        if (!cancelled) {
-          setMembers([])
-          setError(e instanceof Error ? e.message : "Failed to load team")
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [projectId])
-
+export function TeamOnSitePanel({ members, loading, error }: TeamOnSitePanelProps) {
   const online = members.filter((m) => m.status === "online").length
   const away = members.filter((m) => m.status === "away").length
 
   return (
-    <Card className="bg-card border-border flex-1 flex flex-col min-h-0 overflow-hidden">
-      <CardHeader className="pb-2 shrink-0">
-        <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <Users className="h-4 w-4 text-primary" />
+    <div className="flex flex-col h-full min-h-0 bg-card border border-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border shrink-0">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+          <Users className="h-3.5 w-3.5 text-primary" />
           Team On Site
-        </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          {loading ? "Loading..." : `${online} online, ${away} away`}
+        </h3>
+        <p className="text-[10px] text-muted-foreground mt-1">
+          {loading
+            ? "Loading roster..."
+            : `${online} on assignment · ${away} unavailable · from worker.isavailable + team.activityid`}
         </p>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto space-y-2 pt-0 min-h-0">
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1.5">
         {error && (
-          <p className="text-xs text-muted-foreground text-center py-4">{error}</p>
+          <p className="text-xs text-muted-foreground text-center py-6">{error}</p>
         )}
         {!loading && !error && members.length === 0 && (
-          <p className="text-xs text-muted-foreground text-center py-4">
-            No workers found for this project
+          <p className="text-xs text-muted-foreground text-center py-6">
+            No workers linked to teams for this project
           </p>
         )}
         {members.map((member) => (
           <div
             key={member.id}
-            className="rounded-lg border border-border bg-secondary/20 p-3 space-y-2"
+            className="rounded-lg border border-border/80 bg-secondary/15 px-2.5 py-2 hover:bg-secondary/25 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
                 {member.initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{member.name}</p>
-                <p className="text-xs text-muted-foreground">{member.role}</p>
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-xs font-bold text-foreground truncate">{member.name}</p>
+                  <span
+                    className={cn("w-1.5 h-1.5 rounded-full shrink-0", statusDot(member.status))}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground truncate">{member.role}</p>
               </div>
               <Badge
                 variant="outline"
-                className={cn("text-[10px] capitalize shrink-0", statusBadgeClass(member.status))}
+                className={cn(
+                  "text-[9px] h-5 px-1.5 capitalize shrink-0",
+                  statusBadgeClass(member.status)
+                )}
               >
                 {member.status}
               </Badge>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground pl-12">
-              <MapPin className="h-3 w-3 shrink-0 text-primary" />
+            <div className="flex items-center gap-1 mt-1 pl-[42px] text-[10px] text-muted-foreground">
+              <MapPin className="h-3 w-3 shrink-0 text-primary/80" />
               <span className="truncate">{member.location}</span>
             </div>
           </div>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

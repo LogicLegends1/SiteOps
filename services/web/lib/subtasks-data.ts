@@ -5,6 +5,7 @@ export interface SubtaskUpdate {
   description: string
   updatedAt: string
   updatedBy: string
+  images?: string[]
 }
 
 export interface Subtask {
@@ -122,8 +123,50 @@ export function getActivityDeadline(activity: Activity): string | null {
   return null
 }
 
-export function getTrackLabel(progress: number): "On Track" | "At Risk" | "Behind" {
-  if (progress >= 50) return "On Track"
-  if (progress >= 25) return "At Risk"
-  return "Behind"
+export type TrackLabel = "On Track" | "Behind"
+
+/** Parse YYYY-MM-DD (or ISO prefix) as local calendar date — avoids UTC shift bugs. */
+export function parseDateOnlyLocal(value: unknown): Date | null {
+  if (value == null || value === "") return null
+
+  let datePart: string | null = null
+  if (typeof value === "string") {
+    datePart = value.split("T")[0]
+  } else if (value instanceof Date) {
+    datePart = `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`
+  }
+
+  if (!datePart) return null
+  const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return null
+
+  const y = Number(match[1])
+  const m = Number(match[2])
+  const d = Number(match[3])
+  const parsed = new Date(y, m - 1, d, 0, 0, 0, 0)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function startOfToday(now: Date = new Date()): Date {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+}
+
+/** Incomplete subtask whose due date is on or before today (deadline missed). */
+export function isSubtaskOverdue(subtask: Subtask, now: Date = new Date()): boolean {
+  if (subtask.completed) return false
+
+  const due = parseDateOnlyLocal(subtask.dueDate)
+  if (!due) return false
+
+  const today = startOfToday(now)
+  return due.getTime() <= today.getTime()
+}
+
+/**
+ * Behind if any incomplete subtask is past its due date; otherwise On Track.
+ * Activities with no subtasks are treated as On Track.
+ */
+export function getTrackLabelFromSubtasks(subtasks: Subtask[]): TrackLabel {
+  if (!subtasks.length) return "On Track"
+  return subtasks.some(subtask => isSubtaskOverdue(subtask)) ? "Behind" : "On Track"
 }

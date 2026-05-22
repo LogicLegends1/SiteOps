@@ -3,11 +3,11 @@
 import { type Subtask } from "@/lib/subtasks-data"
 import { SubtaskProgressModal } from "@/components/site-progress/subtask-progress-modal"
 import { cn } from "@/lib/utils"
-import { CheckCircle2, Circle, Calendar, User } from "lucide-react"
+import { CheckCircle2, Circle, Calendar, User, Images } from "lucide-react"
 
 interface SubtaskTimelineProps {
   subtasks: Subtask[]
-  onAddUpdate: (subtaskId: string, description: string) => void
+  onAddUpdate: (subtaskId: string, description: string, evidencePhotoUrl?: string) => void
   onToggleComplete?: (subtaskId: string) => void
 }
 
@@ -88,7 +88,7 @@ export function SubtaskTimeline({ subtasks, onAddUpdate, onToggleComplete }: Sub
               </div>
               <SubtaskProgressModal
                 subtask={subtask}
-                onSubmit={(desc) => onAddUpdate(subtask.id, desc)}
+                onSubmit={(desc, evidence) => onAddUpdate(subtask.id, desc, evidence)}
               />
             </div>
 
@@ -100,7 +100,7 @@ export function SubtaskTimeline({ subtasks, onAddUpdate, onToggleComplete }: Sub
                     className="rounded-lg border border-border bg-secondary/20 p-3"
                   >
                     <p className="text-sm text-foreground">{update.description}</p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {formatDateTime(update.updatedAt)}
@@ -110,6 +110,31 @@ export function SubtaskTimeline({ subtasks, onAddUpdate, onToggleComplete }: Sub
                         {update.updatedBy}
                       </span>
                     </div>
+                    {update.images && update.images.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs font-medium text-foreground flex items-center gap-1">
+                          <Images className="h-3 w-3" />
+                          Proof
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 max-w-xs">
+                          {update.images.map((src, idx) => (
+                            <a
+                              key={idx}
+                              href={src}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block aspect-video rounded-md overflow-hidden border border-border"
+                            >
+                              <img
+                                src={src}
+                                alt={`Proof ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

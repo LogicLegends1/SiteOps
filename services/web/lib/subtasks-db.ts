@@ -1,4 +1,5 @@
 import type { Subtask, SubtaskUpdate } from "@/lib/subtasks-data"
+import { parseDateOnlyLocal } from "@/lib/subtasks-data"
 
 type DbRow = Record<string, unknown>
 
@@ -33,9 +34,17 @@ function readBoolean(row: DbRow, keys: string[], fallback = false): boolean {
 }
 
 function formatDateOnly(value: unknown): string {
-  if (!value) return new Date().toISOString().split("T")[0]
-  if (typeof value === "string") return value.split("T")[0]
-  return new Date(value as string | number).toISOString().split("T")[0]
+  const parsed = parseDateOnlyLocal(value)
+  if (parsed) {
+    const y = parsed.getFullYear()
+    const m = String(parsed.getMonth() + 1).padStart(2, "0")
+    const d = String(parsed.getDate()).padStart(2, "0")
+    return `${y}-${m}-${d}`
+  }
+  if (typeof value === "string" && value.trim()) {
+    return value.split("T")[0]
+  }
+  return ""
 }
 
 function formatTimestamp(value: unknown): string {
@@ -45,11 +54,13 @@ function formatTimestamp(value: unknown): string {
 }
 
 export function mapSubtaskLogRow(row: DbRow, engineerName = "Site Engineer"): SubtaskUpdate {
+  const evidence = readString(row, ["evidencephoto", "evidence_photo"], "")
   return {
     id: String(readNumber(row, ["logentryid", "log_entry_id"], 0)),
     description: readString(row, ["description"], ""),
     updatedAt: formatTimestamp(row.createdat ?? row.timestamp),
     updatedBy: engineerName,
+    images: evidence ? [evidence] : undefined,
   }
 }
 
