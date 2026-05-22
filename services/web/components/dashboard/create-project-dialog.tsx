@@ -48,6 +48,7 @@ export function CreateProjectDialog({ onCreated }: CreateProjectDialogProps) {
   const [latitude, setLatitude] = useState("")
   const [longitude, setLongitude] = useState("")
   const [projectDiagram, setProjectDiagram] = useState("")
+  const [deadlineDate, setDeadlineDate] = useState("")
   const { toast } = useToast()
 
   const mapItems = useMemo(() => {
@@ -89,6 +90,7 @@ export function CreateProjectDialog({ onCreated }: CreateProjectDialogProps) {
     setLatitude("")
     setLongitude("")
     setProjectDiagram("")
+    setDeadlineDate("")
   }
 
   const handleSubmit = async () => {
@@ -121,6 +123,7 @@ export function CreateProjectDialog({ onCreated }: CreateProjectDialogProps) {
           locationLatitude: parsedLatitude,
           locationLongitude: parsedLongitude,
           projectDiagram: projectDiagram.trim() ? projectDiagram.trim() : null,
+          deadlineDate: deadlineDate.trim() ? deadlineDate.trim() : null,
         }),
       })
 
@@ -153,7 +156,7 @@ export function CreateProjectDialog({ onCreated }: CreateProjectDialogProps) {
           Add Project
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-180">
+      <DialogContent className="sm:max-w-180 max-h-[80vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Create Project</DialogTitle>
           <DialogDescription>
@@ -161,7 +164,8 @@ export function CreateProjectDialog({ onCreated }: CreateProjectDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="max-h-[60vh] overflow-auto pr-2">
+          <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="project-name">Project Name</Label>
             <Input
@@ -252,6 +256,17 @@ export function CreateProjectDialog({ onCreated }: CreateProjectDialogProps) {
               onChange={(e) => setProjectDiagram(e.target.value)}
               className="min-h-24"
             />
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="project-deadline">Deadline</Label>
+            <Input
+              id="project-deadline"
+              type="date"
+              value={deadlineDate}
+              onChange={(e) => setDeadlineDate(e.target.value)}
+            />
+          </div>
           </div>
         </div>
 
