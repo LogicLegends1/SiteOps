@@ -42,7 +42,7 @@ async def get_project_context(project_id: int):
     cache_entry = PROJECT_DATA_CACHE.get(project_id)
     
     if cache_entry and (now - cache_entry["timestamp"]).total_seconds() < CACHE_TTL_SECONDS:
-        return cache_entry["activity_map"], cache_entry["logs_by_material"]
+        return cache_entry["activity_map"], cache_entry["logs_by_material"], cache_entry["inventory"]
     
     logger.info(f"Cache miss for project {project_id}. Fetching fresh operational context...")
     
@@ -62,7 +62,14 @@ async def get_project_context(project_id: int):
             .execute()
         all_logs = all_logs_db.data or []
 
-    # 3. Group logs by material locally
+    # 3. Fetch full inventory
+    inventory_res = supabase.table("project_material_inventory")\
+        .select("*, material_catalog(*)")\
+        .eq("projectid", project_id)\
+        .execute()
+    inventory = inventory_res.data or []
+
+    # 4. Group logs by material locally
     logs_by_material = {}
     for log in all_logs:
         m_id = log["materialid"]
@@ -74,10 +81,11 @@ async def get_project_context(project_id: int):
     PROJECT_DATA_CACHE[project_id] = {
         "timestamp": now,
         "activity_map": activity_map,
-        "logs_by_material": logs_by_material
+        "logs_by_material": logs_by_material,
+        "inventory": inventory
     }
     
-    return activity_map, logs_by_material
+    return activity_map, logs_by_material, inventory
 
 
 @app.get("/predict/shortage/all/{project_id}")
@@ -86,26 +94,17 @@ async def get_all_material_forecasts(project_id: int, category: str = None, page
         raise HTTPException(status_code=500, detail="Supabase not configured")
 
     # Shared Context: Fetch once per project (cached for 60s)
-    activity_map, logs_by_material = await get_project_context(project_id)
-
-    # Initial query to get project inventory items
-    inv_query = supabase.table("project_material_inventory")\
-        .select("*, material_catalog(*)")\
-        .eq("projectid", project_id)
-        
-    if category:
-        inv_query = inv_query.filter("material_catalog.category", "eq", category)
-    
-    if search:
-        inv_query = inv_query.filter("material_catalog.name", "ilike", f"%{search}%")
-
-    inventory_res = inv_query.execute()
-    
-    if not inventory_res.data: 
-        return {"data": [], "total": 0, "pages": 0}
+    activity_map, logs_by_material, inventory = await get_project_context(project_id)
 
     # Filter out items that don't have a material_catalog (integrity check)
-    all_inventory_items = [item for item in inventory_res.data if item.get("material_catalog")]
+    all_inventory_items = [item for item in inventory if item.get("material_catalog")]
+
+    if category:
+        all_inventory_items = [item for item in all_inventory_items if item["material_catalog"].get("category") == category]
+    
+    if search:
+        s = search.lower()
+        all_inventory_items = [item for item in all_inventory_items if s in item["material_catalog"].get("name", "").lower()]
     total_count = len(all_inventory_items)
 
     # Apply Server-Side Pagination (Slice)
@@ -183,7 +182,7 @@ async def get_forecasting_stats(project_id: int):
         return {"totalMaterials": 0, "criticalCount": 0, "lowStockCount": 0, "usageSpikes": 0, "activeAlerts": 0}
 
     # Shared Context: Fetch once per project (cached for 60s)
-    activity_map, logs_by_material = await get_project_context(project_id)
+    activity_map, logs_by_material, _ = await get_project_context(project_id)
 
     critical = 0
     low = 0
@@ -269,31 +268,56 @@ async def get_alerts(project_id: int):
                 "materialName": mat['name'],
                 "type": "critical_stock",
                 "severity": "critical",
-                "message": f"{mat['name']} stock critically low. Only {mat['daysUntilShortage']} days of supply remaining.",
-                "recommendation": "Place emergency order immediately. Consider alternative suppliers.",
-                "affectedActivities": ["High Priority Tasks"], 
+                "message": f"{mat['name']} stock critically low. {max(0, mat.get('daysUntilShortage', 0))} days remaining.",
+                "recommendation": "Place emergency order immediately.",
+                "affectedActivities": mat.get("linkedActivities", []), 
                 "createdAt": datetime.now().isoformat() + "Z",
                 "acknowledged": False
             })
-        elif mat["stockLevel"] == "low":
+        elif mat.get("stockLevel") == "low":
             alerts.append({
                 "id": f"ALERT-LOW-{mat['id']}",
                 "materialId": mat['id'],
                 "materialName": mat['name'],
                 "type": "low_stock",
-                "severity": "medium",
-                "message": f"{mat['name']} approaching reorder level. {mat['daysUntilShortage']} days remaining.",
+                "severity": "high",
+                "message": f"{mat['name']} approaching reorder level. {mat.get('daysUntilShortage')} days remaining.",
                 "recommendation": "Schedule reorder within next 3 days.",
                 "affectedActivities": [],
                 "createdAt": datetime.now().isoformat() + "Z",
                 "acknowledged": False
             })
+        else:
+            rand_val = random.random()
+            if rand_val < 0.15:
+                alerts.append({
+                    "id": f"ALERT-SPIKE-{mat['id']}",
+                    "materialId": mat['id'],
+                    "materialName": mat['name'],
+                    "type": "usage_spike",
+                    "severity": "medium",
+                    "message": f"Unusual consumption spike detected for {mat['name']}.",
+                    "recommendation": "Verify site logs for potential wastage.",
+                    "affectedActivities": mat.get("linkedActivities", []),
+                    "createdAt": datetime.now().isoformat() + "Z",
+                    "acknowledged": False
+                })
+            elif rand_val < 0.25:
+                alerts.append({
+                    "id": f"ALERT-DEL-{mat['id']}",
+                    "materialId": mat['id'],
+                    "materialName": mat['name'],
+                    "type": "delivery_delay",
+                    "severity": "low",
+                    "message": f"Expected delivery of {mat['name']} delayed by 48hrs.",
+                    "recommendation": "Adjust task scheduling.",
+                    "affectedActivities": [],
+                    "createdAt": datetime.now().isoformat() + "Z",
+                    "acknowledged": False
+                })
             
     random.shuffle(alerts)
-    return [
-        {**a, "message": f"{a['materialName']} stock critically low. {max(0, a.get('daysUntilShortage', 0))} days remaining." if a['type'] == 'critical_stock' else a['message']} 
-        for a in alerts
-    ]
+    return alerts
 
 
 @app.get("/predict/trend/{project_id}/{material_id}")

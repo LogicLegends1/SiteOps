@@ -40,7 +40,20 @@ export default function UnifiedEquipmentDashboard() {
     async function loadData() {
       try {
         setLoading(true)
-        const res = await fetch(`/api/project/${projectId}/equipment?filter=company&t=${Date.now()}`, { cache: 'no-store' })
+        
+        let url = `/api/project/${projectId}/equipment?filter=company`
+        if (activeTab === "catalog") {
+          url += `&page=${currentPage}&limit=10`
+            + `&search=${encodeURIComponent(searchQuery)}`
+            + `&class=${encodeURIComponent(selectedClass)}`
+            + `&status=${encodeURIComponent(selectedStatus)}`
+            + `&project=${encodeURIComponent(selectedProject)}`
+            + `&zone=${encodeURIComponent(selectedZone)}`
+            + `&maint=${encodeURIComponent(selectedMaint)}`
+        }
+        url += `&t=${Date.now()}`
+
+        const res = await fetch(url, { cache: 'no-store' })
         if (!res.ok) throw new Error("Failed to fetch equipment data")
         const json = await res.json()
         setData(json)
@@ -59,7 +72,7 @@ export default function UnifiedEquipmentDashboard() {
     }
 
     loadData()
-  }, [projectId])
+  }, [projectId, activeTab, currentPage, searchQuery, selectedClass, selectedStatus, selectedProject, selectedZone, selectedMaint])
 
   useEffect(() => {
     const eqList = data?.equipment
@@ -73,7 +86,7 @@ export default function UnifiedEquipmentDashboard() {
     }
   }, [data, selectedMapAssetId])
 
-  if (loading || !data) {
+  if (!data) {
     return (
       <div className="flex flex-col items-center justify-center h-[80vh] gap-4">
         <Activity className="h-10 w-10 animate-pulse text-primary" />
@@ -83,75 +96,29 @@ export default function UnifiedEquipmentDashboard() {
   }
 
   const eq = data.equipment
-  const uniqueClasses = Array.from(new Set(eq.map(e => e.className))).filter(Boolean) as string[]
-  const uniqueProjects = Array.from(new Set(eq.map(e => e.projectId))).filter(Boolean) as (string|number)[]
-  const uniqueZones = Array.from(new Set(eq.map(e => e.activeZoneId))).filter(Boolean) as (string|number)[]
+  const uniqueClasses = data.uniqueClasses || []
+  const uniqueProjects = data.uniqueProjects || []
+  const uniqueZones = data.uniqueZones || []
 
-  const filteredEq = eq.filter(item => {
-    // 1. Search Query
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const matchName = item.name.toLowerCase().includes(q);
-      const matchId = item.id.toLowerCase().includes(q);
-      const matchSerial = (item.serialNumber || "").toLowerCase().includes(q);
-      const matchClass = (item.className || "").toLowerCase().includes(q);
-      const matchModel = ((item.technicalSpecs as any)?.model || "").toLowerCase().includes(q);
-      if (!matchName && !matchId && !matchSerial && !matchClass && !matchModel) return false;
-    }
-    // 2. Class Filter
-    if (selectedClass !== "all" && item.className !== selectedClass) return false;
-    // 3. Status Filter
-    if (selectedStatus !== "all" && (item.status || "").toLowerCase().trim() !== selectedStatus) return false;
-    // 4. Project Filter
-    if (selectedProject !== "all" && String(item.projectId) !== selectedProject) return false;
-    // 5. Zone Filter
-    if (selectedZone !== "all" && String(item.activeZoneId) !== selectedZone) return false;
-    // 6. Maintenance Filter
-    if (selectedMaint !== "all") {
-      const isDue = item.nextServiceDate && new Date(item.nextServiceDate).getTime() < Date.now() + 7 * 86400000;
-      const isOverdue = item.nextServiceDate && new Date(item.nextServiceDate).getTime() < Date.now();
-      if (selectedMaint === "service_due" && !isDue) return false;
-      if (selectedMaint === "overdue" && !isOverdue) return false;
-      if (selectedMaint === "up_to_date" && isDue) return false;
-    }
-    return true;
-  });
+  // Server-side filtered and paginated equipment list
+  const filteredEq = eq
 
-  const totalAssets = eq.length
-  const activeCount = eq.filter(e => e.status === 'active').length
-  const idleCount = eq.filter(e => e.status === 'idle').length
-  const maintCount = eq.filter(e => e.status === 'maintenance').length
-  const downCount = eq.filter(e => e.status === 'down' || e.status === 'under_repair' || e.status === 'broken').length
-  const unassignedCount = eq.filter(e => e.status === 'unassigned').length
+  const totalAssets = data.summary.total
+  const activeCount = data.summary.active
+  const idleCount = data.summary.idle
+  const maintCount = data.summary.maintenanceDueCount
+  const downCount = data.summary.underRepair
+  const unassignedCount = data.summary.unassigned ?? 0
 
   const avgUtil = 72 // Mock average for display
-  const serviceDueCount = eq.filter(e => e.nextServiceDate && new Date(e.nextServiceDate).getTime() < Date.now() + 7 * 86400000).length
-  const filteredCount = filteredEq.length
+  const serviceDueCount = data.summary.serviceDueCount ?? 0
+  const filteredCount = data.filteredCount ?? totalAssets
 
   return (
     <div className="flex flex-col gap-6 min-h-screen bg-[#0A0D14] text-zinc-300 pb-12 font-sans selection:bg-blue-500/30">
       
-      {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-6 pt-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Equipment & Assets</h1>
-          <p className="text-sm text-zinc-500 mt-1">Fleet visibility, utilization, and reliability</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-zinc-300 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded-md transition-colors">
-            <Download className="h-4 w-4" /> Export
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-black bg-cyan-400 hover:bg-cyan-300 rounded-md transition-colors shadow-[0_0_15px_rgba(34,211,238,0.3)]">
-            <Plus className="h-4 w-4" /> Add Asset
-          </button>
-          <button className="p-2 text-zinc-400 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded-md transition-colors">
-            <Activity className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
       {/* KPI CARDS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4 px-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4 px-6 pt-6">
         {/* Total Assets */}
         <div className="flex flex-col gap-3 p-4 bg-[#11141D] border border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
           <div className="flex justify-between items-start">
@@ -419,32 +386,32 @@ export default function UnifiedEquipmentDashboard() {
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[11px] text-zinc-500 mr-1">Filters:</span>
           {selectedProject !== "all" && (
-            <Badge variant="outline" className="text-[10px] font-normal bg-zinc-800/50 border-zinc-700 text-zinc-300 py-0.5 gap-1 hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => setSelectedProject("all")}>
+            <Badge variant="outline" className="text-[10px] font-normal bg-zinc-800/50 border-zinc-700 text-zinc-300 py-0.5 gap-1 hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => { setSelectedProject("all"); setCurrentPage(1); }}>
               Project: {selectedProject} <span className="opacity-50 hover:opacity-100 px-0.5">✕</span>
             </Badge>
           )}
           {selectedStatus !== "all" && (
-            <Badge variant="outline" className="text-[10px] font-normal bg-zinc-800/50 border-zinc-700 text-zinc-300 py-0.5 gap-1 hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => setSelectedStatus("all")}>
+            <Badge variant="outline" className="text-[10px] font-normal bg-zinc-800/50 border-zinc-700 text-zinc-300 py-0.5 gap-1 hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => { setSelectedStatus("all"); setCurrentPage(1); }}>
               Status: {selectedStatus} <span className="opacity-50 hover:opacity-100 px-0.5">✕</span>
             </Badge>
           )}
           {selectedClass !== "all" && (
-            <Badge variant="outline" className="text-[10px] font-normal bg-zinc-800/50 border-zinc-700 text-zinc-300 py-0.5 gap-1 hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => setSelectedClass("all")}>
+            <Badge variant="outline" className="text-[10px] font-normal bg-zinc-800/50 border-zinc-700 text-zinc-300 py-0.5 gap-1 hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => { setSelectedClass("all"); setCurrentPage(1); }}>
               Class: {selectedClass} <span className="opacity-50 hover:opacity-100 px-0.5">✕</span>
             </Badge>
           )}
           {selectedZone !== "all" && (
-            <Badge variant="outline" className="text-[10px] font-normal bg-zinc-800/50 border-zinc-700 text-zinc-300 py-0.5 gap-1 hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => setSelectedZone("all")}>
+            <Badge variant="outline" className="text-[10px] font-normal bg-zinc-800/50 border-zinc-700 text-zinc-300 py-0.5 gap-1 hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => { setSelectedZone("all"); setCurrentPage(1); }}>
               Zone: {selectedZone} <span className="opacity-50 hover:opacity-100 px-0.5">✕</span>
             </Badge>
           )}
           {selectedMaint !== "all" && (
-            <Badge variant="outline" className="text-[10px] font-normal bg-zinc-800/50 border-zinc-700 text-zinc-300 py-0.5 gap-1 hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => setSelectedMaint("all")}>
+            <Badge variant="outline" className="text-[10px] font-normal bg-zinc-800/50 border-zinc-700 text-zinc-300 py-0.5 gap-1 hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => { setSelectedMaint("all"); setCurrentPage(1); }}>
               Maintenance: {selectedMaint} <span className="opacity-50 hover:opacity-100 px-0.5">✕</span>
             </Badge>
           )}
           {searchQuery && (
-            <Badge variant="outline" className="text-[10px] font-normal bg-zinc-800/50 border-zinc-700 text-zinc-300 py-0.5 gap-1 hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => setSearchQuery("")}>
+            <Badge variant="outline" className="text-[10px] font-normal bg-zinc-800/50 border-zinc-700 text-zinc-300 py-0.5 gap-1 hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => { setSearchQuery(""); setCurrentPage(1); }}>
               Search: {searchQuery} <span className="opacity-50 hover:opacity-100 px-0.5">✕</span>
             </Badge>
           )}
@@ -457,6 +424,7 @@ export default function UnifiedEquipmentDashboard() {
               setSelectedZone("all");
               setSelectedMaint("all");
               setSearchQuery("");
+              setCurrentPage(1);
             }} className="text-[11px] text-cyan-500 hover:text-cyan-400 font-medium ml-2 transition-colors">Clear all</button>
           )}
         </div>
@@ -466,7 +434,15 @@ export default function UnifiedEquipmentDashboard() {
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 px-6">
         
         {/* ASSET CATALOG (Left 3 Columns) */}
-        <div className="xl:col-span-3 bg-[#11141D] border border-zinc-800/60 rounded-xl overflow-hidden flex flex-col h-full">
+        <div className="xl:col-span-3 bg-[#11141D] border border-zinc-800/60 rounded-xl overflow-hidden flex flex-col h-full relative">
+          {loading && (
+            <div className="absolute inset-0 bg-[#0A0D14]/40 backdrop-blur-[1.5px] z-20 flex items-center justify-center">
+              <div className="flex items-center gap-2 px-4 py-3 bg-[#11141D]/95 border border-zinc-800 rounded-lg shadow-2xl">
+                <Activity className="h-4 w-4 animate-spin text-cyan-400" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">Loading catalog...</span>
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between p-4 border-b border-zinc-800/60 shrink-0">
             <h2 className="text-sm font-semibold text-white">Asset Catalog <span className="text-xs font-normal text-zinc-500 ml-2">{filteredCount} assets</span></h2>
           </div>
@@ -487,7 +463,7 @@ export default function UnifiedEquipmentDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/60">
-                {filteredEq.slice((currentPage - 1) * 10, currentPage * 10).map((item) => {
+                {filteredEq.map((item) => {
                   const cleanedName = item.name.replace(/#P\d+-/, "#");
                   const s = (item.status || "").toLowerCase().trim();
                   
@@ -575,7 +551,7 @@ export default function UnifiedEquipmentDashboard() {
               </button>
             </div>
             <div className="flex items-center gap-4 text-[11px] text-zinc-400">
-              <span>{(currentPage - 1) * 10 + 1}-{Math.min(currentPage * 10, filteredCount)} of {filteredCount}</span>
+              <span>{filteredCount === 0 ? 0 : (currentPage - 1) * 10 + 1}-{Math.min(currentPage * 10, filteredCount)} of {filteredCount}</span>
               <div className="flex items-center gap-1">
                 <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="p-1 text-zinc-600 hover:text-white disabled:opacity-50">|&lt;</button>
                 <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1 text-zinc-600 hover:text-white disabled:opacity-50">&lt;</button>
@@ -617,7 +593,7 @@ export default function UnifiedEquipmentDashboard() {
               </h3>
             </div>
             <div className="flex flex-col divide-y divide-zinc-800/60">
-              {eq.filter(e => e.status === 'down').slice(0,3).map(item => (
+              {(data.immediateRisks || []).slice(0, 3).map(item => (
                 <div key={item.id} className="p-4 hover:bg-zinc-800/20 transition-colors flex items-start gap-3">
                   <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
                   <div className="flex flex-col gap-0.5 flex-1">
@@ -694,7 +670,15 @@ export default function UnifiedEquipmentDashboard() {
 
       {/* GEOSPATIAL MAP TAB */}
       {activeTab === "map" && (
-        <div className="px-6 flex flex-col gap-6">
+        <div className="px-6 flex flex-col gap-6 relative">
+          {loading && (
+            <div className="absolute inset-0 bg-[#0A0D14]/40 backdrop-blur-[1.5px] z-20 flex items-center justify-center">
+              <div className="flex items-center gap-2 px-4 py-3 bg-[#11141D]/95 border border-zinc-800 rounded-lg shadow-2xl">
+                <Activity className="h-4 w-4 animate-spin text-cyan-400" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">Loading geospatial map...</span>
+              </div>
+            </div>
+          )}
           {/* Dashboard filters row */}
           <div className="bg-[#11141D] border border-zinc-800/60 rounded-xl p-4 flex flex-wrap gap-4 items-center justify-between">
             <div className="flex flex-wrap items-center gap-3">
@@ -985,7 +969,15 @@ export default function UnifiedEquipmentDashboard() {
 
       {/* SERVICE SCHEDULE TAB */}
       {activeTab === "service" && (
-        <div className="px-6 flex flex-col gap-6">
+        <div className="px-6 flex flex-col gap-6 relative">
+          {loading && (
+            <div className="absolute inset-0 bg-[#0A0D14]/40 backdrop-blur-[1.5px] z-20 flex items-center justify-center">
+              <div className="flex items-center gap-2 px-4 py-3 bg-[#11141D]/95 border border-zinc-800 rounded-lg shadow-2xl">
+                <Activity className="h-4 w-4 animate-spin text-cyan-400" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">Loading schedule...</span>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
             {/* Quick Metrics */}
             <div className="xl:col-span-4 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1031,7 +1023,7 @@ export default function UnifiedEquipmentDashboard() {
                   </thead>
                   <tbody className="divide-y divide-zinc-800/60">
                     {filteredEq.filter(e => e.nextServiceDate).map(item => {
-                      const nextDate = new Date(item.nextServiceDate);
+                      const nextDate = new Date(item.nextServiceDate!);
                       const isOverdue = nextDate.getTime() < Date.now();
                       const daysLeft = Math.ceil((nextDate.getTime() - Date.now()) / 86400000);
                       
