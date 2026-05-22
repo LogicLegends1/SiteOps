@@ -21,6 +21,8 @@ import {
   Search,
   Calendar,
   Activity,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react"
 
 interface StockOverviewProps {
