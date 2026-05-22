@@ -60,7 +60,10 @@ export function ActivitiesOverviewPanel({
         ) : (
           activities.map((activity) => {
             const subtasks = subtasksByActivity[activity.zoneID] ?? []
-            const progress = calculateProgressFromSubtasks(subtasks)
+            const progress =
+              subtasks.length > 0
+                ? calculateProgressFromSubtasks(subtasks)
+                : activity.progress ?? 0
             const { completed, total } = getSubtaskCounts(subtasks)
             const track = getTrackLabel(progress)
             const isSelected = selectedActivityId === activity.zoneID
@@ -90,7 +93,7 @@ export function ActivitiesOverviewPanel({
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
                   <span>
-                    {completed}/{total} subtasks
+                    {total > 0 ? `${completed}/${total} subtasks` : "No subtasks yet"}
                   </span>
                   <span className="font-semibold text-primary">{progress}%</span>
                 </div>

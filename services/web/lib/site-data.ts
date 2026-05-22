@@ -58,6 +58,7 @@ export interface Activity {
   assignedSupervisor?: string | null
   startDate?: string
   expectedCompletion?: string
+  deadline?: string | null
   progressUpdates?: ProgressUpdate[]
 }
 

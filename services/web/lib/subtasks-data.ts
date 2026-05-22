@@ -116,11 +116,10 @@ export function getSubtaskCounts(subtasks: Subtask[]) {
   return { completed, total: subtasks.length }
 }
 
-export function getActivityDeadline(activity: Activity): string {
-  if (activity.expectedCompletion) return activity.expectedCompletion
-  const d = new Date()
-  d.setDate(d.getDate() + 30)
-  return d.toISOString().split("T")[0]
+export function getActivityDeadline(activity: Activity): string | null {
+  if (activity.deadline) return activity.deadline.split("T")[0]
+  if (activity.expectedCompletion) return activity.expectedCompletion.split("T")[0]
+  return null
 }
 
 export function getTrackLabel(progress: number): "On Track" | "At Risk" | "Behind" {

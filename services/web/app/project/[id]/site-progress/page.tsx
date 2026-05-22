@@ -8,11 +8,7 @@ import { ActivitiesOverviewPanel } from "@/components/site-progress/activities-o
 import { TeamOnSitePanel } from "@/components/site-progress/team-on-site-panel"
 import { AddActivityModal } from "@/components/site-progress/add-activity-modal"
 import { type Activity, type Project } from "@/lib/site-data"
-import {
-  type Subtask,
-  buildSubtasksForActivity,
-  calculateProgressFromSubtasks,
-} from "@/lib/subtasks-data"
+import { type Subtask, calculateProgressFromSubtasks } from "@/lib/subtasks-data"
 
 const LeafletMap = dynamic(
   () => import("@/components/site-progress/leaflet-map").then((mod) => ({ default: mod.LeafletMap })),
@@ -26,6 +22,17 @@ const LeafletMap = dynamic(
   }
 )
 
+function normalizeSubtasksByActivity(
+  raw: Record<string, Subtask[]> | Record<number, Subtask[]> | undefined
+): Record<number, Subtask[]> {
+  if (!raw) return {}
+  const result: Record<number, Subtask[]> = {}
+  for (const [key, value] of Object.entries(raw)) {
+    result[Number(key)] = value
+  }
+  return result
+}
+
 export default function ActivityProgressPage() {
   const params = useParams()
   const projectId = Number(params.id) || 1
@@ -35,6 +42,18 @@ export default function ActivityProgressPage() {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [subtasksByActivity, setSubtasksByActivity] = useState<Record<number, Subtask[]>>({})
   const [loading, setLoading] = useState(true)
+
+  async function fetchSubtasks() {
+    try {
+      const res = await fetch(`/api/project/${projectId}/subtasks`, { cache: "no-store" })
+      const data = await res.json()
+      if (res.ok) {
+        setSubtasksByActivity(normalizeSubtasksByActivity(data.subtasksByActivity))
+      }
+    } catch (error) {
+      console.error("Error fetching subtasks:", error)
+    }
+  }
 
   async function fetchProjectAndActivities() {
     try {
@@ -56,15 +75,7 @@ export default function ActivityProgressPage() {
       const zones: Activity[] = activitiesData.zones || []
       setActivities(zones)
 
-      setSubtasksByActivity((prev) => {
-        const next = { ...prev }
-        for (const activity of zones) {
-          if (!next[activity.zoneID]) {
-            next[activity.zoneID] = buildSubtasksForActivity(activity)
-          }
-        }
-        return next
-      })
+      await fetchSubtasks()
 
       if (selectedActivity) {
         const updated = zones.find((a) => a.zoneID === selectedActivity.zoneID)
@@ -81,43 +92,74 @@ export default function ActivityProgressPage() {
     fetchProjectAndActivities()
   }, [projectId])
 
-  const handleToggleSubtask = useCallback((activityId: number, subtaskId: string) => {
-    setSubtasksByActivity((prev) => {
-      const list = prev[activityId]
-      if (!list) return prev
-      return {
+  const handleToggleSubtask = useCallback(
+    async (activityId: number, subtaskId: string) => {
+      const list = subtasksByActivity[activityId]
+      const subtask = list?.find((s) => s.id === subtaskId)
+      if (!subtask) return
+
+      const nextCompleted = !subtask.completed
+
+      setSubtasksByActivity((prev) => ({
         ...prev,
-        [activityId]: list.map((s) =>
-          s.id === subtaskId ? { ...s, completed: !s.completed } : s
+        [activityId]: (prev[activityId] ?? []).map((s) =>
+          s.id === subtaskId ? { ...s, completed: nextCompleted } : s
         ),
+      }))
+
+      try {
+        const res = await fetch(`/api/subtask/${subtaskId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ completed: nextCompleted }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || "Failed to update subtask")
+
+        if (data.activity?.progress != null) {
+          setActivities((prev) =>
+            prev.map((a) =>
+              a.zoneID === activityId ? { ...a, progress: data.activity.progress } : a
+            )
+          )
+          setSelectedActivity((prev) =>
+            prev?.zoneID === activityId ? { ...prev, progress: data.activity.progress } : prev
+          )
+        }
+
+        await fetchSubtasks()
+      } catch (error) {
+        console.error("Toggle subtask error:", error)
+        await fetchSubtasks()
       }
-    })
-  }, [])
+    },
+    [subtasksByActivity]
+  )
 
   const handleSubtaskUpdate = useCallback(
-    (activityId: number, subtaskId: string, description: string) => {
-      setSubtasksByActivity((prev) => {
-        const list = prev[activityId]
-        if (!list) return prev
-        return {
+    async (activityId: number, subtaskId: string, description: string) => {
+      try {
+        const res = await fetch(`/api/subtask/${subtaskId}/logs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ description }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || "Failed to save update")
+
+        setSubtasksByActivity((prev) => ({
           ...prev,
-          [activityId]: list.map((s) => {
+          [activityId]: (prev[activityId] ?? []).map((s) => {
             if (s.id !== subtaskId) return s
             return {
               ...s,
-              updates: [
-                {
-                  id: `${subtaskId}-u-${Date.now()}`,
-                  description,
-                  updatedAt: new Date().toISOString(),
-                  updatedBy: "Site Engineer",
-                },
-                ...s.updates,
-              ],
+              updates: [data.log, ...s.updates],
             }
           }),
-        }
-      })
+        }))
+      } catch (error) {
+        console.error("Subtask update error:", error)
+      }
     },
     []
   )
@@ -139,10 +181,7 @@ export default function ActivityProgressPage() {
           projectId={projectId}
           onActivityAdded={(newActivity) => {
             setActivities((prev) => [...prev, newActivity])
-            setSubtasksByActivity((prev) => ({
-              ...prev,
-              [newActivity.zoneID]: buildSubtasksForActivity(newActivity),
-            }))
+            setSubtasksByActivity((prev) => ({ ...prev, [newActivity.zoneID]: [] }))
             setSelectedActivity(newActivity)
           }}
         />
@@ -167,7 +206,7 @@ export default function ActivityProgressPage() {
             selectedActivityId={selectedActivity?.zoneID}
             onActivitySelect={setSelectedActivity}
           />
-          <TeamOnSitePanel />
+          <TeamOnSitePanel projectId={projectId} />
         </div>
       </div>
 

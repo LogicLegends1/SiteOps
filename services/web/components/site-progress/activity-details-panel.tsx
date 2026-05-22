@@ -261,9 +261,17 @@ export function ActivityDetailsPanel({
               <h4 className="text-sm font-semibold text-foreground">Subtasks</h4>
             </div>
             <SubtasksList subtasks={subtasks} onToggleComplete={onToggleSubtask} />
-            <p className="text-xs text-muted-foreground">
-              Click a subtask to mark complete. Progress is calculated from completed subtasks.
-            </p>
+            {subtasks.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No subtasks in the database for this activity yet. Add rows to the{" "}
+                <code className="text-foreground">subtask</code> table linked by{" "}
+                <code className="text-foreground">activityid</code>.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Click a subtask to mark complete. Progress is calculated from completed subtasks.
+              </p>
+            )}
           </TabsContent>
 
           <TabsContent value="timeline" className="mt-0">
