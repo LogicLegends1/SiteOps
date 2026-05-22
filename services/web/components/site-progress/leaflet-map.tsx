@@ -3,8 +3,8 @@
 import { useEffect, useRef } from "react"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { type Activity, type Project } from "@/lib/site-data"
+import { cn } from "@/lib/utils"
 
 interface LeafletMapProps {
   activities: Activity[]
@@ -12,9 +12,9 @@ interface LeafletMapProps {
   loading?: boolean
   onActivitySelect: (activity: Activity) => void
   selectedActivityId?: number
+  className?: string
 }
 
-// Create a function to get marker icons that's called at runtime
 const getMarkerIcons = () => {
   const markerIcon = L.icon({
     iconUrl:
@@ -51,18 +51,18 @@ export function LeafletMap({
   loading,
   onActivitySelect,
   selectedActivityId,
+  className,
 }: LeafletMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Map<number, L.Marker>>(new Map())
 
-  // Initialize map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) {
       return
     }
 
-    const defaultCenter: [number, number] = [6.9271, 80.7789] // Sri Lanka center
+    const defaultCenter: [number, number] = [6.9271, 80.7789]
     const mapCenter: [number, number] =
       project &&
       typeof project.locationLatitude === "number" &&
@@ -80,15 +80,13 @@ export function LeafletMap({
     mapRef.current = map
 
     return () => {
-      // Don't destroy the map on unmount in strict mode
+      // Leaflet map is kept across strict-mode remounts; invalidateSize handles layout changes
     }
   }, [project])
 
-  // Update markers when activities change
   useEffect(() => {
     if (!mapRef.current) return
 
-    // Clear existing markers
     markersRef.current.forEach((marker) => {
       mapRef.current?.removeLayer(marker)
     })
@@ -96,9 +94,7 @@ export function LeafletMap({
 
     const { markerIcon, selectedMarkerIcon } = getMarkerIcons()
 
-    // Add new markers
     activities.forEach((activity) => {
-      // Skip activities without valid coordinates
       if (typeof activity.lat !== "number" || typeof activity.lng !== "number") {
         return
       }
@@ -110,8 +106,7 @@ export function LeafletMap({
       })
         .bindPopup(
           `<div class="font-semibold">${activity.name}</div>
-           <div class="text-sm text-gray-600">${activity.activity || "No activity"}</div>
-           <div class="text-xs mt-1">Progress: ${activity.progress}%</div>`
+           <div class="text-sm text-gray-600">${activity.activity || "No activity"}</div>`
         )
         .bindTooltip(activity.markerLabel || activity.name, {
           permanent: true,
@@ -128,49 +123,39 @@ export function LeafletMap({
     })
   }, [activities, selectedActivityId, onActivitySelect])
 
-  // Auto-fit map to show all markers
   useEffect(() => {
     if (!mapRef.current || markersRef.current.size === 0) return
 
     const markers = Array.from(markersRef.current.values())
-    if (markers.length === 0) return
-
     const group = new L.FeatureGroup(markers)
-    mapRef.current.fitBounds(group.getBounds(), { padding: [50, 50] })
+    mapRef.current.fitBounds(group.getBounds(), { padding: [40, 40] })
   }, [activities])
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      mapRef.current?.invalidateSize()
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [className])
+
   return (
-    <Card className="bg-card border-border h-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-foreground">Site Map</CardTitle>
-            <CardDescription>Click markers to view activity details</CardDescription>
-          </div>
+    <div
+      className={cn(
+        "relative w-full h-full min-h-[420px] bg-secondary/30 border border-border overflow-hidden rounded-lg",
+        className
+      )}
+    >
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground bg-background/40 z-10 pointer-events-none">
+          Loading map...
         </div>
-      </CardHeader>
+      )}
 
-      <CardContent>
-        <div className="relative w-full bg-secondary/30 border border-border overflow-hidden rounded-lg pointer-events-auto">
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground bg-background/40 z-10 pointer-events-none">
-              Loading activities...
-            </div>
-          )}
+      <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
 
-          <div
-            ref={mapContainerRef}
-            className="h-96 w-full"
-            style={{
-              border: "1px solid var(--border)",
-            }}
-          />
-
-          <div className="absolute bottom-2 left-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded z-[400] pointer-events-none">
-            © OpenStreetMap
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      <div className="absolute bottom-2 left-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded z-[400] pointer-events-none">
+        © OpenStreetMap
+      </div>
+    </div>
   )
 }

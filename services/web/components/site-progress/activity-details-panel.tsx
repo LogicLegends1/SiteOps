@@ -3,36 +3,41 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { type Activity, type ProgressUpdate } from "@/lib/site-data"
-import { ActivityStatusBadge } from "@/components/site-progress/activity-status-badge"
-import { ActivityTimeline } from "@/components/site-progress/activity-timeline"
-import { ProgressUpdateModal } from "@/components/site-progress/progress-update-modal"
+import { type Activity } from "@/lib/site-data"
+import {
+  type Subtask,
+  getSubtaskCounts,
+  getActivityDeadline,
+} from "@/lib/subtasks-data"
+import { SubtasksList } from "@/components/site-progress/subtasks-list"
+import { SubtaskTimeline } from "@/components/site-progress/subtask-timeline"
 import { cn } from "@/lib/utils"
 import { fetchWeatherForecast, transformWeatherData } from "@/lib/weather-api"
 import { weatherForecast, type WeatherForecast } from "@/lib/delay-engine-data"
 import {
   Calendar,
-  Users,
-  Clock,
   MapPin,
   Activity as ActivityIcon,
-  CalendarClock,
   AlertTriangle,
-  MessageSquare,
-  TrendingUp,
   Cloud,
   CloudRain,
   CloudLightning,
   Droplets,
   Sun,
   Wind,
+  ListTodo,
+  Clock,
 } from "lucide-react"
 import { getIssuesByActivityId, getPriorityColor, getIssueStatusColor } from "@/lib/issues-data"
 
 interface ActivityDetailsPanelProps {
   activity: Activity | null
+  subtasks: Subtask[]
+  progressPercent: number
+  onToggleSubtask?: (subtaskId: string) => void
+  onSubtaskUpdate?: (subtaskId: string, description: string) => void
   onUpdateSubmitted?: () => void
 }
 
@@ -89,45 +94,27 @@ function getImpactBadgeClass(impact: WeatherForecast["impactLevel"]) {
   }
 }
 
-export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDetailsPanelProps) {
+export function ActivityDetailsPanel({
+  activity,
+  subtasks,
+  progressPercent,
+  onToggleSubtask,
+  onSubtaskUpdate,
+}: ActivityDetailsPanelProps) {
   const [activeTab, setActiveTab] = useState("overview")
-  const [logs, setLogs] = useState<ProgressUpdate[]>([])
   const [activityWeather, setActivityWeather] = useState<WeatherForecast[]>([])
   const [loadingWeather, setLoadingWeather] = useState(false)
   const [weatherError, setWeatherError] = useState<string | null>(null)
+
   const activityIssues = activity ? getIssuesByActivityId(activity.zoneID) : []
+  const { completed, total } = getSubtaskCounts(subtasks)
+  const deadline = activity ? getActivityDeadline(activity) : null
+
   const hasActivityCoordinates =
     typeof activity?.lat === "number" && typeof activity?.lng === "number"
   const activityCoordinateLabel = hasActivityCoordinates
-    ? `${activity.lat.toFixed(4)}, ${activity.lng.toFixed(4)}`
+    ? `${activity!.lat.toFixed(4)}, ${activity!.lng.toFixed(4)}`
     : "No coordinates"
-
-  const fetchLogs = useCallback(async () => {
-    if (!activity) return
-    try {
-      const res = await fetch(`/api/activity/${activity.zoneID}/logs`)
-      if (!res.ok) return
-      const { logs: raw } = await res.json()
-      const mapped: ProgressUpdate[] = (raw ?? []).map((log: any) => ({
-        id: String(log.logentryid),
-        activityID: log.activityid,
-        title: log.description,
-        description: "",
-        status: activity.status,
-        updatedBy: "Site Engineer",
-        updatedAt: log.timestamp,
-        images: log.evidencephoto ? [log.evidencephoto] : undefined,
-      }))
-      setLogs(mapped)
-    } catch {
-      // silent
-    }
-  }, [activity?.zoneID])
-
-  useEffect(() => {
-    setLogs([])
-    fetchLogs()
-  }, [fetchLogs])
 
   useEffect(() => {
     let cancelled = false
@@ -166,24 +153,26 @@ export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDe
     }
   }, [activity?.zoneID, activity?.lat, activity?.lng])
 
-  const handleUpdateSubmitted = useCallback(() => {
-    fetchLogs()
-    onUpdateSubmitted?.()
-  }, [fetchLogs, onUpdateSubmitted])
+  const handleSubtaskUpdate = useCallback(
+    (subtaskId: string, description: string) => {
+      onSubtaskUpdate?.(subtaskId, description)
+    },
+    [onSubtaskUpdate]
+  )
 
   if (!activity) {
     return (
-      <Card className="bg-card border-border h-full">
+      <Card className="bg-card border-border w-full">
         <CardHeader>
           <CardTitle className="text-foreground">Activity Details</CardTitle>
-          <CardDescription>Select an activity on the map to view details</CardDescription>
+          <CardDescription>Select an activity on the map or from the overview panel</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center h-64 text-center">
+          <div className="flex flex-col items-center justify-center py-16 text-center">
             <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No activity selected</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Click on any activity in the map to see its details
+              Click a map marker or an activity in the sidebar
             </p>
           </div>
         </CardContent>
@@ -192,129 +181,102 @@ export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDe
   }
 
   return (
-    <Card className="bg-card border-border h-full flex flex-col">
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <CardTitle className="text-foreground text-lg">{activity.name}</CardTitle>
-            <CardDescription className="mt-1">{activity.activity}</CardDescription>
+    <Card className="bg-card border-border w-full flex flex-col">
+      <CardHeader className="pb-3 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-xl text-foreground">{activity.name}</CardTitle>
+            <CardDescription className="mt-1">
+              {activity.description || activity.activity || "No description"}
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-3xl font-bold text-primary">{progressPercent}%</span>
           </div>
         </div>
 
-        {/* Status Badge - Primary */}
-        <div className="mt-3">
-          <ActivityStatusBadge status={activity.status} size="lg" />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">
+              {completed} of {total} subtasks completed
+            </span>
+            <span className="font-medium text-foreground">{progressPercent}%</span>
+          </div>
+          <Progress value={progressPercent} className="h-2.5" />
         </div>
+
+        {deadline && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Calendar className="h-4 w-4 text-primary" />
+            <span>
+              Deadline: <span className="text-foreground font-medium">{formatDate(deadline)}</span>
+            </span>
+          </div>
+        )}
       </CardHeader>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
         <div className="border-b border-border px-6">
-          <TabsList className="grid w-full grid-cols-5 bg-transparent">
-            <TabsTrigger value="overview" className="border-b-2 border-transparent data-[state=active]:border-primary text-xs">
-              <ActivityIcon className="h-3 w-3 mr-1.5" />
+          <TabsList className="grid w-full max-w-lg grid-cols-4 bg-transparent h-auto p-0 gap-0">
+            <TabsTrigger
+              value="overview"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs py-3"
+            >
+              <ActivityIcon className="h-3.5 w-3.5 mr-1.5" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="timeline" className="border-b-2 border-transparent data-[state=active]:border-primary text-xs">
-              <TrendingUp className="h-3 w-3 mr-1.5" />
+            <TabsTrigger
+              value="timeline"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs py-3"
+            >
+              <Clock className="h-3.5 w-3.5 mr-1.5" />
               Timeline
             </TabsTrigger>
-            <TabsTrigger value="weather" className="border-b-2 border-transparent data-[state=active]:border-primary text-xs">
-              <Cloud className="h-3 w-3 mr-1.5" />
+            <TabsTrigger
+              value="weather"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs py-3"
+            >
+              <Cloud className="h-3.5 w-3.5 mr-1.5" />
               Weather
             </TabsTrigger>
-            <TabsTrigger value="blockers" className="border-b-2 border-transparent data-[state=active]:border-primary text-xs">
-              <AlertTriangle className="h-3 w-3 mr-1.5" />
-              Blockers
-            </TabsTrigger>
-            <TabsTrigger value="details" className="border-b-2 border-transparent data-[state=active]:border-primary text-xs">
-              <MessageSquare className="h-3 w-3 mr-1.5" />
-              Details
+            <TabsTrigger
+              value="issues"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs py-3"
+            >
+              <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />
+              Issues
+              {activityIssues.length > 0 && (
+                <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
+                  {activityIssues.length}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <CardContent className="pt-4 px-6 flex-1 overflow-y-auto space-y-4">
-          {/* Overview Tab */}
+        <CardContent className="pt-5 px-6 pb-6 flex-1 overflow-y-auto">
           <TabsContent value="overview" className="space-y-4 mt-0">
-            {/* Quick Status Info */}
-            <div className="p-3 rounded-lg bg-secondary/30 border border-border space-y-2">
-              <h4 className="text-sm font-semibold text-foreground">Current Status</h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {activity.description || "No description provided"}
-              </p>
+            <div className="flex items-center gap-2">
+              <ListTodo className="h-4 w-4 text-primary" />
+              <h4 className="text-sm font-semibold text-foreground">Subtasks</h4>
             </div>
-
-            <Separator className="my-2" />
-
-            {/* Team Assignment */}
-            {(activity.assignedTeam || activity.assignedSupervisor) && (
-              <>
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Team Assignment
-                  </h4>
-                  <div className="grid gap-2">
-                    {activity.assignedTeam && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="text-xs font-medium">Team:</span>
-                        <span>{activity.assignedTeam}</span>
-                      </div>
-                    )}
-                    {activity.assignedSupervisor && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="text-xs font-medium">Supervisor:</span>
-                        <span>{activity.assignedSupervisor}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <Separator className="my-2" />
-              </>
-            )}
-
-            {/* Schedule Info */}
-            {(activity.startDate || activity.expectedCompletion) && (
-              <>
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <CalendarClock className="h-4 w-4" />
-                    Schedule
-                  </h4>
-                  <div className="grid gap-2">
-                    {activity.startDate && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        <span className="text-xs font-medium">Start:</span>
-                        <span>{formatDate(activity.startDate)}</span>
-                      </div>
-                    )}
-                    {activity.expectedCompletion && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span className="text-xs font-medium">Target:</span>
-                        <span>{formatDate(activity.expectedCompletion)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
+            <SubtasksList subtasks={subtasks} onToggleComplete={onToggleSubtask} />
+            <p className="text-xs text-muted-foreground">
+              Click a subtask to mark complete. Progress is calculated from completed subtasks.
+            </p>
           </TabsContent>
 
-          {/* Timeline Tab */}
-          <TabsContent value="timeline" className="space-y-4 mt-0">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Progress Updates
-              </h4>
-              <ProgressUpdateModal activity={activity} onUpdateSubmitted={handleUpdateSubmitted} />
-            </div>
-            <ActivityTimeline updates={logs} />
+          <TabsContent value="timeline" className="mt-0">
+            <p className="text-xs text-muted-foreground mb-4">
+              Timeline is organized by subtasks. Add updates per step or mark steps complete.
+            </p>
+            <SubtaskTimeline
+              subtasks={subtasks}
+              onAddUpdate={handleSubtaskUpdate}
+              onToggleComplete={onToggleSubtask}
+            />
           </TabsContent>
 
-          {/* Weather Tab */}
           <TabsContent value="weather" className="space-y-4 mt-0">
             <div className="flex items-center justify-between gap-3">
               <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -343,18 +305,30 @@ export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDe
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2">
                   {activityWeather.map((day) => {
                     const Icon = getWeatherIcon(day.condition)
                     return (
-                      <div key={day.date} className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2">
+                      <div
+                        key={day.date}
+                        className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2"
+                      >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-muted-foreground">{formatDate(day.date)}</span>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {formatDate(day.date)}
+                          </span>
                           <Icon className="h-4 w-4 text-primary" />
                         </div>
                         <div className="flex items-end justify-between gap-2">
-                          <span className="text-xl font-bold text-foreground">{day.temperature}C</span>
-                          <Badge className={cn("text-[10px] capitalize", getImpactBadgeClass(day.impactLevel))}>
+                          <span className="text-xl font-bold text-foreground">
+                            {day.temperature}C
+                          </span>
+                          <Badge
+                            className={cn(
+                              "text-[10px] capitalize",
+                              getImpactBadgeClass(day.impactLevel)
+                            )}
+                          >
                             {day.impactLevel}
                           </Badge>
                         </div>
@@ -373,7 +347,11 @@ export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDe
                     <div>
                       <p className="text-xs text-muted-foreground">Avg. Wind Speed</p>
                       <p className="text-sm font-medium text-foreground">
-                        {Math.round(activityWeather.reduce((total, day) => total + day.windSpeed, 0) / activityWeather.length)} km/h
+                        {Math.round(
+                          activityWeather.reduce((t, d) => t + d.windSpeed, 0) /
+                            activityWeather.length
+                        )}{" "}
+                        km/h
                       </p>
                     </div>
                   </div>
@@ -382,7 +360,7 @@ export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDe
                     <div>
                       <p className="text-xs text-muted-foreground">Rain Risk Days</p>
                       <p className="text-sm font-medium text-foreground">
-                        {activityWeather.filter((day) => day.precipitation > 30).length} days
+                        {activityWeather.filter((d) => d.precipitation > 30).length} days
                       </p>
                     </div>
                   </div>
@@ -391,32 +369,43 @@ export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDe
             )}
           </TabsContent>
 
-          {/* Blockers Tab */}
-          <TabsContent value="blockers" className="space-y-4 mt-0">
+          <TabsContent value="issues" className="space-y-4 mt-0">
             {activityIssues.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-6 text-center">
+              <div className="flex flex-col items-center justify-center py-8 text-center">
                 <AlertTriangle className="h-8 w-8 text-success mb-2" />
-                <p className="text-sm text-muted-foreground">No blockers reported</p>
+                <p className="text-sm text-muted-foreground">No issues reported for this activity</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {activityIssues.map((issue) => (
-                  <div key={issue.id} className="p-3 rounded-lg bg-secondary/50 border border-border">
-                    <div className="flex items-start gap-2">
+                  <div
+                    key={issue.id}
+                    className="p-4 rounded-lg bg-secondary/30 border border-border"
+                  >
+                    <div className="flex items-start gap-3">
                       <span className="text-lg">{getIssueTypeIcon(issue.type)}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="text-sm font-medium text-foreground">{issue.title}</span>
-                          <Badge variant="outline" className={cn("text-xs", getPriorityColor(issue.priority))}>
+                          <Badge
+                            variant="outline"
+                            className={cn("text-xs", getPriorityColor(issue.priority))}
+                          >
                             {issue.priority}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mb-2">{issue.description}</p>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={cn("text-xs", getIssueStatusColor(issue.status))}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge
+                            variant="outline"
+                            className={cn("text-xs", getIssueStatusColor(issue.status))}
+                          >
                             {issue.status}
                           </Badge>
                           <span className="text-xs text-muted-foreground">{issue.owner}</span>
+                          <span className="text-xs text-muted-foreground">
+                            · {formatDate(issue.createdAt)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -424,32 +413,6 @@ export function ActivityDetailsPanel({ activity, onUpdateSubmitted }: ActivityDe
                 ))}
               </div>
             )}
-          </TabsContent>
-
-          {/* Details Tab */}
-          <TabsContent value="details" className="space-y-3 mt-0 text-xs">
-            <div className="p-2 rounded bg-secondary/30 space-y-1">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground font-medium">Zone ID:</span>
-                <span className="font-semibold text-foreground">{activity.zoneID}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground font-medium">Project ID:</span>
-                <span className="font-semibold text-foreground">{activity.projectID}</span>
-              </div>
-              {activity.createdAt && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground font-medium">Created:</span>
-                  <span className="font-semibold text-foreground">{formatDate(activity.createdAt)}</span>
-                </div>
-              )}
-              {activity.updatedAt && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground font-medium">Updated:</span>
-                  <span className="font-semibold text-foreground">{formatDate(activity.updatedAt)}</span>
-                </div>
-              )}
-            </div>
           </TabsContent>
         </CardContent>
       </Tabs>
