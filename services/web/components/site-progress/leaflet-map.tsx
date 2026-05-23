@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import { type Activity, type Project } from "@/lib/site-data"
@@ -37,6 +37,7 @@ function createGooglePinSvg(color: string, isSelected: boolean) {
   const dotColor = isSelected ? "#ffffff" : "#ffffff"
   const shadow = isSelected ? "drop-shadow(0 4px 6px rgba(0,0,0,0.4))" : "drop-shadow(0 2px 4px rgba(0,0,0,0.3))"
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" style="filter:${shadow}">
+    <rect width="${size}" height="${size}" fill="rgba(0,0,0,0)" style="cursor:pointer"/>
     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${color}" stroke="#ffffff" stroke-width="0.5"/>
     <circle cx="12" cy="9" r="2.5" fill="${dotColor}"/>
   </svg>`
@@ -53,7 +54,7 @@ function createPinIcon(color: string, isSelected: boolean) {
   })
 }
 
-function buildPopupContent(
+function buildTooltipHtml(
   activity: Activity,
   subtasksByActivity?: Record<number, Subtask[]>,
   activityWorkersCache?: Record<number, ActivityWorkersSummary>
@@ -135,6 +136,7 @@ export function LeafletMap({
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Map<number, L.Marker>>(new Map())
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return
@@ -178,14 +180,14 @@ export function LeafletMap({
       const color = isSelected ? SELECTED_MARKER_COLOR : DEFAULT_MARKER_COLOR
       const icon = createPinIcon(color, isSelected)
 
-      const popupContent = buildPopupContent(activity, subtasksByActivity, activityWorkersCache)
+      const popupHtml = buildTooltipHtml(activity, subtasksByActivity, activityWorkersCache)
 
       const marker = L.marker([activity.lat, activity.lng], {
         icon,
         title: activity.name,
         zIndexOffset: isSelected ? 1000 : 0,
       })
-        .bindPopup(popupContent, {
+        .bindPopup(popupHtml, {
           className: "site-rich-popup",
           closeButton: true,
           maxWidth: 300,
@@ -195,6 +197,18 @@ export function LeafletMap({
         })
         .on("click", () => {
           onActivitySelect(activity)
+        })
+        .on("mouseover", () => {
+          if (closeTimeoutRef.current) {
+            clearTimeout(closeTimeoutRef.current)
+            closeTimeoutRef.current = null
+          }
+          marker.openPopup()
+        })
+        .on("mouseout", () => {
+          closeTimeoutRef.current = setTimeout(() => {
+            marker.closePopup()
+          }, 200)
         })
         .addTo(mapRef.current!)
 
@@ -215,8 +229,6 @@ export function LeafletMap({
     if (!marker) return
     const latlng = marker.getLatLng()
     mapRef.current.panTo(latlng, { animate: true })
-    // Open popup for the selected marker
-    setTimeout(() => marker.openPopup(), 50)
   }, [selectedActivityId])
 
   useEffect(() => {
@@ -244,12 +256,42 @@ export function LeafletMap({
   }, [activities, onViewPeople])
 
   useEffect(() => {
+    const handlePopupMouseEnter = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target.closest(".leaflet-popup")) {
+        if (closeTimeoutRef.current) {
+          clearTimeout(closeTimeoutRef.current)
+          closeTimeoutRef.current = null
+        }
+      }
+    }
+
+    const handlePopupMouseLeave = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target.closest(".leaflet-popup")) {
+        closeTimeoutRef.current = setTimeout(() => {
+          mapRef.current?.closePopup()
+        }, 200)
+      }
+    }
+
+    document.addEventListener("mouseover", handlePopupMouseEnter)
+    document.addEventListener("mouseout", handlePopupMouseLeave)
+    return () => {
+      document.removeEventListener("mouseover", handlePopupMouseEnter)
+      document.removeEventListener("mouseout", handlePopupMouseLeave)
+    }
+  }, [])
+
+
+  useEffect(() => {
     const id = "site-progress-leaflet-styles"
     if (document.getElementById(id)) return
     const style = document.createElement("style")
     style.id = id
     style.textContent = `
       .site-progress-gmap-marker { background: transparent !important; border: none !important; }
+      .site-progress-gmap-marker svg { cursor: pointer; }
       .site-rich-popup {
         background: rgba(15,23,42,0.96) !important;
         border: 1px solid rgba(51,65,85,0.8) !important;

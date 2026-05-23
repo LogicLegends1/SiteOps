@@ -313,7 +313,7 @@ export default function ActivityProgressPage() {
                   Site Map
                 </h3>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Click a marker to view activity details
+                  Hover over markers to see activity details · Click to select
                 </p>
               </div>
               <span className="text-[10px] text-muted-foreground">
@@ -388,8 +388,8 @@ export default function ActivityProgressPage() {
               onAddActivity={() => setShowAddModal(true)}
               onStatusChange={handleStatusChange}
               onToggleSubtask={handleToggleSubtask}
-              onSubtaskUpdate={(activityId, subtaskId, description) => {
-                handleSubtaskUpdate(activityId, subtaskId, description)
+              onSubtaskUpdate={(activityId, subtaskId, description, evidencePhotoUrl) => {
+                handleSubtaskUpdate(activityId, subtaskId, description, evidencePhotoUrl)
               }}
               selectedActivityId={selectedActivity?.zoneID}
             />

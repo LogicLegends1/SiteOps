@@ -33,6 +33,8 @@ import {
   MessageSquarePlus,
   Send,
   X,
+  User,
+  Images,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -41,6 +43,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { SubtaskProgressModal } from "@/components/site-progress/subtask-progress-modal"
 
 interface LinearActivitiesBoardProps {
   activities: Activity[]
@@ -50,7 +53,7 @@ interface LinearActivitiesBoardProps {
   onAddActivity: () => void
   onStatusChange?: (activityId: number, newStatus: ActivityStatus) => void
   onToggleSubtask?: (activityId: number, subtaskId: string) => void
-  onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string) => void
+  onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string, evidencePhotoUrl?: string) => void
   selectedActivityId?: number
 }
 
@@ -91,61 +94,6 @@ function getStatusOrder(status: ActivityStatus): number {
   }
 }
 
-function SubtaskUpdateForm({
-  subtaskId,
-  activityId,
-  onSubmit,
-  onCancel,
-}: {
-  subtaskId: string
-  activityId: number
-  onSubmit: (activityId: number, subtaskId: string, description: string) => void
-  onCancel: () => void
-}) {
-  const [text, setText] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-
-  const handleSubmit = async () => {
-    if (!text.trim()) return
-    setSubmitting(true)
-    onSubmit(activityId, subtaskId, text.trim())
-    setText("")
-    setSubmitting(false)
-    onCancel()
-  }
-
-  return (
-    <div className="flex flex-col gap-1.5 mt-1.5 ml-5.5">
-      <Textarea
-        placeholder="Add a progress update..."
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        className="text-xs min-h-[56px] resize-none bg-secondary/20"
-        rows={2}
-        autoFocus
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSubmit()
-          if (e.key === "Escape") onCancel()
-        }}
-      />
-      <div className="flex items-center gap-1.5 justify-end">
-        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={onCancel}>
-          <X className="h-3 w-3 mr-1" />
-          Cancel
-        </Button>
-        <Button
-          size="sm"
-          className="h-6 text-[10px] px-2"
-          disabled={!text.trim() || submitting}
-          onClick={handleSubmit}
-        >
-          <Send className="h-3 w-3 mr-1" />
-          Post
-        </Button>
-      </div>
-    </div>
-  )
-}
 
 function StatusGroup({
   status,
@@ -232,7 +180,7 @@ function ActivityRow({
   onViewOnMap: () => void
   onStatusChange?: (activityId: number, newStatus: ActivityStatus) => void
   onToggleSubtask?: (activityId: number, subtaskId: string) => void
-  onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string) => void
+  onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string, evidencePhotoUrl?: string) => void
   isExpanded: boolean
   onToggleExpand: () => void
 }) {
@@ -241,7 +189,16 @@ function ActivityRow({
   const { completed, total } = getSubtaskCounts(subtasks)
   const track = getTrackLabelFromSubtasks(subtasks)
   const issues = getIssuesByActivityId(activity.zoneID)
-  const [updatingSubtaskId, setUpdatingSubtaskId] = useState<string | null>(null)
+  const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set())
+
+  const toggleSubtaskExpanded = (subtaskId: string) => {
+    setExpandedSubtasks((prev) => {
+      const next = new Set(prev)
+      if (next.has(subtaskId)) next.delete(subtaskId)
+      else next.add(subtaskId)
+      return next
+    })
+  }
 
   return (
     <div className="group/row">
@@ -392,34 +349,87 @@ function ActivityRow({
                   {subtask.title}
                 </span>
                 {subtask.updates && subtask.updates.length > 0 && (
-                  <span className="text-[10px] text-muted-foreground/70">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleSubtaskExpanded(subtask.id)
+                    }}
+                    className="text-[10px] text-muted-foreground/70 hover:text-foreground flex items-center gap-1"
+                  >
+                    {expandedSubtasks.has(subtask.id) ? (
+                      <ChevronDown className="h-3 w-3" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3" />
+                    )}
                     {subtask.updates.length} update{subtask.updates.length !== 1 ? "s" : ""}
-                  </span>
+                  </button>
                 )}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setUpdatingSubtaskId(updatingSubtaskId === subtask.id ? null : subtask.id)
-                  }}
-                  className="opacity-0 group-hover/subtask:opacity-100 transition-opacity p-0.5 rounded hover:bg-secondary/60"
-                  title="Add update"
-                >
-                  <MessageSquarePlus className="h-3 w-3 text-muted-foreground hover:text-primary" />
-                </button>
+                {onSubtaskUpdate && (
+                  <SubtaskProgressModal
+                    subtask={subtask}
+                    onSubmit={(description, evidencePhotoUrl) =>
+                      onSubtaskUpdate(activity.zoneID, subtask.id, description, evidencePhotoUrl)
+                    }
+                  />
+                )}
                 {subtask.dueDate && (
                   <span className="text-[10px] text-muted-foreground">
                     {new Date(subtask.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                   </span>
                 )}
               </div>
-              {updatingSubtaskId === subtask.id && onSubtaskUpdate && (
-                <SubtaskUpdateForm
-                  subtaskId={subtask.id}
-                  activityId={activity.zoneID}
-                  onSubmit={onSubtaskUpdate}
-                  onCancel={() => setUpdatingSubtaskId(null)}
-                />
+              {expandedSubtasks.has(subtask.id) && subtask.updates && subtask.updates.length > 0 && (
+                <div className="mt-2 ml-6 space-y-2">
+                  {subtask.updates.map((update) => (
+                    <div
+                      key={update.id}
+                      className="rounded-lg border border-border bg-secondary/20 p-2.5"
+                    >
+                      <p className="text-xs text-foreground">{update.description}</p>
+                      <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-2.5 w-2.5" />
+                          {new Date(update.updatedAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <User className="h-2.5 w-2.5" />
+                          {update.updatedBy}
+                        </span>
+                      </div>
+                      {update.images && update.images.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          <p className="text-[10px] font-medium text-foreground flex items-center gap-1">
+                            <Images className="h-2.5 w-2.5" />
+                            Proof
+                          </p>
+                          <div className="grid grid-cols-2 gap-1.5 max-w-[200px]">
+                            {update.images.map((src, idx) => (
+                              <a
+                                key={idx}
+                                href={src}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block aspect-video rounded-md overflow-hidden border border-border"
+                              >
+                                <img
+                                  src={src}
+                                  alt={`Proof ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           ))}
