@@ -48,10 +48,10 @@ export default function DonutChart({
   const closeTooltip = () => setHoveredKey(null)
 
   return (
-    <div className={`grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-center ${className}`}>
-      <div className="relative mx-auto h-56 w-56">
+    <div className={`flex ${className} justify-center items-center gap-2`}>
+      <div className="relative mx-auto h-40 w-40 min-w-1/6">
         <svg viewBox="0 0 40 40" className="h-full w-full -rotate-90" aria-label={ariaLabel}>
-          <circle cx="20" cy="20" r="13" fill="none" stroke="currentColor" strokeWidth="4" className="text-zinc-700/40" />
+          <circle cx="20" cy="20" r="12" fill="none" stroke="currentColor" strokeWidth="4" className="text-zinc-700/40" />
 
           {visibleSegments.map((segment, index) => {
             const offset = visibleSegments.slice(0, index).reduce((sum, entry) => sum + entry.percentage, 0)
@@ -61,7 +61,7 @@ export default function DonutChart({
                 key={segment.key}
                 cx="20"
                 cy="20"
-                r="13"
+                r="12"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth={hoveredKey === segment.key ? 5 : 4}
@@ -79,36 +79,31 @@ export default function DonutChart({
         </svg>
 
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="text-3xl font-semibold tracking-tight text-foreground">
+          <span className="text-2xl font-semibold tracking-tight text-foreground">
             {hoveredSegment ? hoveredSegment.value : chartTotal}
           </span>
-          <span className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-            {hoveredSegment ? hoveredSegment.label : centerLabel}
+          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            {hoveredSegment ? hoveredSegment.label.substring(0, 10) : centerLabel.substring(0, 10)}
           </span>
-          <span className="mt-1 text-[11px] text-muted-foreground">
+          <span className="text-[10px] text-muted-foreground">
             {hoveredSegment ? `${hoveredSegment.percentage.toFixed(1)}%` : ""}
           </span>
         </div>
       </div>
 
-      <div className="grid gap-3 grid-cols-1 p-2">
+      <div className="flex-1">
         {visibleSegments.map((segment) => (
           <button
             key={segment.key}
             type="button"
-            className="donut-chart-legend-item"
+            className="flex items-center gap-1.5 rounded-full border border-border/50 bg-muted/20 transition-colors hover:bg-muted/50"
             onMouseEnter={() => setHoveredKey(segment.key)}
             onMouseLeave={closeTooltip}
             onFocus={() => setHoveredKey(segment.key)}
             onBlur={closeTooltip}
           >
-            <span className="flex items-center gap-2">
-              <span className={`h-2.5 w-2.5 rounded-full bg-current ${segment.colorClass}`} />
-              <span className="text-sm font-medium text-foreground">{segment.label}</span>
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {segment.value}
-            </span>
+            <span className={`h-2 w-2 rounded-full bg-current ${segment.colorClass}`} />
+            <span className="text-[13px] font-medium text-foreground">{segment.label}</span>
           </button>
         ))}
       </div>

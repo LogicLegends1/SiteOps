@@ -5,11 +5,9 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useEffect, useMemo, useState } from "react"
 import DonutChart from "@/components/charts/DonutChart"
 import { equipmentStatusColorMap, workforceRoleColorMap, getColorFromMap } from "@/lib/colorMap"
-import { Bell } from "lucide-react"
 import { type Subtask } from "@/lib/subtasks-data"
 
 export type Activity = {
@@ -105,31 +103,6 @@ const workforceRoleMeta: Array<{
   { key: "general-labour", colorClass: "text-zinc-500" },
 ]
 
-// page-level mock data is sourced from API where available
-const activeIssues = [
-  {
-    id: "ISS-001",
-    title: "Material Delay - Steel Rebar",
-    priority: "high",
-    status: "open",
-    owner: "Procurement Team",
-  },
-  {
-    id: "ISS-002",
-    title: "Equipment Failure - Crane #2",
-    priority: "critical",
-    status: "in-progress",
-    owner: "Maintenance",
-  },
-  {
-    id: "ISS-003",
-    title: "Labour Shortage - Zone B",
-    priority: "medium",
-    status: "open",
-    owner: "HR Department",
-  },
-]
-
 function getStatusColor(status: string) {
   switch (status) {
     case "completed":
@@ -140,19 +113,6 @@ function getStatusColor(status: string) {
       return "bg-destructive text-destructive-foreground"
     case "not-started":
       return "bg-muted text-muted-foreground"
-    default:
-      return "bg-muted text-muted-foreground"
-  }
-}
-
-function getPriorityColor(priority: string) {
-  switch (priority) {
-    case "critical":
-      return "bg-destructive text-destructive-foreground"
-    case "high":
-      return "bg-warning text-warning-foreground"
-    case "medium":
-      return "bg-primary text-primary-foreground"
     default:
       return "bg-muted text-muted-foreground"
   }
@@ -520,22 +480,19 @@ export default function ProjectPage() {
   )
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 max-w-full min-w-0">
       {/* Hero / Header */}
-      <div className="grid gap-6 lg:grid-cols-1 items-start">
-        <div className="w-full">
-          <Card className="relative overflow-hidden border-border/70 bg-linear-to-br from-background via-background to-primary/5 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.45)]">
+      <div className="grid gap-6 lg:grid-cols-1 items-start min-w-0">
+        <div className="w-full min-w-0">
+          <Card className="relative py-0 overflow-hidden border-border/70 bg-linear-to-br from-background via-background to-primary/5 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.45)] min-w-0">
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
               <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
               <div className="absolute -left-20 bottom-0 h-56 w-56 rounded-full bg-emerald-400/10 blur-3xl" />
             </div>
 
-            <div className="relative space-y-8 p-6 lg:p-8">
-              <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-                <div className="max-w-4xl space-y-4">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
-                    Project Overview
-                  </div>
+            <div className="relative p-3 lg:p-8 min-w-0">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between min-w-0">
+                <div className="flex-1 space-y-4 min-w-0">
 
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-3">
@@ -551,99 +508,51 @@ export default function ProjectPage() {
                       {project?.description ?? project?.projectdiagram ?? "Mixed-use commercial development comprising 12,400 m² of office and retail space across six stories. Steel-frame construction with curtain wall glazing."}
                     </p>
                   </div>
+                  <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex flex-col gap-1 rounded-2xl border border-border/70 bg-background/75 px-5 py-4 shadow-sm backdrop-blur-sm">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">Start</p>
+                    <p className="text-sm font-semibold text-foreground">{formatDate(project?.createdat)}</p>
+                  </div>
+                  <div className="flex flex-col gap-1 rounded-2xl border border-border/70 bg-background/75 px-5 py-4 shadow-sm backdrop-blur-sm">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">Target</p>
+                    <p className="text-sm font-semibold text-foreground">{formatDate(project?.projectdeadline)}</p>
+                  </div>
+                  <div className="flex flex-col gap-1 rounded-2xl border border-border/70 bg-background/75 px-5 py-4 shadow-sm backdrop-blur-sm">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">Budget</p>
+                    <p className="text-sm font-semibold text-foreground">$4.2M</p>
+                  </div>
+                  </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:min-w-90">
-                  <div className="rounded-2xl border border-border/70 bg-background/75 p-4 shadow-sm backdrop-blur-sm">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Start</p>
-                    <p className="mt-2 text-sm font-medium text-foreground">{formatDate(project?.createdat)}</p>
+                <div className="flex w-full flex-col shrink-0 sm:flex-row lg:w-auto lg:min-w-fit lg:flex-col min-w-0">
+                  <div className="w-full flex-1 min-w-0">
+                    {workforceLoading ? (
+                      <WorkforceDonutSkeleton />
+                    ) : (
+                      <DonutChart
+                        segments={workforceSegments}
+                        total={workforceSummary.total}
+                        centerLabel="Workers"
+                        ariaLabel="Workforce role distribution donut chart"
+                      />
+                    )}
                   </div>
-                  <div className="rounded-2xl border border-border/70 bg-background/75 p-4 shadow-sm backdrop-blur-sm">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Target</p>
-                    <p className="mt-2 text-sm font-medium text-foreground">{formatDate(project?.projectdeadline)}</p>
-                  </div>
-                  <div className="rounded-2xl border border-border/70 bg-background/75 p-4 shadow-sm backdrop-blur-sm">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Budget</p>
-                    <p className="mt-2 text-sm font-medium text-foreground">$4.2M</p>
-                  </div>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label="Open notifications"
-                        className="group flex items-center justify-between rounded-2xl border border-warning/30 bg-warning/10 p-4 text-left shadow-sm backdrop-blur-sm transition-colors hover:bg-warning/15"
-                      >
-                        <div>
-                          <p className="text-[11px] uppercase tracking-[0.22em] text-warning">Notifications</p>
-                          <p className="mt-2 text-sm font-medium text-foreground">{activeIssues.length} open alerts</p>
-                        </div>
-                        <div className="relative flex h-10 w-10 items-center justify-center rounded-full border border-warning/30 bg-background/80 text-warning transition-transform group-hover:scale-105">
-                          <Bell className="h-4 w-4" />
-                          <Badge className="absolute -right-1 -top-1 h-5 min-w-5 rounded-full border-2 border-background bg-warning px-1 text-[10px] text-warning-foreground">
-                            {activeIssues.length}
-                          </Badge>
-                        </div>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent align="end" sideOffset={10} className="w-96 p-0">
-                      <div className="border-b border-border px-4 py-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2">
-                            <Bell className="h-4 w-4 text-warning" />
-                            <p className="text-sm font-semibold text-foreground">Notifications</p>
-                          </div>
-                          <Badge variant="outline" className="border-warning/30 text-warning">
-                            {activeIssues.length} open
-                          </Badge>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">Expanded details for the latest site alerts and issues</p>
+                  <div className="w-full flex-1 min-w-0">
+                    {equipmentClassLoading ? (
+                      <WorkforceDonutSkeleton />
+                    ) : equipmentClassTotal === 0 ? (
+                      <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-sm text-center text-muted-foreground mt-4">
+                        No assets found.
                       </div>
-                      <div className="max-h-[28rem] overflow-y-auto p-3">
-                        <div className="space-y-3">
-                          {activeIssues.map((issue) => (
-                            <div key={`notification-${issue.id}`} className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0 space-y-2">
-                                  <div className="flex items-center gap-2">
-                                    <p className="truncate text-sm font-semibold text-foreground">{issue.title}</p>
-                                    <Badge className={getPriorityColor(issue.priority)} variant="secondary">
-                                      {issue.priority}
-                                    </Badge>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground">Owner: {issue.owner}</p>
-                                  <p className="text-xs text-muted-foreground">Notification ID: {issue.id}</p>
-                                  <p className="text-sm leading-6 text-foreground">
-                                    {issue.status === "open"
-                                      ? "This alert is active and needs review."
-                                      : "This alert has been updated and is ready for follow-up."}
-                                  </p>
-                                </div>
-                                <div className="flex shrink-0 flex-col items-end gap-2">
-                                  <span className="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                                    {issue.status}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                                <div className="rounded-lg border border-border bg-muted/20 p-2">
-                                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Priority</p>
-                                  <p className="mt-1 text-sm font-medium text-foreground capitalize">{issue.priority}</p>
-                                </div>
-                                <div className="rounded-lg border border-border bg-muted/20 p-2">
-                                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Status</p>
-                                  <p className="mt-1 text-sm font-medium text-foreground capitalize">{issue.status}</p>
-                                </div>
-                                <div className="rounded-lg border border-border bg-muted/20 p-2">
-                                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Source</p>
-                                  <p className="mt-1 text-sm font-medium text-foreground">Site Alerts</p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                    ) : (
+                      <DonutChart
+                        segments={equipmentClassSegments}
+                        total={equipmentClassTotal}
+                        centerLabel="Assets"
+                        ariaLabel="Assets by class distribution donut chart"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -652,7 +561,6 @@ export default function ProjectPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-base">Activity Timeline</CardTitle>
-                    <CardDescription>Hover a dot to preview the activity image</CardDescription>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-warning" />Pending</span>
@@ -831,61 +739,6 @@ export default function ProjectPage() {
               </div>
 
             </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* Panels: Alerts + Allocations */}
-      <div className="flex flex-col gap-4">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card className="h-full w-full border-border bg-card">
-            <CardHeader className="flex items-center justify-between">
-              <div>
-                <CardTitle>Workforce</CardTitle>
-              </div>
-              <Button asChild size="sm" variant="outline" className="border-primary/20 bg-background/80">
-                <Link href={projectId ? `/project/${projectId}/workforce` : "/project"}>Manage Wrokforce</Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {workforceLoading ? (
-                <WorkforceDonutSkeleton />
-              ) : (
-                <DonutChart
-                  segments={workforceSegments}
-                  total={workforceSummary.total}
-                  centerLabel="Total workers"
-                  ariaLabel="Workforce role distribution donut chart"
-                />
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="h-full w-full border-border bg-card">
-            <CardHeader className="flex items-center justify-between">
-              <div>
-                <CardTitle>Assets</CardTitle>
-              </div>
-              <Button asChild size="sm" variant="outline" className="border-primary/20 bg-background/80">
-                <Link href={projectId ? `/project/${projectId}/equipment` : "/project"}>Manage Assets</Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {equipmentClassLoading ? (
-                <WorkforceDonutSkeleton />
-              ) : equipmentClassTotal === 0 ? (
-                <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-sm text-muted-foreground">
-                  No equipment classes found for this project yet.
-                </div>
-              ) : (
-                <DonutChart
-                  segments={equipmentClassSegments}
-                  total={equipmentClassTotal}
-                  centerLabel="Total Assets"
-                  ariaLabel="Assets by class distribution donut chart"
-                />
-              )}
-            </CardContent>
           </Card>
         </div>
       </div>
