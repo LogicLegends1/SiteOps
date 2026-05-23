@@ -46,13 +46,13 @@ const features = {
 export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground scroll-smooth">
-      <header className="sticky top-0 z-50 w-full bg-background/95  transition-all duration-300">
-        <div className="container mx-auto flex h-14 max-w-7xl items-center justify-between px-4 md:px-8">
+      <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 transition-all duration-300 backdrop-blur">
+        <div className="container mx-auto flex min-h-14 max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between md:px-8">
           <div className="flex items-center group cursor-pointer hover:opacity-80 transition-opacity">
             <HardHat className="h-6 w-6 mr-2 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-12" />
-            <span className="font-bold relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-primary after:transition-all after:duration-300 group-hover:after:w-full">SiteOps</span>
+            <span className="font-bold relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-primary after:transition-all after:duration-300 group-hover:after:w-full">SiteOps</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 self-start sm:self-auto">
             <ThemeToggle />
             <Button asChild className="group transition-all duration-300 hover:shadow-md hover:shadow-primary/20 hover:-translate-y-0.5">
               <Link href="/login">
@@ -64,9 +64,9 @@ export default function HomePage() {
       </header>
 
       <main className="flex-1 flex flex-col items-center w-full">
-        <section className="w-full flex-1 py-5 md:py-8 lg:py-12 overflow-hidden relative">
+        <section className="w-full flex-1 py-6 md:py-8 lg:py-12 overflow-hidden relative">
           {/* Background image (animated, placed behind content) */}
-          <div className="absolute left-1/3 top-1/4 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+          <div className="absolute left-1/2 top-1/4 hidden -translate-x-1/2 md:block md:left-1/3 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
             <img 
               src="/home_attract.png" 
               alt="Construction site monitoring dashboard with zones and equipment tracking"
@@ -82,22 +82,22 @@ export default function HomePage() {
           <div className="container mx-auto max-w-7xl px-4 md:px-8">
             <div className="flex flex-col items-start justify-start space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-1000">
               {/* Content */}
-              <div className="space-y-6 max-w-3/4">
-                <h1 className="text-4xl font-bold tracking-tighter sm:text-3xl md:text-4xl lg:text-4xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/50" style={{ fontFamily: 'verdana' }}>
+              <div className="space-y-6 max-w-full lg:max-w-3/4">
+                <h1 className="max-w-3xl text-3xl font-bold tracking-tighter sm:text-3xl md:text-4xl lg:text-5xl bg-clip-text text-transparent bg-linear-to-r from-primary to-primary/50" style={{ fontFamily: 'verdana' }}>
                   FULL OPERATIONAL OBSERVABILITY INTO CONSTRUCTION EXECUTION
                 </h1>
                 <div className="space-y-3">
-                  <p className="max-w-lg text-muted-foreground text-lg">
+                  <p className="max-w-lg text-base text-muted-foreground sm:text-lg">
                     Observe the project flow, execute the core activities, and update live from the field.
                   </p>
                 </div>
-                <div className="pt-6 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300 fill-mode-both mt-10">
-                  <Button size="lg" className="rounded-md px-10 py-3 gap-2 group transition-all duration-200 hover:shadow-lg hover:shadow-primary/30 active:scale-95 text-lg font-semibold tracking-wider bg-foreground text-background" asChild>
+                <div className="pt-6 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300 fill-mode-both mt-10 flex flex-col gap-6 sm:flex-row sm:items-start">
+                  <Button size="lg" className="w-full rounded-md px-10 py-3 gap-2 group transition-all duration-200 hover:shadow-lg hover:shadow-primary/30 active:scale-95 text-lg font-semibold tracking-wider bg-foreground text-background sm:w-auto" asChild>
                     <Link href="/dashboard">
                       GET STARTED
                     </Link>
                   </Button>
-                  <div className="max-w-1/3">
+                  <div className="w-full max-w-none sm:max-w-xl">
                     <FeatureShowcase features={features} />
                   </div>
                 </div>
@@ -108,9 +108,9 @@ export default function HomePage() {
       </main>
 
       <footer className="w-full border-t bg-background">
-        <div className="container mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row py-5 px-2 md:px-6 items-center justify-between">
+        <div className="container mx-auto flex max-w-7xl flex-col gap-4 py-5 px-4 sm:flex-row sm:items-center sm:justify-between md:px-6">
           <p className="text-sm text-muted-foreground">&copy; {new Date().getFullYear()} SiteOps. All rights reserved.</p>
-          <nav className="flex gap-6">
+          <nav className="flex flex-wrap gap-4 sm:gap-6">
             <Link href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors hover:underline underline-offset-4" prefetch={false}>
               Terms of Service
             </Link>

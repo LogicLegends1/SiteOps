@@ -59,7 +59,7 @@ export function FeatureShowcase({
   return (
     <section className="w-full mt-8">
       <div className="container mx-auto max-w-4xl">
-        <div className="flex justify-start gap-1 md:gap-2 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
+        <div className="flex flex-wrap justify-start gap-1 md:gap-2 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500 sm:justify-start">
           {Object.entries(features).map(([title, { icon: iconName }]) => {
             const selected = currentSelected === title;
             const Icon = (Icons as any)[iconName] || Icons.MapPin;
@@ -93,16 +93,16 @@ export function FeatureShowcase({
           )})}
         </div>
 
-        <div className="min-h-35 flex flex-col items-start relative pointer-events-none">
+        <div className="min-h-35 relative flex flex-col items-start pointer-events-none">
           {currentSelected && (
             <div 
               key={currentSelected}
               className="absolute inset-x-0 top-0 animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-500 flex flex-col"
             >
-              <h3 className="text-2xl font-bold tracking-tight bg-linear-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+              <h3 className="text-xl font-bold tracking-tight bg-linear-to-br from-foreground to-foreground/70 bg-clip-text text-transparent sm:text-2xl">
                 {currentSelected}
               </h3>
-              <p className="text-sm font-mono text-muted-foreground mt-3 max-w-xl leading-relaxed min-h-16">
+              <p className="mt-3 min-h-16 max-w-xl font-mono text-sm leading-relaxed text-muted-foreground">
                 <TypewriterText text={features[currentSelected]?.description || ""} />
               </p>
             </div>

@@ -65,11 +65,11 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
-      <div className="absolute right-6 top-6">
+      <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
         <ThemeToggle />
       </div>
-      <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center p-6">
-        <Card className="w-full max-w-md">
+      <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-4 py-16 sm:p-6">
+        <Card className="w-full max-w-md shadow-lg">
           <CardHeader className="items-center text-center">
             <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
               <HardHat className="h-6 w-6 text-primary-foreground" />
@@ -146,7 +146,7 @@ export default function LoginPage() {
               Continue with Google
             </Button>
 
-            <div className="text-center text-sm flex flex-col gap-2 mt-2">
+            <div className="mt-2 flex flex-col gap-2 text-center text-sm">
               <div>
                 Don&apos;t have an account?{" "}
                 <Link href="/signup" className="text-primary hover:underline font-medium">

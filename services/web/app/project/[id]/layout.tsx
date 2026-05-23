@@ -186,16 +186,16 @@ export default function ProjectLayout({
       </Sidebar>
 
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b border-border bg-background/95 px-6 backdrop-blur supports-backdrop-filter:bg-background/60">
+        <header className="sticky top-0 z-10 flex min-h-14 items-center gap-3 border-b border-border bg-background/95 px-4 py-3 md:h-14 md:px-6 backdrop-blur supports-backdrop-filter:bg-background/60">
           <SidebarTrigger className="md:hidden" />
           <div className="flex-1">
-            <h1 className="text-lg font-semibold text-foreground">
+            <h1 className="text-base font-semibold text-foreground sm:text-lg">
               {navItems.find((item) => pathname === getProjectHref(item.segment))?.title || "Project Dashboard"}
             </h1>
           </div>
           <ThemeToggle />
         </header>
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-3 md:p-6">
           <ProjectContext.Provider value={{ project, userName }}>
             {children}
           </ProjectContext.Provider>
