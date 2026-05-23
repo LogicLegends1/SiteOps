@@ -305,27 +305,10 @@ export default function MaterialForecastPage() {
         {/* TAB 2: INVENTORY LEDGER (LOGISTICAL) */}
         {activeTab === "inventory" && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-           <Card className="overflow-hidden border bg-card shadow-sm">
-             <CardHeader className="border-b bg-muted/30 pb-6 pt-8">
-               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-4">
-                 <div className="flex items-center gap-4">
-                   <div className="p-3 bg-primary rounded-xl shadow-lg shadow-primary/20">
-                     <Boxes className="h-6 w-6 text-primary-foreground" />
-                   </div>
-                   <div>
-                     <CardTitle className="text-xl font-black uppercase tracking-tighter leading-none">Material Specifications</CardTitle>
-                     <p className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.3em] mt-2 opacity-50">Enterprise Catalog Search</p>
-                   </div>
-                 </div>
-               </div>
-             </CardHeader>
-             <CardContent className="p-0">
-               <StockOverview
-                 onSelectMaterial={setSelectedMaterial}
-                 selectedMaterialId={selectedMaterial?.id || null}
-               />
-             </CardContent>
-           </Card>
+            <StockOverview
+              onSelectMaterial={setSelectedMaterial}
+              selectedMaterialId={selectedMaterial?.id || null}
+            />
           </div>
         )}
 

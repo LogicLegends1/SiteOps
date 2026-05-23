@@ -147,21 +147,31 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                 className={cn(
                   "p-4 rounded-xl cursor-pointer transition-all border-2",
                   currentMaterial?.id === m.id 
-                    ? "bg-primary border-primary text-primary-foreground shadow-md" 
-                    : "bg-background border-border hover:border-primary/50 hover:bg-muted/30"
+                    ? "bg-cyan-500/10 border-cyan-500/30 shadow-md" 
+                    : "bg-background border-border hover:border-cyan-500/30 hover:bg-muted/30"
                 )}
               >
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-black uppercase tracking-tight truncate">{m.name}</span>
+                  <span className={cn(
+                    "text-xs font-bold uppercase tracking-tight truncate",
+                    currentMaterial?.id === m.id ? "text-cyan-400" : "text-zinc-300"
+                  )}>{m.name}</span>
                   <div className="flex items-center justify-between mt-1">
                     <span className={cn(
-                      "text-[10px] font-bold uppercase opacity-80",
-                      currentMaterial?.id === m.id ? "text-primary-foreground" : "text-muted-foreground"
+                      "text-[10px] font-semibold uppercase",
+                      currentMaterial?.id === m.id ? "text-cyan-400/80" : "text-zinc-500"
                     )}>{m.available} {m.unit}</span>
-                    <Badge variant="secondary" className={cn(
-                      "text-[9px] h-5 px-2",
-                      currentMaterial?.id === m.id ? "bg-white/20 text-white" : ""
-                    )}>
+                    <Badge 
+                      variant="outline" 
+                      className={cn(
+                        "text-[9px] h-5 px-2 font-bold uppercase tracking-wider",
+                        m.stockLevel === "critical" 
+                          ? "text-red-500 border-red-500/20 bg-red-500/10" 
+                          : m.stockLevel === "low" 
+                          ? "text-orange-500 border-orange-500/20 bg-orange-500/10" 
+                          : "text-emerald-500 border-emerald-500/20 bg-emerald-500/10"
+                      )}
+                    >
                       {m.stockLevel}
                     </Badge>
                   </div>
@@ -246,9 +256,9 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                     <XAxis
                       dataKey="date"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                      tickLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                      tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }}
                       tickFormatter={(value) => {
                         const date = new Date(value)
                         return date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()
@@ -257,9 +267,9 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                     />
                     <YAxis
                       yAxisId="stock"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                      tickLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                      tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }}
                     />
                     <Tooltip
                       contentStyle={{
@@ -377,9 +387,9 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                     <XAxis
                       dataKey="date"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                      tickLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                      tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }}
                       tickFormatter={(value) => {
                         const date = new Date(value)
                         return date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()
@@ -388,9 +398,9 @@ export function ConsumptionTrendChart({ material: initialMaterial, materialsList
                     />
                     <YAxis
                       yAxisId="burn"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                      tickLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                      tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }}
                     />
                     <Tooltip
                       contentStyle={{
