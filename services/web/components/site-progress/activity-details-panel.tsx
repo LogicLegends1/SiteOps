@@ -52,6 +52,7 @@ interface ActivityDetailsPanelProps {
   onUpdateSubmitted?: () => void
   activityWorkers?: ActivityWorkerDetail[]
   initialTab?: string
+  asPanel?: boolean
 }
 
 function formatDate(dateString: string): string {
@@ -119,6 +120,7 @@ export function ActivityDetailsPanel({
   onSubtaskUpdate,
   activityWorkers = [],
   initialTab,
+  asPanel,
 }: ActivityDetailsPanelProps) {
   const [activeTab, setActiveTab] = useState(initialTab || "overview")
 
@@ -185,6 +187,7 @@ export function ActivityDetailsPanel({
   )
 
   if (!activity) {
+    if (asPanel) return null
     return (
       <Card className="bg-card border-border w-full">
         <CardHeader>
@@ -205,7 +208,7 @@ export function ActivityDetailsPanel({
   }
 
   return (
-    <Card className="bg-card border-border w-full flex flex-col">
+    <Card className={cn("bg-card w-full flex flex-col", asPanel ? "border-0 shadow-none rounded-none" : "border-border")}>
       <CardHeader className="pb-3 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex-1 min-w-0">
