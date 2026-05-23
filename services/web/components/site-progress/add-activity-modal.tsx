@@ -40,6 +40,8 @@ interface AddActivityModalProps {
   projectId: number
   project?: Project | null
   onActivityAdded?: (activity: Activity, subtasks?: Subtask[]) => void
+  externalOpen?: boolean
+  onExternalOpenChange?: (open: boolean) => void
 }
 
 type ActivityStatus =
@@ -67,8 +69,15 @@ export function AddActivityModal({
   projectId,
   project,
   onActivityAdded,
+  externalOpen,
+  onExternalOpenChange,
 }: AddActivityModalProps) {
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = externalOpen ?? internalOpen
+  const setOpen = (value: boolean) => {
+    setInternalOpen(value)
+    onExternalOpenChange?.(value)
+  }
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -181,12 +190,14 @@ export function AddActivityModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button className="gap-2 shrink-0">
-          <Plus className="h-4 w-4" />
-          Add Activity
-        </Button>
-      </DialogTrigger>
+      {externalOpen === undefined && (
+        <DialogTrigger asChild>
+          <Button className="gap-2 shrink-0">
+            <Plus className="h-4 w-4" />
+            Add Activity
+          </Button>
+        </DialogTrigger>
+      )}
 
       <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border shrink-0">

@@ -29,8 +29,19 @@ import {
   Wind,
   ListTodo,
   Clock,
+  Users,
 } from "lucide-react"
 import { getIssuesByActivityId, getPriorityColor, getIssueStatusColor } from "@/lib/issues-data"
+
+interface ActivityWorkerDetail {
+  id: number
+  name: string
+  role: string
+  discipline: string
+  experience: number
+  teamName: string | null
+  isAvailable: boolean
+}
 
 interface ActivityDetailsPanelProps {
   activity: Activity | null
@@ -39,6 +50,8 @@ interface ActivityDetailsPanelProps {
   onToggleSubtask?: (subtaskId: string) => void
   onSubtaskUpdate?: (subtaskId: string, description: string, evidencePhotoUrl?: string) => void
   onUpdateSubmitted?: () => void
+  activityWorkers?: ActivityWorkerDetail[]
+  initialTab?: string
 }
 
 function formatDate(dateString: string): string {
@@ -94,14 +107,25 @@ function getImpactBadgeClass(impact: WeatherForecast["impactLevel"]) {
   }
 }
 
+function capitalizeRole(role: string): string {
+  return role.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 export function ActivityDetailsPanel({
   activity,
   subtasks,
   progressPercent,
   onToggleSubtask,
   onSubtaskUpdate,
+  activityWorkers = [],
+  initialTab,
 }: ActivityDetailsPanelProps) {
-  const [activeTab, setActiveTab] = useState("overview")
+  const [activeTab, setActiveTab] = useState(initialTab || "overview")
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab)
+  }, [initialTab])
+
   const [activityWeather, setActivityWeather] = useState<WeatherForecast[]>([])
   const [loadingWeather, setLoadingWeather] = useState(false)
   const [weatherError, setWeatherError] = useState<string | null>(null)
@@ -217,7 +241,7 @@ export function ActivityDetailsPanel({
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
         <div className="border-b border-border px-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-4 bg-transparent h-auto p-0 gap-0">
+          <TabsList className="grid w-full max-w-lg grid-cols-5 bg-transparent h-auto p-0 gap-0">
             <TabsTrigger
               value="overview"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs py-3"
@@ -248,6 +272,18 @@ export function ActivityDetailsPanel({
               {activityIssues.length > 0 && (
                 <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
                   {activityIssues.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="people"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs py-3"
+            >
+              <Users className="h-3.5 w-3.5 mr-1.5" />
+              People
+              {activityWorkers.length > 0 && (
+                <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
+                  {activityWorkers.length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -419,6 +455,57 @@ export function ActivityDetailsPanel({
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="people" className="space-y-4 mt-0">
+            {activityWorkers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Users className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">No team members assigned to this activity</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Assign workers via the workforce_team table linked by activityid
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="h-4 w-4 text-primary" />
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Team Members ({activityWorkers.length})
+                  </h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                  {activityWorkers.map((worker) => (
+                    <div
+                      key={worker.id}
+                      className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border"
+                    >
+                      <div className="h-9 w-9 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center shrink-0">
+                        <span className="text-xs font-bold text-primary">
+                          {worker.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{worker.name}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                            {capitalizeRole(worker.role)}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground">
+                            {capitalizeRole(worker.discipline)}
+                          </span>
+                        </div>
+                      </div>
+                      {worker.teamName && (
+                        <span className="text-[10px] text-muted-foreground shrink-0 hidden lg:block">
+                          {worker.teamName}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </TabsContent>
