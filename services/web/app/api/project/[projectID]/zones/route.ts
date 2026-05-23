@@ -25,21 +25,13 @@ export async function GET(
         progress,
         lat,
         lng,
-        markerlabel,
         status,
-        posx,
-        posy,
-        widthpercent,
-        heightpercent,
-        displayorder,
         createdat,
         updatedat,
-        imagepath,
-        imageurl,
         deadline
       `)
       .eq("projectid", numericProjectId)
-      .order("displayorder", { ascending: true })
+      .order("activityid", { ascending: true })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
@@ -58,16 +50,9 @@ export async function GET(
         progress: activity.progress,
         lat: Number(activity.lat),
         lng: Number(activity.lng),
-        markerLabel: activity.markerlabel || activity.name,
-        posX: activity.posx,
-        posY: activity.posy,
-        widthPercent: activity.widthpercent,
-        heightPercent: activity.heightpercent,
-        displayOrder: activity.displayorder,
+        markerLabel: activity.name,
         createdAt: activity.createdat,
         updatedAt: activity.updatedat,
-        imagePath: activity.imagepath,
-        imageUrl: activity.imageurl,
         deadline: activity.deadline ?? null,
         expectedCompletion: activity.deadline ?? null,
       }))

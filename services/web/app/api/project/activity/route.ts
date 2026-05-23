@@ -52,13 +52,11 @@ export async function POST(req: NextRequest) {
     if (body.lat !== undefined && body.lat !== null) insertData.lat = body.lat
     if (body.lng !== undefined && body.lng !== null) insertData.lng = body.lng
     if (body.deadline) insertData.deadline = body.deadline
-    if (body.markerlabel) insertData.markerlabel = body.markerlabel
-
     const { data, error } = await supabase
       .from("activity")
       .insert([insertData])
       .select(
-        "activityid, projectid, name, description, status, progress, lat, lng, markerlabel, deadline"
+        "activityid, projectid, name, description, status, progress, lat, lng, deadline"
       )
       .single()
 
@@ -134,7 +132,7 @@ function mapActivityRow(data: Record<string, unknown>) {
     progress: data.progress ?? 0,
     lat: data.lat != null ? Number(data.lat) : null,
     lng: data.lng != null ? Number(data.lng) : null,
-    markerLabel: data.markerlabel || data.name,
+    markerLabel: data.name as string,
     deadline: data.deadline ?? null,
     expectedCompletion: data.deadline ?? null,
   }

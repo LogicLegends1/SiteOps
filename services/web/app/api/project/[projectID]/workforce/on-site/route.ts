@@ -101,7 +101,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
       if (activityIds.length > 0) {
         const { data: activities, error: activitiesError } = await supabase
           .from("activity")
-          .select("activityid, name, markerlabel")
+          .select("activityid, name")
           .in("activityid", activityIds)
 
         if (activitiesError) {
@@ -124,7 +124,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
       const activity =
         typeof activityId === "number" ? activityById.get(activityId) : undefined
       const activityName = activity
-        ? readString(activity, ["name", "markerlabel"], "Unnamed activity")
+        ? readString(activity, ["name"], "Unnamed activity")
         : null
       const teamName = team ? readString(team, ["teamname"], "") : ""
       const isAvailable = readBoolean(row, ["isavailable", "is_available"], true)

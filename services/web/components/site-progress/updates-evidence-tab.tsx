@@ -256,10 +256,10 @@ function UpdateCard({ entry }: { entry: UpdateEntry }) {
             </div>
           )}
 
-          {/* Images */}
+          {/* Images — all shown horizontally */}
           {entry.images.length > 0 && (
-            <div className="flex gap-2 mt-2.5">
-              {entry.images.slice(0, 3).map((src, idx) => (
+            <div className="flex gap-2 mt-2.5 overflow-x-auto pb-1">
+              {entry.images.map((src, idx) => (
                 <a
                   key={idx}
                   href={src}
@@ -267,14 +267,9 @@ function UpdateCard({ entry }: { entry: UpdateEntry }) {
                   rel="noopener noreferrer"
                   className="w-20 h-14 rounded-lg overflow-hidden border border-border shrink-0 hover:opacity-90 transition-opacity"
                 >
-                  <img src={src} alt="Evidence" className="w-full h-full object-cover" />
+                  <img src={src} alt={`Evidence ${idx + 1}`} className="w-full h-full object-cover" />
                 </a>
               ))}
-              {entry.images.length > 3 && (
-                <div className="w-20 h-14 rounded-lg bg-secondary/40 border border-border flex items-center justify-center text-xs font-medium text-muted-foreground">
-                  +{entry.images.length - 3}
-                </div>
-              )}
             </div>
           )}
 

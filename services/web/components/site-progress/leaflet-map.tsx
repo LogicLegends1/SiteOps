@@ -18,10 +18,12 @@ interface LeafletMapProps {
   project: Project | null
   loading?: boolean
   onActivitySelect: (activity: Activity) => void
+  onViewInTracker?: (activity: Activity) => void
   selectedActivityId?: number
   className?: string
   subtasksByActivity?: Record<number, Subtask[]>
   activityWorkersCache?: Record<number, ActivityWorkersSummary>
+  engineerByActivity?: Record<number, string>
   onViewPeople?: (activity: Activity) => void
 }
 
@@ -57,7 +59,8 @@ function createPinIcon(color: string, isSelected: boolean) {
 function buildTooltipHtml(
   activity: Activity,
   subtasksByActivity?: Record<number, Subtask[]>,
-  activityWorkersCache?: Record<number, ActivityWorkersSummary>
+  activityWorkersCache?: Record<number, ActivityWorkersSummary>,
+  engineerByActivity?: Record<number, string>
 ): string {
   const subtasks = subtasksByActivity?.[activity.zoneID] ?? []
   const progress = subtasks.length > 0 ? calculateProgressFromSubtasks(subtasks) : activity.progress ?? 0
@@ -109,15 +112,28 @@ function buildTooltipHtml(
   const deadlineStr = deadline
     ? new Date(deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : "Not set"
-  const engineer = activity.assignedSupervisor || activity.assignedTeam || "Unassigned"
+  const engineer = engineerByActivity?.[activity.zoneID] || activity.assignedSupervisor || activity.assignedTeam || "Unassigned"
   const zone = activity.markerLabel || "—"
   const issueColor = issues.length > 0 ? "#ef4444" : "#475569"
+  const completedSubtasks = subtasks.filter((s) => s.completed).length
+  const totalSubtasks = subtasks.length
+  const subtasksHtml = totalSubtasks > 0
+    ? `<div style="padding:8px 0 6px;border-top:1px solid rgba(255,255,255,0.07);margin-bottom:8px;">
+        <div style="font-size:11px;color:#64748b;margin-bottom:5px;">Subtasks <span style="color:#94a3b8;">${completedSubtasks}/${totalSubtasks} done</span></div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          ${subtasks.slice(0, 5).map((st) => `
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${st.completed ? '#10b981' : 'rgba(255,255,255,0.1)'};border:1px solid ${st.completed ? '#10b981' : 'rgba(255,255,255,0.25)'};"></span>
+              <span style="font-size:11px;color:${st.completed ? '#64748b' : '#e2e8f0'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:205px;${st.completed ? 'text-decoration:line-through;' : ''}">${st.title}</span>
+            </div>`).join('')}
+          ${subtasks.length > 5 ? `<span style="font-size:10px;color:#64748b;padding-left:14px;">+${subtasks.length - 5} more</span>` : ''}
+        </div>
+      </div>`
+    : ''
 
-  return `<div style="font-family:system-ui,-apple-system,sans-serif;min-width:265px;max-width:290px;color:#f1f5f9;">
+  return `<div style="font-family:system-ui,-apple-system,sans-serif;min-width:265px;max-width:300px;color:#f1f5f9;">
     <div style="margin-bottom:10px;">
       <div style="font-size:14px;font-weight:700;color:#f8fafc;line-height:1.3;margin-bottom:3px;">${activity.name}</div>
-      <div style="font-size:11px;color:#94a3b8;">Zone</div>
-      <div style="font-size:11px;color:#cbd5e1;font-weight:500;">${zone}</div>
     </div>
     <div style="margin-bottom:10px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
@@ -133,10 +149,11 @@ function buildTooltipHtml(
     </div>
     <div style="display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:11px;padding:8px 0;border-top:1px solid rgba(255,255,255,0.07);border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:8px;">
       <span style="color:#64748b;">Planned Finish</span><span style="color:#e2e8f0;">${deadlineStr}</span>
-      <span style="color:#64748b;">Assigned Engineer</span><span style="color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${engineer}</span>
+      <span style="color:#64748b;">Site Engineer</span><span style="color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${engineer}</span>
       <span style="color:#64748b;">Crew Size</span><span style="color:#e2e8f0;">${crewSize} workers</span>
       <span style="color:#64748b;">Equipment</span><span style="color:#e2e8f0;">${equipment}</span>
     </div>
+    ${subtasksHtml}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <span style="font-size:11px;color:#64748b;">Latest Update</span>
       ${lastUpdateHtml}
@@ -148,7 +165,7 @@ function buildTooltipHtml(
         ${issues.length}
       </span>
     </div>
-    <button data-view-activity="${activity.zoneID}" style="width:100%;padding:8px 0;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);border-radius:7px;color:#818cf8;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.01em;">
+    <button data-view-in-tracker="${activity.zoneID}" style="width:100%;padding:8px 0;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);border-radius:7px;color:#818cf8;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.01em;">
       View Activity &rarr;
     </button>
   </div>`
@@ -159,10 +176,12 @@ export function LeafletMap({
   project,
   loading,
   onActivitySelect,
+  onViewInTracker,
   selectedActivityId,
   className,
   subtasksByActivity,
   activityWorkersCache,
+  engineerByActivity,
   onViewPeople,
 }: LeafletMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
@@ -212,7 +231,7 @@ export function LeafletMap({
       const color = isSelected ? SELECTED_MARKER_COLOR : DEFAULT_MARKER_COLOR
       const icon = createPinIcon(color, isSelected)
 
-      const popupHtml = buildTooltipHtml(activity, subtasksByActivity, activityWorkersCache)
+      const popupHtml = buildTooltipHtml(activity, subtasksByActivity, activityWorkersCache, engineerByActivity)
 
       const marker = L.marker([activity.lat, activity.lng], {
         icon,
@@ -292,20 +311,24 @@ export function LeafletMap({
     const container = mapContainerRef.current
 
     function handleViewActivity(e: MouseEvent) {
-      const btn = (e.target as HTMLElement).closest("[data-view-activity]") as HTMLElement | null
+      const btn = (e.target as HTMLElement).closest("[data-view-in-tracker]") as HTMLElement | null
       if (!btn) return
       e.stopPropagation()
-      const zoneId = Number(btn.getAttribute("data-view-activity"))
+      const zoneId = Number(btn.getAttribute("data-view-in-tracker"))
       const activity = activities.find((a) => a.zoneID === zoneId)
       if (activity) {
-        onActivitySelect(activity)
+        if (onViewInTracker) {
+          onViewInTracker(activity)
+        } else {
+          onActivitySelect(activity)
+        }
         mapRef.current?.closePopup()
       }
     }
 
     container.addEventListener("click", handleViewActivity, true)
     return () => container.removeEventListener("click", handleViewActivity, true)
-  }, [activities, onActivitySelect])
+  }, [activities, onActivitySelect, onViewInTracker])
 
   useEffect(() => {
     const handlePopupMouseEnter = (e: MouseEvent) => {

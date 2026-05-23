@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { type Activity, type ActivityStatus } from "@/lib/site-data"
 import {
   type Subtask,
@@ -36,6 +36,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SubtaskProgressModal } from "@/components/site-progress/subtask-progress-modal"
 
+interface WorkerSummary {
+  id: number
+  name: string
+  role: string
+}
+
 interface LinearActivitiesBoardProps {
   activities: Activity[]
   subtasksByActivity: Record<number, Subtask[]>
@@ -46,23 +52,11 @@ interface LinearActivitiesBoardProps {
   onToggleSubtask?: (activityId: number, subtaskId: string) => void
   onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string, evidencePhotoUrl?: string) => void
   selectedActivityId?: number
+  activityWorkersDetail?: Record<number, WorkerSummary[]>
 }
 
 type FilterType = "all" | "on-track" | "behind" | "completed"
 
-const ZONE_COLORS: Record<string, string> = {
-  "Zone A": "bg-indigo-500/15 text-indigo-400 border-indigo-500/30",
-  "Zone B": "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  "Zone C": "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  "Zone D": "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  "Zone E": "bg-purple-500/15 text-purple-400 border-purple-500/30",
-}
-function getZoneClass(zone: string): string {
-  for (const [key, cls] of Object.entries(ZONE_COLORS)) {
-    if (zone.includes(key)) return cls
-  }
-  return "bg-secondary text-muted-foreground border-border"
-}
 
 function getStatusIcon(status: ActivityStatus) {
   switch (status) {
@@ -91,40 +85,12 @@ function formatDateShort(isoDate: string): string {
   })
 }
 
-function getCurrentStep(subtasks: Subtask[]): string {
-  if (!subtasks.length) return "â€“"
-  const firstIncomplete = subtasks.find((s) => !s.completed)
-  if (!firstIncomplete) return "All Done"
-  const idx = subtasks.findIndex((s) => s.id === firstIncomplete.id) + 1
-  const title =
-    firstIncomplete.title.length > 18
-      ? firstIncomplete.title.slice(0, 18) + "â€¦"
-      : firstIncomplete.title
-  return `${title} (${idx}/${subtasks.length})`
-}
-
 function getLastUpdate(subtasks: Subtask[]): Date | null {
   const allUpdates = subtasks.flatMap((s) => s.updates)
   if (!allUpdates.length) return null
   return new Date(Math.max(...allUpdates.map((u) => new Date(u.updatedAt).getTime())))
 }
 
-function getActualFinishInfo(activity: Activity): { label: string; isDelayed: boolean } {
-  const deadline = activity.deadline || activity.expectedCompletion
-  if (!deadline) return { label: "â€“", isDelayed: false }
-  if (activity.progress === 100 || activity.status === "COMPLETED") {
-    return { label: formatDateShort(deadline), isDelayed: false }
-  }
-  const deadlineDate = new Date(deadline)
-  const today = new Date()
-  if (deadlineDate < today) {
-    const daysLate = Math.ceil(
-      (today.getTime() - deadlineDate.getTime()) / (1000 * 60 * 60 * 24)
-    )
-    return { label: `${formatDateShort(deadline)} Â· ${daysLate}d late`, isDelayed: true }
-  }
-  return { label: "â€“", isDelayed: false }
-}
 
 // â”€â”€â”€ Table column grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -160,23 +126,20 @@ function getDummyCrewInitials(activity: Activity): { initial: string; color: str
 }
 
 const COL_GRID =
-  "grid-cols-[28px_minmax(150px,1fr)_75px_145px_118px_94px_118px_110px_88px_82px_52px_98px_36px]"
+  "grid-cols-[28px_minmax(160px,1fr)_140px_100px_120px_90px_88px_52px_98px_36px]"
 
 function TableHeader() {
   return (
     <div
       className={cn(
-        "grid items-center gap-3 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border bg-secondary/20 shrink-0 min-w-[1260px]",
+        "grid items-center gap-3 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border bg-secondary/20 shrink-0 min-w-[960px]",
         COL_GRID
       )}
     >
       <span />
       <span>Activity</span>
-      <span>Zone</span>
-      <span>Current Step</span>
       <span>Progress</span>
       <span>Planned Finish</span>
-      <span>Actual / Delay</span>
       <span>Engineer</span>
       <span>Crew</span>
       <span>Equipment</span>
@@ -187,24 +150,20 @@ function TableHeader() {
   )
 }
 
-// â”€â”€â”€ Activity Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 function ActivityRow({
   activity,
   subtasks,
-  isSelected,
-  onSelect,
   onViewOnMap,
   onStatusChange,
   onToggleSubtask,
   onSubtaskUpdate,
   isExpanded,
   onToggleExpand,
+  workers,
+  isSelected,
 }: {
   activity: Activity
   subtasks: Subtask[]
-  isSelected: boolean
-  onSelect: () => void
   onViewOnMap: () => void
   onStatusChange?: (activityId: number, newStatus: ActivityStatus) => void
   onToggleSubtask?: (activityId: number, subtaskId: string) => void
@@ -216,6 +175,8 @@ function ActivityRow({
   ) => void
   isExpanded: boolean
   onToggleExpand: () => void
+  workers?: WorkerSummary[]
+  isSelected?: boolean
 }) {
   const progress =
     subtasks.length > 0
@@ -223,26 +184,27 @@ function ActivityRow({
       : activity.progress ?? 0
   const track = getTrackLabelFromSubtasks(subtasks)
   const issues = getIssuesByActivityId(activity.zoneID)
-  const currentStep = getCurrentStep(subtasks)
   const lastUpdated = getLastUpdate(subtasks)
-  const { label: actualLabel, isDelayed } = getActualFinishInfo(activity)
-  const zone = activity.markerLabel || "â€“"
   const deadline = activity.deadline || activity.expectedCompletion
+  const isDelayed = !!deadline && progress < 100 && new Date(deadline) < new Date()
+
+  const engineerWorker = workers?.find((w) => w.role === "engineer")
+  const engineerName = engineerWorker?.name || activity.assignedSupervisor
+  const crewCount = workers?.length ?? null
 
   return (
     <div
+      id={`activity-row-${activity.zoneID}`}
       className={cn(
-        "group/row border-b border-border/50 last:border-0 min-w-[1260px]",
-        isSelected && "bg-primary/5"
+        "group/row border-b border-border/50 last:border-0 min-w-[960px]",
+        isSelected && "bg-primary/5 border-l-2 border-primary"
       )}
     >
       <div
         className={cn(
-          "grid items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors",
-          COL_GRID,
-          isSelected ? "bg-primary/10" : "hover:bg-secondary/20"
+          "grid items-center gap-3 px-3 py-2.5 transition-colors hover:bg-secondary/20",
+          COL_GRID
         )}
-        onClick={onSelect}
       >
         {/* Expand chevron */}
         <button
@@ -264,12 +226,7 @@ function ActivityRow({
         <div className="flex items-center gap-2 min-w-0">
           {getStatusIcon(activity.status)}
           <div className="min-w-0">
-            <p
-              className={cn(
-                "text-sm font-medium truncate leading-tight",
-                isSelected ? "text-primary" : "text-foreground"
-              )}
-            >
+            <p className="text-sm font-medium truncate leading-tight text-foreground">
               {activity.name}
             </p>
             <p className="text-[10px] text-muted-foreground/60 font-mono mt-0.5">
@@ -285,16 +242,6 @@ function ActivityRow({
             </Badge>
           )}
         </div>
-
-        {/* Zone badge */}
-        <div>
-          <Badge variant="outline" className={cn("text-[10px] h-5 px-2", getZoneClass(zone))}>
-            {zone}
-          </Badge>
-        </div>
-
-        {/* Current Step */}
-        <span className="text-xs text-muted-foreground truncate">{currentStep}</span>
 
         {/* Progress */}
         <div className="flex items-center gap-2">
@@ -317,26 +264,16 @@ function ActivityRow({
 
         {/* Planned Finish */}
         <span className="text-xs text-muted-foreground">
-          {deadline ? formatDateShort(deadline) : "â€“"}
-        </span>
-
-        {/* Actual / Delay */}
-        <span
-          className={cn(
-            "text-xs truncate",
-            isDelayed ? "text-destructive font-medium" : "text-muted-foreground"
-          )}
-        >
-          {actualLabel}
+          {deadline ? formatDateShort(deadline) : "\u2013"}
         </span>
 
         {/* Engineer */}
         <div className="flex items-center gap-1.5 min-w-0">
-          {activity.assignedSupervisor ? (
+          {engineerName ? (
             <>
               <div className="w-5 h-5 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
                 <span className="text-[9px] font-bold text-primary">
-                  {activity.assignedSupervisor
+                  {engineerName
                     .split(" ")
                     .map((n: string) => n[0])
                     .join("")
@@ -345,7 +282,7 @@ function ActivityRow({
                 </span>
               </div>
               <span className="text-xs text-muted-foreground truncate">
-                {activity.assignedSupervisor}
+                {engineerName}
               </span>
             </>
           ) : (
@@ -353,22 +290,16 @@ function ActivityRow({
           )}
         </div>
 
-        {/* Crew */}
-        <div className="flex items-center gap-1.5 min-w-0">
-          <div className="flex -space-x-1.5">
-            {getDummyCrewInitials(activity).map(({ initial, color }, i) => (
-              <div
-                key={i}
-                className="w-4 h-4 rounded-full border border-background text-[7px] font-bold flex items-center justify-center shrink-0"
-                style={{ background: color, color: "#fff", zIndex: 3 - i }}
-              >
-                {initial}
-              </div>
-            ))}
-          </div>
-          <span className="text-[10px] text-muted-foreground truncate">
-            {activity.assignedTeam || "Crew A"}
-          </span>
+        {/* Crew — just the headcount */}
+        <div className="flex items-center gap-1 min-w-0">
+          {crewCount !== null ? (
+            <>
+              <span className="text-sm font-semibold text-foreground">{crewCount}</span>
+              <span className="text-[10px] text-muted-foreground">workers</span>
+            </>
+          ) : (
+            <span className="text-xs text-muted-foreground">&ndash;</span>
+          )}
         </div>
 
         {/* Equipment */}
@@ -392,7 +323,7 @@ function ActivityRow({
         <span className="text-[10px] text-muted-foreground">
           {lastUpdated
             ? lastUpdated.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-            : "â€“"}
+            : "\u2013"}
         </span>
 
         {/* Actions */}
@@ -502,94 +433,6 @@ function ActivityRow({
   )
 }
 
-// â”€â”€â”€ Zone Group â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function ZoneGroup({
-  zone,
-  activities,
-  subtasksByActivity,
-  selectedActivityId,
-  onActivitySelect,
-  onViewOnMap,
-  onStatusChange,
-  onToggleSubtask,
-  onSubtaskUpdate,
-  expandedActivities,
-  toggleExpanded,
-}: {
-  zone: string
-  activities: Activity[]
-  subtasksByActivity: Record<number, Subtask[]>
-  selectedActivityId?: number
-  onActivitySelect: (activity: Activity) => void
-  onViewOnMap: (activity: Activity) => void
-  onStatusChange?: (activityId: number, newStatus: ActivityStatus) => void
-  onToggleSubtask?: (activityId: number, subtaskId: string) => void
-  onSubtaskUpdate?: (
-    activityId: number,
-    subtaskId: string,
-    description: string,
-    evidencePhotoUrl?: string
-  ) => void
-  expandedActivities: Set<number>
-  toggleExpanded: (id: number) => void
-}) {
-  const [collapsed, setCollapsed] = useState(false)
-
-  const avgProgress = Math.round(
-    activities.reduce((sum, a) => {
-      const subtasks = subtasksByActivity[a.zoneID] ?? []
-      return sum + (subtasks.length > 0 ? calculateProgressFromSubtasks(subtasks) : a.progress ?? 0)
-    }, 0) / Math.max(activities.length, 1)
-  )
-
-  const delayedCount = activities.filter((a) => {
-    const subtasks = subtasksByActivity[a.zoneID] ?? []
-    return getTrackLabelFromSubtasks(subtasks) === "Behind"
-  }).length
-
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setCollapsed(!collapsed)}
-        className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/30 transition-colors text-left border-b border-border/50 min-w-[1080px] bg-secondary/10"
-      >
-        {collapsed ? (
-          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        ) : (
-          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        )}
-        <span className="text-sm font-semibold text-foreground">{zone}</span>
-        <span className="text-xs text-muted-foreground ml-1">
-          {activities.length} activit{activities.length !== 1 ? "ies" : "y"} Â· {avgProgress}% avg
-          {delayedCount > 0 && (
-            <> Â· <span className="text-destructive">{delayedCount} delayed</span></>
-          )}
-        </span>
-      </button>
-      {!collapsed &&
-        activities.map((activity) => (
-          <ActivityRow
-            key={activity.zoneID}
-            activity={activity}
-            subtasks={subtasksByActivity[activity.zoneID] ?? []}
-            isSelected={selectedActivityId === activity.zoneID}
-            onSelect={() => onActivitySelect(activity)}
-            onViewOnMap={() => onViewOnMap(activity)}
-            onStatusChange={onStatusChange}
-            onToggleSubtask={onToggleSubtask}
-            onSubtaskUpdate={onSubtaskUpdate}
-            isExpanded={expandedActivities.has(activity.zoneID)}
-            onToggleExpand={() => toggleExpanded(activity.zoneID)}
-          />
-        ))}
-    </div>
-  )
-}
-
-// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 export function LinearActivitiesBoard({
   activities,
   subtasksByActivity,
@@ -600,10 +443,24 @@ export function LinearActivitiesBoard({
   onToggleSubtask,
   onSubtaskUpdate,
   selectedActivityId,
+  activityWorkersDetail,
 }: LinearActivitiesBoardProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [filter, setFilter] = useState<FilterType>("all")
   const [expandedActivities, setExpandedActivities] = useState<Set<number>>(new Set())
+
+  useEffect(() => {
+    if (selectedActivityId == null) return
+    setExpandedActivities((prev) => {
+      const next = new Set(prev)
+      next.add(selectedActivityId)
+      return next
+    })
+    setTimeout(() => {
+      const el = document.getElementById(`activity-row-${selectedActivityId}`)
+      el?.scrollIntoView({ behavior: "smooth", block: "center" })
+    }, 50)
+  }, [selectedActivityId])
 
   const toggleExpanded = (id: number) => {
     setExpandedActivities((prev) => {
@@ -645,16 +502,6 @@ export function LinearActivitiesBoard({
     }
     return result
   }, [activities, subtasksByActivity, searchQuery, filter])
-
-  const zoneGroups = useMemo(() => {
-    const groups: Record<string, Activity[]> = {}
-    for (const activity of filteredActivities) {
-      const zone = activity.markerLabel || "Uncategorized"
-      if (!groups[zone]) groups[zone] = []
-      groups[zone].push(activity)
-    }
-    return groups
-  }, [filteredActivities])
 
   return (
     <div className="flex flex-col h-full bg-card rounded-none overflow-hidden">
@@ -712,20 +559,19 @@ export function LinearActivitiesBoard({
             </p>
           </div>
         ) : (
-          Object.entries(zoneGroups).map(([zone, acts]) => (
-            <ZoneGroup
-              key={zone}
-              zone={zone}
-              activities={acts}
-              subtasksByActivity={subtasksByActivity}
-              selectedActivityId={selectedActivityId}
-              onActivitySelect={onActivitySelect}
-              onViewOnMap={onViewOnMap}
+          filteredActivities.map((activity) => (
+            <ActivityRow
+              key={activity.zoneID}
+              activity={activity}
+              subtasks={subtasksByActivity[activity.zoneID] ?? []}
+              onViewOnMap={() => onViewOnMap(activity)}
               onStatusChange={onStatusChange}
               onToggleSubtask={onToggleSubtask}
               onSubtaskUpdate={onSubtaskUpdate}
-              expandedActivities={expandedActivities}
-              toggleExpanded={toggleExpanded}
+              isExpanded={expandedActivities.has(activity.zoneID)}
+              onToggleExpand={() => toggleExpanded(activity.zoneID)}
+              workers={activityWorkersDetail?.[activity.zoneID]}
+              isSelected={selectedActivityId === activity.zoneID}
             />
           ))
         )}
@@ -734,7 +580,7 @@ export function LinearActivitiesBoard({
       {/* Footer */}
       <div className="flex items-center justify-between px-4 py-2.5 border-t border-border text-[11px] text-muted-foreground shrink-0">
         <span>{filteredActivities.length} of {activities.length} activities</span>
-        <span>Grouped by zone</span>
+        <span>{filteredActivities.length} shown</span>
       </div>
     </div>
   )

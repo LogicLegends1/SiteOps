@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import dynamic from "next/dynamic"
 import { useParams } from "next/navigation"
 import { ActivityDetailsPanel } from "@/components/site-progress/activity-details-panel"
@@ -64,6 +64,15 @@ export default function ActivityProgressPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [activityWorkersCache, setActivityWorkersCache] = useState<Record<number, ActivityWorkersSummary>>({})
   const [activityWorkersDetail, setActivityWorkersDetail] = useState<Record<number, ActivityWorkerDetail[]>>({})
+
+  const engineerByActivity = useMemo(() => {
+    const map: Record<number, string> = {}
+    for (const [actId, workers] of Object.entries(activityWorkersDetail)) {
+      const eng = workers.find((w) => w.role === "engineer")
+      if (eng) map[Number(actId)] = eng.name
+    }
+    return map
+  }, [activityWorkersDetail])
   const [detailsTab, setDetailsTab] = useState<string | undefined>(undefined)
 
   async function fetchSubtasks() {
@@ -327,9 +336,14 @@ export default function ActivityProgressPage() {
                   setSelectedActivity(a)
                   setDetailsTab(undefined)
                 }}
+                onViewInTracker={(a) => {
+                  setSelectedActivity(a)
+                  setActiveTab("activity-tracker")
+                }}
                 selectedActivityId={selectedActivity?.zoneID}
                 subtasksByActivity={subtasksByActivity}
                 activityWorkersCache={activityWorkersCache}
+                engineerByActivity={engineerByActivity}
                 onViewPeople={(a) => {
                   setSelectedActivity(a)
                   setDetailsTab("people")
@@ -343,29 +357,24 @@ export default function ActivityProgressPage() {
 
         {/* Activity Tracker */}
         <TabsContent value="activity-tracker" className="mt-4">
-          <div className="flex h-[calc(100vh-220px)] min-h-[500px] rounded-xl border border-border overflow-hidden">
-            <div className="flex-1 min-w-0">
-              <LinearActivitiesBoard
-                activities={activities}
-                subtasksByActivity={subtasksByActivity}
-                onActivitySelect={(activity) => {
-                  setSelectedActivity(activity)
-                  setDetailsTab(undefined)
-                }}
-                onViewOnMap={(activity) => {
-                  setSelectedActivity(activity)
-                  setActiveTab("map-view")
-                }}
-                onAddActivity={() => setShowAddModal(true)}
-                onStatusChange={handleStatusChange}
-                onToggleSubtask={handleToggleSubtask}
-                onSubtaskUpdate={(activityId, subtaskId, description, evidencePhotoUrl) =>
-                  handleSubtaskUpdate(activityId, subtaskId, description, evidencePhotoUrl)
-                }
-                selectedActivityId={selectedActivity?.zoneID}
-              />
-            </div>
-            {sidePanel}
+          <div className="h-[calc(100vh-220px)] min-h-[500px] rounded-xl border border-border overflow-hidden">
+            <LinearActivitiesBoard
+              activities={activities}
+              subtasksByActivity={subtasksByActivity}
+              onActivitySelect={() => {}}
+              selectedActivityId={selectedActivity?.zoneID}
+              activityWorkersDetail={activityWorkersDetail}
+              onViewOnMap={(activity) => {
+                setSelectedActivity(activity)
+                setActiveTab("map-view")
+              }}
+              onAddActivity={() => setShowAddModal(true)}
+              onStatusChange={handleStatusChange}
+              onToggleSubtask={handleToggleSubtask}
+              onSubtaskUpdate={(activityId, subtaskId, description, evidencePhotoUrl) =>
+                handleSubtaskUpdate(activityId, subtaskId, description, evidencePhotoUrl)
+              }
+            />
           </div>
         </TabsContent>
 
