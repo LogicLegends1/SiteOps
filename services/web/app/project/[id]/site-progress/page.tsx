@@ -10,8 +10,19 @@ import { AddActivityModal } from "@/components/site-progress/add-activity-modal"
 import { type Activity, type ActivityStatus, type Project } from "@/lib/site-data"
 import { type Subtask, calculateProgressFromSubtasks } from "@/lib/subtasks-data"
 import type { OnSiteMember } from "@/lib/site-team-types"
+import type { ActivityWorkersSummary } from "@/components/site-progress/leaflet-map"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MapPin, LayoutList } from "lucide-react"
+
+export interface ActivityWorkerDetail {
+  id: number
+  name: string
+  role: string
+  discipline: string
+  experience: number
+  teamName: string | null
+  isAvailable: boolean
+}
 
 const MAP_HEIGHT = "h-[560px]"
 
@@ -54,6 +65,9 @@ export default function ActivityProgressPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("site-overview")
   const [showAddModal, setShowAddModal] = useState(false)
+  const [activityWorkersCache, setActivityWorkersCache] = useState<Record<number, ActivityWorkersSummary>>({})
+  const [activityWorkersDetail, setActivityWorkersDetail] = useState<Record<number, ActivityWorkerDetail[]>>({})
+  const [detailsTab, setDetailsTab] = useState<string | undefined>(undefined)
 
   async function fetchSubtasks() {
     try {
@@ -83,6 +97,28 @@ export default function ActivityProgressPage() {
     }
   }
 
+  async function fetchAllActivityWorkers(zones: Activity[]) {
+    const summaryCache: Record<number, ActivityWorkersSummary> = {}
+    const detailCache: Record<number, ActivityWorkerDetail[]> = {}
+
+    await Promise.all(
+      zones.map(async (activity) => {
+        try {
+          const res = await fetch(`/api/project/${projectId}/activity/${activity.zoneID}/workers`, { cache: "no-store" })
+          if (!res.ok) return
+          const data = await res.json()
+          summaryCache[activity.zoneID] = { roleCounts: data.roleCounts ?? {}, total: data.total ?? 0 }
+          detailCache[activity.zoneID] = data.workers ?? []
+        } catch {
+          // silently skip
+        }
+      })
+    )
+
+    setActivityWorkersCache(summaryCache)
+    setActivityWorkersDetail(detailCache)
+  }
+
   async function fetchProjectAndActivities() {
     try {
       setLoading(true)
@@ -104,6 +140,9 @@ export default function ActivityProgressPage() {
       setActivities(zones)
 
       await Promise.all([fetchSubtasks(), fetchTeamOnSite()])
+
+      // Fetch workers for all activities
+      fetchAllActivityWorkers(zones)
 
       if (selectedActivity) {
         const updated = zones.find((a) => a.zoneID === selectedActivity.zoneID)
@@ -274,7 +313,7 @@ export default function ActivityProgressPage() {
                   Site Map
                 </h3>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Hover over markers to see activity details · Click to select
+                  Click a marker to view activity details
                 </p>
               </div>
               <span className="text-[10px] text-muted-foreground">
@@ -286,36 +325,52 @@ export default function ActivityProgressPage() {
                 activities={activities}
                 project={project}
                 loading={loading}
-                onActivitySelect={setSelectedActivity}
+                onActivitySelect={(a) => {
+                  setSelectedActivity(a)
+                  setDetailsTab(undefined)
+                }}
                 selectedActivityId={selectedActivity?.zoneID}
                 subtasksByActivity={subtasksByActivity}
+                activityWorkersCache={activityWorkersCache}
+                onViewPeople={(a) => {
+                  setSelectedActivity(a)
+                  setDetailsTab("people")
+                  // Scroll to the details panel
+                  setTimeout(() => {
+                    document.getElementById("activity-details-panel")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }, 100)
+                }}
                 className="h-full rounded-none border-0"
               />
             </div>
           </div>
 
           {/* Activity details panel below the map */}
-          <ActivityDetailsPanel
-            activity={selectedActivity}
-            subtasks={selectedSubtasks}
-            progressPercent={
-              selectedActivity ? calculateProgressFromSubtasks(selectedSubtasks) : 0
-            }
-            onToggleSubtask={(subtaskId) => {
-              if (selectedActivity) handleToggleSubtask(selectedActivity.zoneID, subtaskId)
-            }}
-            onSubtaskUpdate={(subtaskId, description, evidencePhotoUrl) => {
-              if (selectedActivity) {
-                handleSubtaskUpdate(
-                  selectedActivity.zoneID,
-                  subtaskId,
-                  description,
-                  evidencePhotoUrl
-                )
+          <div id="activity-details-panel">
+            <ActivityDetailsPanel
+              activity={selectedActivity}
+              subtasks={selectedSubtasks}
+              progressPercent={
+                selectedActivity ? calculateProgressFromSubtasks(selectedSubtasks) : 0
               }
-            }}
-            onUpdateSubmitted={fetchProjectAndActivities}
-          />
+              onToggleSubtask={(subtaskId) => {
+                if (selectedActivity) handleToggleSubtask(selectedActivity.zoneID, subtaskId)
+              }}
+              onSubtaskUpdate={(subtaskId, description, evidencePhotoUrl) => {
+                if (selectedActivity) {
+                  handleSubtaskUpdate(
+                    selectedActivity.zoneID,
+                    subtaskId,
+                    description,
+                    evidencePhotoUrl
+                  )
+                }
+              }}
+              onUpdateSubmitted={fetchProjectAndActivities}
+              activityWorkers={selectedActivity ? activityWorkersDetail[selectedActivity.zoneID] ?? [] : []}
+              initialTab={detailsTab}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="activities" className="mt-4">
@@ -325,10 +380,17 @@ export default function ActivityProgressPage() {
               subtasksByActivity={subtasksByActivity}
               onActivitySelect={(activity) => {
                 setSelectedActivity(activity)
+              }}
+              onViewOnMap={(activity) => {
+                setSelectedActivity(activity)
                 setActiveTab("site-overview")
               }}
               onAddActivity={() => setShowAddModal(true)}
               onStatusChange={handleStatusChange}
+              onToggleSubtask={handleToggleSubtask}
+              onSubtaskUpdate={(activityId, subtaskId, description) => {
+                handleSubtaskUpdate(activityId, subtaskId, description)
+              }}
               selectedActivityId={selectedActivity?.zoneID}
             />
           </div>

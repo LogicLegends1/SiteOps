@@ -8,6 +8,11 @@ import { type Subtask, calculateProgressFromSubtasks, getSubtaskCounts, getTrack
 import { getIssuesByActivityId } from "@/lib/issues-data"
 import { cn } from "@/lib/utils"
 
+export interface ActivityWorkersSummary {
+  roleCounts: Record<string, number>
+  total: number
+}
+
 interface LeafletMapProps {
   activities: Activity[]
   project: Project | null
@@ -16,10 +21,16 @@ interface LeafletMapProps {
   selectedActivityId?: number
   className?: string
   subtasksByActivity?: Record<number, Subtask[]>
+  activityWorkersCache?: Record<number, ActivityWorkersSummary>
+  onViewPeople?: (activity: Activity) => void
 }
 
 const DEFAULT_MARKER_COLOR = "#EA4335"
 const SELECTED_MARKER_COLOR = "#1a73e8"
+
+function capitalizeRole(role: string): string {
+  return role.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
 
 function createGooglePinSvg(color: string, isSelected: boolean) {
   const size = isSelected ? 40 : 32
@@ -42,9 +53,10 @@ function createPinIcon(color: string, isSelected: boolean) {
   })
 }
 
-function buildRichTooltip(
+function buildPopupContent(
   activity: Activity,
-  subtasksByActivity?: Record<number, Subtask[]>
+  subtasksByActivity?: Record<number, Subtask[]>,
+  activityWorkersCache?: Record<number, ActivityWorkersSummary>
 ): string {
   const subtasks = subtasksByActivity?.[activity.zoneID] ?? []
   const progress = subtasks.length > 0 ? calculateProgressFromSubtasks(subtasks) : activity.progress ?? 0
@@ -58,26 +70,39 @@ function buildRichTooltip(
 
   let subtaskHtml = ""
   if (subtasks.length > 0) {
-    const shown = subtasks.slice(0, 4)
     subtaskHtml = `<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;">
       <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Subtasks (${completed}/${total})</div>
-      ${shown.map((s) => `<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:11px;">
+      ${subtasks.map((s) => `<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:11px;">
         <span style="width:8px;height:8px;border-radius:50%;border:1.5px solid ${s.completed ? "#10b981" : "#64748b"};background:${s.completed ? "#10b981" : "transparent"};flex-shrink:0;"></span>
-        <span style="color:${s.completed ? "#64748b" : "#e2e8f0"};${s.completed ? "text-decoration:line-through;" : ""}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;">${s.title}</span>
+        <span style="color:${s.completed ? "#64748b" : "#e2e8f0"};${s.completed ? "text-decoration:line-through;" : ""}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;">${s.title}</span>
       </div>`).join("")}
-      ${subtasks.length > 4 ? `<div style="font-size:10px;color:#64748b;margin-top:3px;">+${subtasks.length - 4} more</div>` : ""}
     </div>`
   }
 
   let issuesHtml = ""
   if (issues.length > 0) {
-    issuesHtml = `<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;">
-      <div style="font-size:10px;color:#f59e0b;font-weight:600;margin-bottom:3px;">⚠ ${issues.length} Issue${issues.length > 1 ? "s" : ""}</div>
-      ${issues.slice(0, 2).map((i) => `<div style="font-size:10px;color:#fbbf24;padding:1px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">• ${i.title}</div>`).join("")}
+    issuesHtml = `<div style="margin-top:6px;display:flex;align-items:center;gap:5px;font-size:10px;color:#f59e0b;">
+      <span style="font-weight:600;">⚠ ${issues.length} Issue${issues.length > 1 ? "s" : ""}</span>
     </div>`
   }
 
-  return `<div style="font-family:system-ui,-apple-system,sans-serif;min-width:180px;max-width:240px;padding:0;">
+  let peopleHtml = ""
+  const activityWorkers = activityWorkersCache?.[activity.zoneID]
+  if (activityWorkers && activityWorkers.total > 0) {
+    const rolePills = Object.entries(activityWorkers.roleCounts)
+      .map(([role, count]) => `<div style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(129,140,248,0.08);border:1px solid rgba(129,140,248,0.15);border-radius:6px;">
+        <span style="font-size:10px;color:#c7d2fe;">${capitalizeRole(role)}</span>
+        <span style="font-size:11px;font-weight:700;color:#818cf8;">${count}</span>
+      </div>`)
+      .join("")
+    peopleHtml = `<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;">
+      <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">People (${activityWorkers.total})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${rolePills}</div>
+      <button data-view-people="${activity.zoneID}" style="width:100%;padding:5px 10px;background:rgba(129,140,248,0.15);border:1px solid rgba(129,140,248,0.3);border-radius:6px;color:#818cf8;font-size:10px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">View Full Team</button>
+    </div>`
+  }
+
+  return `<div style="font-family:system-ui,-apple-system,sans-serif;min-width:200px;max-width:280px;padding:0;">
     <div style="font-size:13px;font-weight:700;color:#f8fafc;margin-bottom:4px;line-height:1.3;">${activity.name}</div>
     <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${activity.description || activity.activity || ""}</div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -90,8 +115,9 @@ function buildRichTooltip(
       <span style="width:6px;height:6px;border-radius:50%;background:${trackColor};"></span>
       ${track}
     </div>
-    ${subtaskHtml}
     ${issuesHtml}
+    ${peopleHtml}
+    ${subtaskHtml}
   </div>`
 }
 
@@ -103,6 +129,8 @@ export function LeafletMap({
   selectedActivityId,
   className,
   subtasksByActivity,
+  activityWorkersCache,
+  onViewPeople,
 }: LeafletMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -122,7 +150,7 @@ export function LeafletMap({
     const map = L.map(mapContainerRef.current, {
       zoomControl: true,
       attributionControl: false,
-    }).setView(mapCenter, 13)
+    }).setView(mapCenter, 16)
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -150,32 +178,35 @@ export function LeafletMap({
       const color = isSelected ? SELECTED_MARKER_COLOR : DEFAULT_MARKER_COLOR
       const icon = createPinIcon(color, isSelected)
 
-      const tooltipContent = buildRichTooltip(activity, subtasksByActivity)
+      const popupContent = buildPopupContent(activity, subtasksByActivity, activityWorkersCache)
 
       const marker = L.marker([activity.lat, activity.lng], {
         icon,
         title: activity.name,
         zIndexOffset: isSelected ? 1000 : 0,
       })
-        .bindTooltip(tooltipContent, {
-          permanent: false,
-          direction: "top",
-          offset: [0, -36],
-          className: "site-rich-tooltip",
-          opacity: 1,
+        .bindPopup(popupContent, {
+          className: "site-rich-popup",
+          closeButton: true,
+          maxWidth: 300,
+          minWidth: 220,
+          autoPan: true,
+          autoPanPadding: L.point(40, 40),
         })
-        .on("click", () => onActivitySelect(activity))
+        .on("click", () => {
+          onActivitySelect(activity)
+        })
         .addTo(mapRef.current!)
 
       markersRef.current.set(activity.zoneID, marker)
     })
-  }, [activities, selectedActivityId, onActivitySelect, subtasksByActivity])
+  }, [activities, selectedActivityId, onActivitySelect, subtasksByActivity, activityWorkersCache])
 
   useEffect(() => {
     if (!mapRef.current || markersRef.current.size === 0) return
     const markers = Array.from(markersRef.current.values())
     const group = new L.FeatureGroup(markers)
-    mapRef.current.fitBounds(group.getBounds(), { padding: [36, 36], maxZoom: 15 })
+    mapRef.current.fitBounds(group.getBounds(), { padding: [50, 50], maxZoom: 17 })
   }, [activities])
 
   useEffect(() => {
@@ -184,6 +215,8 @@ export function LeafletMap({
     if (!marker) return
     const latlng = marker.getLatLng()
     mapRef.current.panTo(latlng, { animate: true })
+    // Open popup for the selected marker
+    setTimeout(() => marker.openPopup(), 50)
   }, [selectedActivityId])
 
   useEffect(() => {
@@ -192,25 +225,61 @@ export function LeafletMap({
   }, [className])
 
   useEffect(() => {
+    if (!mapContainerRef.current || !onViewPeople) return
+    const container = mapContainerRef.current
+
+    function handleClick(e: MouseEvent) {
+      const btn = (e.target as HTMLElement).closest("[data-view-people]") as HTMLElement | null
+      if (!btn) return
+      e.stopPropagation()
+      const zoneId = Number(btn.getAttribute("data-view-people"))
+      const activity = activities.find((a) => a.zoneID === zoneId)
+      if (activity && onViewPeople) {
+        onViewPeople(activity)
+      }
+    }
+
+    container.addEventListener("click", handleClick, true)
+    return () => container.removeEventListener("click", handleClick, true)
+  }, [activities, onViewPeople])
+
+  useEffect(() => {
     const id = "site-progress-leaflet-styles"
     if (document.getElementById(id)) return
     const style = document.createElement("style")
     style.id = id
     style.textContent = `
       .site-progress-gmap-marker { background: transparent !important; border: none !important; }
-      .site-rich-tooltip {
+      .site-rich-popup {
         background: rgba(15,23,42,0.96) !important;
         border: 1px solid rgba(51,65,85,0.8) !important;
         border-radius: 10px !important;
-        padding: 12px 14px !important;
         box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3) !important;
         backdrop-filter: blur(8px) !important;
       }
-      .site-rich-tooltip::before {
-        border-top-color: rgba(15,23,42,0.96) !important;
+      .site-rich-popup .leaflet-popup-content-wrapper {
+        background: transparent !important;
+        border-radius: 10px !important;
+        box-shadow: none !important;
+        padding: 0 !important;
       }
-      .leaflet-tooltip-top.site-rich-tooltip::before {
-        border-top-color: rgba(15,23,42,0.96) !important;
+      .site-rich-popup .leaflet-popup-content {
+        margin: 12px 14px !important;
+        color: #f8fafc !important;
+        font-family: system-ui, -apple-system, sans-serif !important;
+      }
+      .site-rich-popup .leaflet-popup-tip {
+        background: rgba(15,23,42,0.96) !important;
+        border: 1px solid rgba(51,65,85,0.8) !important;
+        box-shadow: none !important;
+      }
+      .site-rich-popup .leaflet-popup-close-button {
+        color: #94a3b8 !important;
+        font-size: 18px !important;
+        padding: 6px 8px !important;
+      }
+      .site-rich-popup .leaflet-popup-close-button:hover {
+        color: #f8fafc !important;
       }
     `
     document.head.appendChild(style)

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import {
   Plus,
@@ -28,6 +29,10 @@ import {
   Calendar,
   MoreHorizontal,
   ListTodo,
+  MapPin,
+  MessageSquarePlus,
+  Send,
+  X,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -41,8 +46,11 @@ interface LinearActivitiesBoardProps {
   activities: Activity[]
   subtasksByActivity: Record<number, Subtask[]>
   onActivitySelect: (activity: Activity) => void
+  onViewOnMap: (activity: Activity) => void
   onAddActivity: () => void
   onStatusChange?: (activityId: number, newStatus: ActivityStatus) => void
+  onToggleSubtask?: (activityId: number, subtaskId: string) => void
+  onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string) => void
   selectedActivityId?: number
 }
 
@@ -83,13 +91,72 @@ function getStatusOrder(status: ActivityStatus): number {
   }
 }
 
+function SubtaskUpdateForm({
+  subtaskId,
+  activityId,
+  onSubmit,
+  onCancel,
+}: {
+  subtaskId: string
+  activityId: number
+  onSubmit: (activityId: number, subtaskId: string, description: string) => void
+  onCancel: () => void
+}) {
+  const [text, setText] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async () => {
+    if (!text.trim()) return
+    setSubmitting(true)
+    onSubmit(activityId, subtaskId, text.trim())
+    setText("")
+    setSubmitting(false)
+    onCancel()
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 mt-1.5 ml-5.5">
+      <Textarea
+        placeholder="Add a progress update..."
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        className="text-xs min-h-[56px] resize-none bg-secondary/20"
+        rows={2}
+        autoFocus
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSubmit()
+          if (e.key === "Escape") onCancel()
+        }}
+      />
+      <div className="flex items-center gap-1.5 justify-end">
+        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={onCancel}>
+          <X className="h-3 w-3 mr-1" />
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          className="h-6 text-[10px] px-2"
+          disabled={!text.trim() || submitting}
+          onClick={handleSubmit}
+        >
+          <Send className="h-3 w-3 mr-1" />
+          Post
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function StatusGroup({
   status,
   activities,
   subtasksByActivity,
   selectedActivityId,
   onActivitySelect,
+  onViewOnMap,
   onStatusChange,
+  onToggleSubtask,
+  onSubtaskUpdate,
   expandedActivities,
   toggleExpanded,
 }: {
@@ -98,7 +165,10 @@ function StatusGroup({
   subtasksByActivity: Record<number, Subtask[]>
   selectedActivityId?: number
   onActivitySelect: (activity: Activity) => void
+  onViewOnMap: (activity: Activity) => void
   onStatusChange?: (activityId: number, newStatus: ActivityStatus) => void
+  onToggleSubtask?: (activityId: number, subtaskId: string) => void
+  onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string) => void
   expandedActivities: Set<number>
   toggleExpanded: (id: number) => void
 }) {
@@ -129,7 +199,10 @@ function StatusGroup({
               subtasksByActivity={subtasksByActivity}
               isSelected={selectedActivityId === activity.zoneID}
               onSelect={() => onActivitySelect(activity)}
+              onViewOnMap={() => onViewOnMap(activity)}
               onStatusChange={onStatusChange}
+              onToggleSubtask={onToggleSubtask}
+              onSubtaskUpdate={onSubtaskUpdate}
               isExpanded={expandedActivities.has(activity.zoneID)}
               onToggleExpand={() => toggleExpanded(activity.zoneID)}
             />
@@ -145,7 +218,10 @@ function ActivityRow({
   subtasksByActivity,
   isSelected,
   onSelect,
+  onViewOnMap,
   onStatusChange,
+  onToggleSubtask,
+  onSubtaskUpdate,
   isExpanded,
   onToggleExpand,
 }: {
@@ -153,7 +229,10 @@ function ActivityRow({
   subtasksByActivity: Record<number, Subtask[]>
   isSelected: boolean
   onSelect: () => void
+  onViewOnMap: () => void
   onStatusChange?: (activityId: number, newStatus: ActivityStatus) => void
+  onToggleSubtask?: (activityId: number, subtaskId: string) => void
+  onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string) => void
   isExpanded: boolean
   onToggleExpand: () => void
 }) {
@@ -162,9 +241,10 @@ function ActivityRow({
   const { completed, total } = getSubtaskCounts(subtasks)
   const track = getTrackLabelFromSubtasks(subtasks)
   const issues = getIssuesByActivityId(activity.zoneID)
+  const [updatingSubtaskId, setUpdatingSubtaskId] = useState<string | null>(null)
 
   return (
-    <div className="group">
+    <div className="group/row">
       <div
         className={cn(
           "flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all",
@@ -213,7 +293,7 @@ function ActivityRow({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {activity.deadline && (
             <span className="text-[11px] text-muted-foreground flex items-center gap-1 hidden lg:flex">
               <Calendar className="h-3 w-3" />
@@ -232,12 +312,25 @@ function ActivityRow({
             </span>
           )}
 
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[10px] px-2 gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0"
+            onClick={(e) => {
+              e.stopPropagation()
+              onViewOnMap()
+            }}
+          >
+            <MapPin className="h-3 w-3" />
+            View on Map
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-7 w-7 opacity-0 group-hover/row:opacity-100 transition-opacity"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="h-4 w-4" />
@@ -271,34 +364,62 @@ function ActivityRow({
       </div>
 
       {isExpanded && subtasks.length > 0 && (
-        <div className="ml-12 mr-3 mt-1 mb-2 space-y-1 border-l-2 border-border/40 pl-3">
+        <div className="ml-12 mr-3 mt-1 mb-2 space-y-0.5 border-l-2 border-border/40 pl-3">
           {subtasks.map((subtask) => (
-            <div
-              key={subtask.id}
-              className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-secondary/20 transition-colors"
-            >
-              <div
-                className={cn(
-                  "h-3.5 w-3.5 rounded-full border-2 shrink-0 transition-colors",
-                  subtask.completed
-                    ? "bg-emerald-400 border-emerald-400"
-                    : "border-muted-foreground/40"
-                )}
-              />
-              <span
-                className={cn(
-                  "text-xs flex-1",
-                  subtask.completed
-                    ? "text-muted-foreground line-through"
-                    : "text-foreground"
-                )}
-              >
-                {subtask.title}
-              </span>
-              {subtask.dueDate && (
-                <span className="text-[10px] text-muted-foreground">
-                  {new Date(subtask.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            <div key={subtask.id}>
+              <div className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-secondary/20 transition-colors group/subtask">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onToggleSubtask?.(activity.zoneID, subtask.id)
+                  }}
+                  className={cn(
+                    "h-4 w-4 rounded-full border-2 shrink-0 transition-all cursor-pointer hover:scale-110",
+                    subtask.completed
+                      ? "bg-emerald-400 border-emerald-400 hover:bg-emerald-500"
+                      : "border-muted-foreground/40 hover:border-primary"
+                  )}
+                />
+                <span
+                  className={cn(
+                    "text-xs flex-1",
+                    subtask.completed
+                      ? "text-muted-foreground line-through"
+                      : "text-foreground"
+                  )}
+                >
+                  {subtask.title}
                 </span>
+                {subtask.updates && subtask.updates.length > 0 && (
+                  <span className="text-[10px] text-muted-foreground/70">
+                    {subtask.updates.length} update{subtask.updates.length !== 1 ? "s" : ""}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setUpdatingSubtaskId(updatingSubtaskId === subtask.id ? null : subtask.id)
+                  }}
+                  className="opacity-0 group-hover/subtask:opacity-100 transition-opacity p-0.5 rounded hover:bg-secondary/60"
+                  title="Add update"
+                >
+                  <MessageSquarePlus className="h-3 w-3 text-muted-foreground hover:text-primary" />
+                </button>
+                {subtask.dueDate && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {new Date(subtask.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </span>
+                )}
+              </div>
+              {updatingSubtaskId === subtask.id && onSubtaskUpdate && (
+                <SubtaskUpdateForm
+                  subtaskId={subtask.id}
+                  activityId={activity.zoneID}
+                  onSubmit={onSubtaskUpdate}
+                  onCancel={() => setUpdatingSubtaskId(null)}
+                />
               )}
             </div>
           ))}
@@ -321,8 +442,11 @@ export function LinearActivitiesBoard({
   activities,
   subtasksByActivity,
   onActivitySelect,
+  onViewOnMap,
   onAddActivity,
   onStatusChange,
+  onToggleSubtask,
+  onSubtaskUpdate,
   selectedActivityId,
 }: LinearActivitiesBoardProps) {
   const [searchQuery, setSearchQuery] = useState("")
@@ -449,7 +573,10 @@ export function LinearActivitiesBoard({
               subtasksByActivity={subtasksByActivity}
               selectedActivityId={selectedActivityId}
               onActivitySelect={onActivitySelect}
+              onViewOnMap={onViewOnMap}
               onStatusChange={onStatusChange}
+              onToggleSubtask={onToggleSubtask}
+              onSubtaskUpdate={onSubtaskUpdate}
               expandedActivities={expandedActivities}
               toggleExpanded={toggleExpanded}
             />
@@ -462,7 +589,10 @@ export function LinearActivitiesBoard({
               subtasksByActivity={subtasksByActivity}
               isSelected={selectedActivityId === activity.zoneID}
               onSelect={() => onActivitySelect(activity)}
+              onViewOnMap={() => onViewOnMap(activity)}
               onStatusChange={onStatusChange}
+              onToggleSubtask={onToggleSubtask}
+              onSubtaskUpdate={onSubtaskUpdate}
               isExpanded={expandedActivities.has(activity.zoneID)}
               onToggleExpand={() => toggleExpanded(activity.zoneID)}
             />
