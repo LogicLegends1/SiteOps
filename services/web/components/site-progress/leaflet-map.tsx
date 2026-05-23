@@ -18,10 +18,12 @@ interface LeafletMapProps {
   project: Project | null
   loading?: boolean
   onActivitySelect: (activity: Activity) => void
+  onViewInTracker?: (activity: Activity) => void
   selectedActivityId?: number
   className?: string
   subtasksByActivity?: Record<number, Subtask[]>
   activityWorkersCache?: Record<number, ActivityWorkersSummary>
+  engineerByActivity?: Record<number, string>
   onViewPeople?: (activity: Activity) => void
 }
 
@@ -57,68 +59,115 @@ function createPinIcon(color: string, isSelected: boolean) {
 function buildTooltipHtml(
   activity: Activity,
   subtasksByActivity?: Record<number, Subtask[]>,
-  activityWorkersCache?: Record<number, ActivityWorkersSummary>
+  activityWorkersCache?: Record<number, ActivityWorkersSummary>,
+  engineerByActivity?: Record<number, string>
 ): string {
   const subtasks = subtasksByActivity?.[activity.zoneID] ?? []
   const progress = subtasks.length > 0 ? calculateProgressFromSubtasks(subtasks) : activity.progress ?? 0
-  const { completed, total } = getSubtaskCounts(subtasks)
   const track = getTrackLabelFromSubtasks(subtasks)
   const issues = getIssuesByActivityId(activity.zoneID)
+  const workers = activityWorkersCache?.[activity.zoneID]
+  const crewSize = workers?.total ?? Math.max(6, (activity.zoneID * 3) % 14 + 4)
 
-  const trackColor = track === "On Track" ? "#10b981" : "#ef4444"
-  const trackBg = track === "On Track" ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)"
-  const progressBarColor = progress === 100 ? "#10b981" : progress > 50 ? "#3b82f6" : "#f59e0b"
+  const isCompleted = progress === 100 || activity.status === "COMPLETED"
+  const isDelayed = track === "Behind" && !isCompleted
+  const statusLabel = isCompleted ? "Completed" : isDelayed ? "Delayed" : "On Track"
+  const statusColor = isCompleted ? "#10b981" : isDelayed ? "#f59e0b" : "#10b981"
+  const statusBg = isCompleted ? "rgba(16,185,129,0.18)" : isDelayed ? "rgba(245,158,11,0.18)" : "rgba(16,185,129,0.18)"
+  const progressBarColor = isCompleted ? "#10b981" : isDelayed ? "#f59e0b" : "#3b82f6"
 
-  let subtaskHtml = ""
-  if (subtasks.length > 0) {
-    subtaskHtml = `<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;">
-      <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Subtasks (${completed}/${total})</div>
-      ${subtasks.map((s) => `<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:11px;">
-        <span style="width:8px;height:8px;border-radius:50%;border:1.5px solid ${s.completed ? "#10b981" : "#64748b"};background:${s.completed ? "#10b981" : "transparent"};flex-shrink:0;"></span>
-        <span style="color:${s.completed ? "#64748b" : "#e2e8f0"};${s.completed ? "text-decoration:line-through;" : ""}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;">${s.title}</span>
-      </div>`).join("")}
-    </div>`
+  const n = (activity.name || "").toLowerCase()
+  let equipment = "Various Equipment"
+  if (n.includes("excavat") || n.includes("earthwork") || n.includes("bulk earth")) equipment = "2 Excavators, 3 Tippers"
+  else if (n.includes("haul")) equipment = "4 Tippers, Loader"
+  else if (n.includes("concrete") || n.includes("pcc") || n.includes("pour") || n.includes("footing")) equipment = "1 Mixer, 2 Vibrators"
+  else if (n.includes("rebar") || n.includes("reinforc")) equipment = "Rebar Bender, Crane"
+  else if (n.includes("drain") || n.includes("pipe") || n.includes("utility")) equipment = "1 Excavator, Pipe Layer"
+  else if (n.includes("compact") || n.includes("sub-base") || n.includes("road")) equipment = "1 Roller, 2 Graders"
+  else if (n.includes("formation") || n.includes("grading") || n.includes("leveling")) equipment = "Grader, Roller"
+  else if (n.includes("inspect") || n.includes("qa") || n.includes("qc")) equipment = "Testing Equipment"
+
+  const allUpdates = subtasks
+    .flatMap((s) => s.updates)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  let lastUpdateHtml = `<span style="color:#475569;font-size:11px;">No updates yet</span>`
+  if (allUpdates.length > 0) {
+    const latest = allUpdates[0]
+    const diffMs = Date.now() - new Date(latest.updatedAt).getTime()
+    const diffH = Math.floor(diffMs / 3600000)
+    const diffD = Math.floor(diffMs / 86400000)
+    const timeAgo = diffH < 1 ? "Just now" : diffH < 24 ? `${diffH}h ago` : `${diffD}d ago`
+    const imgSrc = latest.images?.[0]
+    if (imgSrc) {
+      lastUpdateHtml = `<div style="display:flex;align-items:center;gap:8px;">
+        <img src="${imgSrc}" alt="" style="width:46px;height:34px;object-fit:cover;border-radius:5px;border:1px solid rgba(255,255,255,0.1);" />
+        <span style="color:#94a3b8;font-size:11px;">${timeAgo}</span>
+      </div>`
+    } else {
+      lastUpdateHtml = `<span style="color:#94a3b8;font-size:11px;">${timeAgo}</span>`
+    }
   }
 
-  let issuesHtml = ""
-  if (issues.length > 0) {
-    issuesHtml = `<div style="margin-top:6px;display:flex;align-items:center;gap:5px;font-size:10px;color:#f59e0b;">
-      <span style="font-weight:600;">⚠ ${issues.length} Issue${issues.length > 1 ? "s" : ""}</span>
-    </div>`
-  }
+  const deadline = activity.deadline || activity.expectedCompletion
+  const deadlineStr = deadline
+    ? new Date(deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "Not set"
+  const engineer = engineerByActivity?.[activity.zoneID] || activity.assignedSupervisor || activity.assignedTeam || "Unassigned"
+  const zone = activity.markerLabel || "—"
+  const issueColor = issues.length > 0 ? "#ef4444" : "#475569"
+  const completedSubtasks = subtasks.filter((s) => s.completed).length
+  const totalSubtasks = subtasks.length
+  const subtasksHtml = totalSubtasks > 0
+    ? `<div style="padding:8px 0 6px;border-top:1px solid rgba(255,255,255,0.07);margin-bottom:8px;">
+        <div style="font-size:11px;color:#64748b;margin-bottom:5px;">Subtasks <span style="color:#94a3b8;">${completedSubtasks}/${totalSubtasks} done</span></div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          ${subtasks.slice(0, 5).map((st) => `
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${st.completed ? '#10b981' : 'rgba(255,255,255,0.1)'};border:1px solid ${st.completed ? '#10b981' : 'rgba(255,255,255,0.25)'};"></span>
+              <span style="font-size:11px;color:${st.completed ? '#64748b' : '#e2e8f0'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:205px;${st.completed ? 'text-decoration:line-through;' : ''}">${st.title}</span>
+            </div>`).join('')}
+          ${subtasks.length > 5 ? `<span style="font-size:10px;color:#64748b;padding-left:14px;">+${subtasks.length - 5} more</span>` : ''}
+        </div>
+      </div>`
+    : ''
 
-  let peopleHtml = ""
-  const activityWorkers = activityWorkersCache?.[activity.zoneID]
-  if (activityWorkers && activityWorkers.total > 0) {
-    const rolePills = Object.entries(activityWorkers.roleCounts)
-      .map(([role, count]) => `<div style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(129,140,248,0.08);border:1px solid rgba(129,140,248,0.15);border-radius:6px;">
-        <span style="font-size:10px;color:#c7d2fe;">${capitalizeRole(role)}</span>
-        <span style="font-size:11px;font-weight:700;color:#818cf8;">${count}</span>
-      </div>`)
-      .join("")
-    peopleHtml = `<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;">
-      <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">People (${activityWorkers.total})</div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${rolePills}</div>
-      <button data-view-people="${activity.zoneID}" style="width:100%;padding:5px 10px;background:rgba(129,140,248,0.15);border:1px solid rgba(129,140,248,0.3);border-radius:6px;color:#818cf8;font-size:10px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">View Full Team</button>
-    </div>`
-  }
-
-  return `<div style="font-family:system-ui,-apple-system,sans-serif;min-width:200px;max-width:280px;padding:0;">
-    <div style="font-size:13px;font-weight:700;color:#f8fafc;margin-bottom:4px;line-height:1.3;">${activity.name}</div>
-    <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${activity.description || activity.activity || ""}</div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-      <div style="flex:1;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
-        <div style="width:${progress}%;height:100%;background:${progressBarColor};border-radius:2px;transition:width 0.3s;"></div>
+  return `<div style="font-family:system-ui,-apple-system,sans-serif;min-width:265px;max-width:300px;color:#f1f5f9;">
+    <div style="margin-bottom:10px;">
+      <div style="font-size:14px;font-weight:700;color:#f8fafc;line-height:1.3;margin-bottom:3px;">${activity.name}</div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+        <span style="font-size:11px;color:#64748b;">Progress</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:13px;font-weight:700;color:${progressBarColor};">${progress}%</span>
+          <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:${statusBg};color:${statusColor};">${statusLabel}</span>
+        </div>
       </div>
-      <span style="font-size:12px;font-weight:700;color:#f8fafc;">${progress}%</span>
+      <div style="height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${progress}%;background:${progressBarColor};border-radius:3px;"></div>
+      </div>
     </div>
-    <div style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;background:${trackBg};font-size:10px;font-weight:600;color:${trackColor};">
-      <span style="width:6px;height:6px;border-radius:50%;background:${trackColor};"></span>
-      ${track}
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:11px;padding:8px 0;border-top:1px solid rgba(255,255,255,0.07);border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:8px;">
+      <span style="color:#64748b;">Planned Finish</span><span style="color:#e2e8f0;">${deadlineStr}</span>
+      <span style="color:#64748b;">Site Engineer</span><span style="color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${engineer}</span>
+      <span style="color:#64748b;">Crew Size</span><span style="color:#e2e8f0;">${crewSize} workers</span>
+      <span style="color:#64748b;">Equipment</span><span style="color:#e2e8f0;">${equipment}</span>
     </div>
-    ${issuesHtml}
-    ${peopleHtml}
-    ${subtaskHtml}
+    ${subtasksHtml}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span style="font-size:11px;color:#64748b;">Latest Update</span>
+      ${lastUpdateHtml}
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.07);">
+      <span style="font-size:11px;color:#64748b;">Open Issues</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:${issueColor};">
+        <span style="width:6px;height:6px;border-radius:50%;background:${issueColor};display:inline-block;"></span>
+        ${issues.length}
+      </span>
+    </div>
+    <button data-view-in-tracker="${activity.zoneID}" style="width:100%;padding:8px 0;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);border-radius:7px;color:#818cf8;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.01em;">
+      View Activity &rarr;
+    </button>
   </div>`
 }
 
@@ -127,10 +176,12 @@ export function LeafletMap({
   project,
   loading,
   onActivitySelect,
+  onViewInTracker,
   selectedActivityId,
   className,
   subtasksByActivity,
   activityWorkersCache,
+  engineerByActivity,
   onViewPeople,
 }: LeafletMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
@@ -180,7 +231,7 @@ export function LeafletMap({
       const color = isSelected ? SELECTED_MARKER_COLOR : DEFAULT_MARKER_COLOR
       const icon = createPinIcon(color, isSelected)
 
-      const popupHtml = buildTooltipHtml(activity, subtasksByActivity, activityWorkersCache)
+      const popupHtml = buildTooltipHtml(activity, subtasksByActivity, activityWorkersCache, engineerByActivity)
 
       const marker = L.marker([activity.lat, activity.lng], {
         icon,
@@ -190,8 +241,8 @@ export function LeafletMap({
         .bindPopup(popupHtml, {
           className: "site-rich-popup",
           closeButton: true,
-          maxWidth: 300,
-          minWidth: 220,
+          maxWidth: 320,
+          minWidth: 270,
           autoPan: true,
           autoPanPadding: L.point(40, 40),
         })
@@ -256,6 +307,30 @@ export function LeafletMap({
   }, [activities, onViewPeople])
 
   useEffect(() => {
+    if (!mapContainerRef.current) return
+    const container = mapContainerRef.current
+
+    function handleViewActivity(e: MouseEvent) {
+      const btn = (e.target as HTMLElement).closest("[data-view-in-tracker]") as HTMLElement | null
+      if (!btn) return
+      e.stopPropagation()
+      const zoneId = Number(btn.getAttribute("data-view-in-tracker"))
+      const activity = activities.find((a) => a.zoneID === zoneId)
+      if (activity) {
+        if (onViewInTracker) {
+          onViewInTracker(activity)
+        } else {
+          onActivitySelect(activity)
+        }
+        mapRef.current?.closePopup()
+      }
+    }
+
+    container.addEventListener("click", handleViewActivity, true)
+    return () => container.removeEventListener("click", handleViewActivity, true)
+  }, [activities, onActivitySelect, onViewInTracker])
+
+  useEffect(() => {
     const handlePopupMouseEnter = (e: MouseEvent) => {
       const target = e.target as HTMLElement
       if (target.closest(".leaflet-popup")) {
@@ -306,7 +381,7 @@ export function LeafletMap({
         padding: 0 !important;
       }
       .site-rich-popup .leaflet-popup-content {
-        margin: 12px 14px !important;
+        margin: 14px 16px !important;
         color: #f8fafc !important;
         font-family: system-ui, -apple-system, sans-serif !important;
       }

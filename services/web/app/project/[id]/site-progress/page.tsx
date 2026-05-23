@@ -1,18 +1,19 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import dynamic from "next/dynamic"
 import { useParams } from "next/navigation"
 import { ActivityDetailsPanel } from "@/components/site-progress/activity-details-panel"
 import { LinearActivitiesBoard } from "@/components/site-progress/linear-activities-board"
-import { SiteProgressKpiStrip } from "@/components/site-progress/site-progress-kpi-strip"
 import { AddActivityModal } from "@/components/site-progress/add-activity-modal"
+import { UpdatesEvidenceTab } from "@/components/site-progress/updates-evidence-tab"
 import { type Activity, type ActivityStatus, type Project } from "@/lib/site-data"
 import { type Subtask, calculateProgressFromSubtasks } from "@/lib/subtasks-data"
 import type { OnSiteMember } from "@/lib/site-team-types"
 import type { ActivityWorkersSummary } from "@/components/site-progress/leaflet-map"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MapPin, LayoutList } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { MapPin, LayoutList, FileText, AlertTriangle, X } from "lucide-react"
 
 export interface ActivityWorkerDetail {
   id: number
@@ -24,16 +25,12 @@ export interface ActivityWorkerDetail {
   isAvailable: boolean
 }
 
-const MAP_HEIGHT = "h-[560px]"
-
 const LeafletMap = dynamic(
   () => import("@/components/site-progress/leaflet-map").then((mod) => ({ default: mod.LeafletMap })),
   {
     ssr: false,
     loading: () => (
-      <div
-        className={`bg-card border border-border rounded-xl ${MAP_HEIGHT} flex items-center justify-center text-muted-foreground text-xs uppercase tracking-widest`}
-      >
+      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs uppercase tracking-widest bg-card">
         Loading map...
       </div>
     ),
@@ -63,10 +60,19 @@ export default function ActivityProgressPage() {
   const [teamLoading, setTeamLoading] = useState(true)
   const [teamError, setTeamError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("site-overview")
+  const [activeTab, setActiveTab] = useState("map-view")
   const [showAddModal, setShowAddModal] = useState(false)
   const [activityWorkersCache, setActivityWorkersCache] = useState<Record<number, ActivityWorkersSummary>>({})
   const [activityWorkersDetail, setActivityWorkersDetail] = useState<Record<number, ActivityWorkerDetail[]>>({})
+
+  const engineerByActivity = useMemo(() => {
+    const map: Record<number, string> = {}
+    for (const [actId, workers] of Object.entries(activityWorkersDetail)) {
+      const eng = workers.find((w) => w.role === "Site Engineer")
+      if (eng) map[Number(actId)] = eng.name
+    }
+    return map
+  }, [activityWorkersDetail])
   const [detailsTab, setDetailsTab] = useState<string | undefined>(undefined)
 
   async function fetchSubtasks() {
@@ -263,141 +269,102 @@ export default function ActivityProgressPage() {
     ? subtasksByActivity[selectedActivity.zoneID] ?? []
     : []
 
-  const teamOnline = teamMembers.filter((m) => m.status === "online").length
 
   return (
-    <div className="flex flex-col gap-5 w-full pb-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-            Site Progress
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Track activities, monitor progress, and manage your site
-          </p>
-        </div>
+    <div className="flex flex-col gap-4 w-full pb-8">
+      <div>
+        <h1 className="text-2xl font-semibold text-foreground tracking-tight">Site Progress Tracking</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Monitor site progress, activities, issues, and workforce in real time.
+        </p>
       </div>
-
-      <SiteProgressKpiStrip
-        activities={activities}
-        subtasksByActivity={subtasksByActivity}
-        teamOnline={teamOnline}
-        teamTotal={teamMembers.length}
-      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-secondary/30 border border-border p-1 h-auto">
-          <TabsTrigger
-            value="site-overview"
-            className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2"
-          >
+          <TabsTrigger value="map-view" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2">
             <MapPin className="h-4 w-4" />
-            Site Overview
+            Map View
           </TabsTrigger>
-          <TabsTrigger
-            value="activities"
-            className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2"
-          >
+          <TabsTrigger value="activity-tracker" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2">
             <LayoutList className="h-4 w-4" />
-            Activities
+            Activity Tracker
+          </TabsTrigger>
+          <TabsTrigger value="updates" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2">
+            <FileText className="h-4 w-4" />
+            Updates & Evidence
+          </TabsTrigger>
+          <TabsTrigger value="issues" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2">
+            <AlertTriangle className="h-4 w-4" />
+            Issues & Risks
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="site-overview" className="mt-4 space-y-5">
-          {/* Full-width map */}
-          <div className={`flex flex-col min-h-0 ${MAP_HEIGHT}`}>
-            <div className="flex items-center justify-between px-4 py-2.5 border border-b-0 border-border rounded-t-xl bg-card shrink-0">
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <MapPin className="h-3.5 w-3.5 text-primary" />
-                  Site Map
-                </h3>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Hover over markers to see activity details · Click to select
-                </p>
-              </div>
-              <span className="text-[10px] text-muted-foreground">
-                {activities.length} activities on map
-              </span>
-            </div>
-            <div className="flex-1 min-h-0 rounded-b-xl overflow-hidden border border-border">
-              <LeafletMap
-                activities={activities}
-                project={project}
-                loading={loading}
-                onActivitySelect={(a) => {
-                  setSelectedActivity(a)
-                  setDetailsTab(undefined)
-                }}
-                selectedActivityId={selectedActivity?.zoneID}
-                subtasksByActivity={subtasksByActivity}
-                activityWorkersCache={activityWorkersCache}
-                onViewPeople={(a) => {
-                  setSelectedActivity(a)
-                  setDetailsTab("people")
-                  // Scroll to the details panel
-                  setTimeout(() => {
-                    document.getElementById("activity-details-panel")?.scrollIntoView({ behavior: "smooth", block: "start" })
-                  }, 100)
-                }}
-                className="h-full rounded-none border-0"
-              />
-            </div>
-          </div>
-
-          {/* Activity details panel below the map */}
-          <div id="activity-details-panel">
-            <ActivityDetailsPanel
-              activity={selectedActivity}
-              subtasks={selectedSubtasks}
-              progressPercent={
-                selectedActivity ? calculateProgressFromSubtasks(selectedSubtasks) : 0
-              }
-              onToggleSubtask={(subtaskId) => {
-                if (selectedActivity) handleToggleSubtask(selectedActivity.zoneID, subtaskId)
+        {/* Map View */}
+        <TabsContent value="map-view" className="mt-4">
+          <div className="h-[600px] rounded-xl border border-border overflow-hidden">
+            <LeafletMap
+              activities={activities}
+              project={project}
+              loading={loading}
+              onActivitySelect={(a) => {
+                setSelectedActivity(a)
+                setDetailsTab(undefined)
               }}
-              onSubtaskUpdate={(subtaskId, description, evidencePhotoUrl) => {
-                if (selectedActivity) {
-                  handleSubtaskUpdate(
-                    selectedActivity.zoneID,
-                    subtaskId,
-                    description,
-                    evidencePhotoUrl
-                  )
-                }
+              onViewInTracker={(a) => {
+                setSelectedActivity(a)
+                setActiveTab("activity-tracker")
               }}
-              onUpdateSubmitted={fetchProjectAndActivities}
-              activityWorkers={selectedActivity ? activityWorkersDetail[selectedActivity.zoneID] ?? [] : []}
-              initialTab={detailsTab}
+              selectedActivityId={selectedActivity?.zoneID}
+              subtasksByActivity={subtasksByActivity}
+              activityWorkersCache={activityWorkersCache}
+              engineerByActivity={engineerByActivity}
+              onViewPeople={(a) => {
+                setSelectedActivity(a)
+                setDetailsTab("people")
+              }}
+              className="h-full rounded-none border-0"
             />
           </div>
         </TabsContent>
 
-        <TabsContent value="activities" className="mt-4">
-          <div className="h-[calc(100vh-320px)] min-h-[500px]">
+        {/* Activity Tracker */}
+        <TabsContent value="activity-tracker" className="mt-4">
+          <div className="h-[calc(100vh-220px)] min-h-[500px] rounded-xl border border-border overflow-hidden">
             <LinearActivitiesBoard
               activities={activities}
               subtasksByActivity={subtasksByActivity}
-              onActivitySelect={(activity) => {
-                setSelectedActivity(activity)
-              }}
+              onActivitySelect={() => {}}
+              selectedActivityId={selectedActivity?.zoneID}
+              activityWorkersDetail={activityWorkersDetail}
               onViewOnMap={(activity) => {
                 setSelectedActivity(activity)
-                setActiveTab("site-overview")
+                setActiveTab("map-view")
               }}
               onAddActivity={() => setShowAddModal(true)}
               onStatusChange={handleStatusChange}
               onToggleSubtask={handleToggleSubtask}
-              onSubtaskUpdate={(activityId, subtaskId, description, evidencePhotoUrl) => {
+              onSubtaskUpdate={(activityId, subtaskId, description, evidencePhotoUrl) =>
                 handleSubtaskUpdate(activityId, subtaskId, description, evidencePhotoUrl)
-              }}
-              selectedActivityId={selectedActivity?.zoneID}
+              }
             />
           </div>
         </TabsContent>
+
+        {/* Updates & Evidence */}
+        <TabsContent value="updates" className="mt-4">
+          <UpdatesEvidenceTab activities={activities} subtasksByActivity={subtasksByActivity} />
+        </TabsContent>
+
+        {/* Issues & Risks – placeholder */}
+        <TabsContent value="issues" className="mt-4">
+          <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground border border-dashed border-border rounded-xl gap-2">
+            <AlertTriangle className="h-10 w-10 opacity-30" />
+            <p className="text-sm">Issues & Risks coming soon</p>
+          </div>
+        </TabsContent>
+
       </Tabs>
 
-      {/* Add activity modal - triggered from the Activities board */}
       <AddActivityModal
         projectId={projectId}
         project={project}
