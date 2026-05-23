@@ -374,106 +374,93 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {/* Date section */}
-          <div className="p-2 space-y-0.5">
-            {sortedDates.length === 0 ? (
-              <p className="text-xs text-muted-foreground px-2 py-1">No updates yet</p>
-            ) : (
-              sortedDates.map((date) => {
-                const count = groupedByDate[date].length
-                const isToday = date === new Date().toISOString().split("T")[0]
-                const isSelected = viewMode === "day" && selectedDate === date
-                return (
-                  <button
-                    key={date}
-                    type="button"
-                    onClick={() => {
-                      if (viewMode === "day") {
-                        setSelectedDate(isSelected ? null : date)
-                      }
-                    }}
-                    className={cn(
-                      "w-full text-left px-3 py-2 rounded-lg text-xs transition-colors flex items-center justify-between gap-2",
-                      isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : viewMode === "day"
-                        ? "hover:bg-secondary/40 text-foreground"
-                        : "text-foreground/50 cursor-default"
-                    )}
-                  >
-                    <span className="font-medium truncate">
-                      {isToday ? `Today \u2022 ${formatDisplayDate(date)}` : formatDisplayDate(date)}
-                    </span>
-                    <span
+          {viewMode === "day" ? (
+            /* Date section - only shown in By Day mode */
+            <div className="p-2 space-y-0.5">
+              {sortedDates.length === 0 ? (
+                <p className="text-xs text-muted-foreground px-2 py-1">No updates yet</p>
+              ) : (
+                sortedDates.map((date) => {
+                  const count = groupedByDate[date].length
+                  const isToday = date === new Date().toISOString().split("T")[0]
+                  const isSelected = selectedDate === date
+                  return (
+                    <button
+                      key={date}
+                      type="button"
+                      onClick={() => setSelectedDate(isSelected ? null : date)}
                       className={cn(
-                        "text-[10px] shrink-0",
-                        isSelected ? "text-primary-foreground/70" : "text-muted-foreground"
+                        "w-full text-left px-3 py-2 rounded-lg text-xs transition-colors flex items-center justify-between gap-2",
+                        isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-secondary/40 text-foreground"
                       )}
                     >
-                      {count}
-                    </span>
-                  </button>
-                )
-              })
-            )}
-          </div>
-
-          {/* Divider + Activities section */}
-          <div className="border-t border-border mt-1 pt-2 px-2">
-            <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider px-1 mb-2">
-              Activities
-            </p>
-            <div className="relative mb-2">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                value={activitySearch}
-                onChange={(e) => setActivitySearch(e.target.value)}
-                className="pl-7 h-7 text-xs bg-secondary/20"
-              />
-            </div>
-            <div className="space-y-0.5">
-              {filteredActivities.map((activity) => {
-                const count = activityUpdateCounts[activity.zoneID] ?? 0
-                const isSelected = viewMode === "activity" && selectedActivityId === activity.zoneID
-                const color = getZoneColor(activity.markerLabel || activity.name)
-                return (
-                  <button
-                    key={activity.zoneID}
-                    type="button"
-                    onClick={() => {
-                      if (viewMode === "activity") {
-                        setSelectedActivityId(isSelected ? null : activity.zoneID)
-                      }
-                    }}
-                    className={cn(
-                      "w-full text-left px-2 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2",
-                      isSelected
-                        ? "bg-primary/10 border border-primary/30"
-                        : viewMode === "activity"
-                        ? "hover:bg-secondary/40 border border-transparent"
-                        : "border border-transparent opacity-60 cursor-default"
-                    )}
-                  >
-                    <span
-                      className="w-4 h-4 rounded shrink-0 flex items-center justify-center text-[8px] font-bold text-white"
-                      style={{ backgroundColor: color }}
-                    >
-                      {(activity.markerLabel || activity.name).charAt(0)}
-                    </span>
-                    <span className={cn("flex-1 truncate", isSelected ? "text-primary font-medium" : "text-foreground")}>
-                      {activity.name}
-                    </span>
-                    {count > 0 && (
-                      <span className="h-4 min-w-[16px] px-1 rounded-sm bg-secondary text-[9px] font-medium text-muted-foreground flex items-center justify-center shrink-0">
+                      <span className="font-medium truncate">
+                        {isToday ? `Today \u2022 ${formatDisplayDate(date)}` : formatDisplayDate(date)}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-[10px] shrink-0",
+                          isSelected ? "text-primary-foreground/70" : "text-muted-foreground"
+                        )}
+                      >
                         {count}
                       </span>
-                    )}
-                  </button>
-                )
-              })}
+                    </button>
+                  )
+                })
+              )}
             </div>
-          </div>
+          ) : (
+            /* Activities section - only shown in By Activity mode */
+            <div className="p-2 space-y-0.5">
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                <Input
+                  placeholder="Search..."
+                  value={activitySearch}
+                  onChange={(e) => setActivitySearch(e.target.value)}
+                  className="pl-7 h-7 text-xs bg-secondary/20"
+                />
+              </div>
+              <div className="space-y-0.5">
+                {filteredActivities.map((activity) => {
+                  const count = activityUpdateCounts[activity.zoneID] ?? 0
+                  const isSelected = selectedActivityId === activity.zoneID
+                  const color = getZoneColor(activity.markerLabel || activity.name)
+                  return (
+                    <button
+                      key={activity.zoneID}
+                      type="button"
+                      onClick={() => setSelectedActivityId(isSelected ? null : activity.zoneID)}
+                      className={cn(
+                        "w-full text-left px-2 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2",
+                        isSelected
+                          ? "bg-primary/10 border border-primary/30"
+                          : "hover:bg-secondary/40 border border-transparent"
+                      )}
+                    >
+                      <span
+                        className="w-4 h-4 rounded shrink-0 flex items-center justify-center text-[8px] font-bold text-white"
+                        style={{ backgroundColor: color }}
+                      >
+                        {(activity.markerLabel || activity.name).charAt(0)}
+                      </span>
+                      <span className={cn("flex-1 truncate", isSelected ? "text-primary font-medium" : "text-foreground")}>
+                        {activity.name}
+                      </span>
+                      {count > 0 && (
+                        <span className="h-4 min-w-[16px] px-1 rounded-sm bg-secondary text-[9px] font-medium text-muted-foreground flex items-center justify-center shrink-0">
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

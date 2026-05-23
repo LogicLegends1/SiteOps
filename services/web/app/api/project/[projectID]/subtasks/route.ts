@@ -51,6 +51,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
     const subtaskIds = (subtaskRows ?? []).map((s: { subtaskid: number }) => s.subtaskid)
     let logRows: Record<string, unknown>[] = []
+    let photoRows: Record<string, unknown>[] = []
 
     if (subtaskIds.length > 0) {
       const { data: logs, error: logsError } = await supabase
@@ -65,6 +66,20 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         }
       } else {
         logRows = logs ?? []
+      }
+
+      const { data: photos, error: photosError } = await supabase
+        .from("subtask_log_photos")
+        .select("photoid, logentryid, photourl, caption, createdat")
+        .in("logentryid", (logRows ?? []).map((l) => l.logentryid as number))
+        .order("createdat", { ascending: true })
+
+      if (photosError) {
+        if (photosError.code !== "42P01") {
+          return NextResponse.json({ error: photosError.message }, { status: 500 })
+        }
+      } else {
+        photoRows = photos ?? []
       }
     }
 
@@ -91,6 +106,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     const subtasksByActivity = groupSubtasksByActivity(
       subtaskRows ?? [],
       logRows,
+      photoRows,
       engineerNames
     )
 

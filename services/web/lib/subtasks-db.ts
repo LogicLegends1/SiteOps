@@ -53,14 +53,17 @@ function formatTimestamp(value: unknown): string {
   return new Date(value as string | number).toISOString()
 }
 
-export function mapSubtaskLogRow(row: DbRow, engineerName = "Site Engineer"): SubtaskUpdate {
+export function mapSubtaskLogRow(row: DbRow, engineerName = "Site Engineer", additionalPhotos?: string[]): SubtaskUpdate {
   const evidence = readString(row, ["evidencephoto", "evidence_photo"], "")
+  const images: string[] = []
+  if (evidence) images.push(evidence)
+  if (additionalPhotos) images.push(...additionalPhotos)
   return {
     id: String(readNumber(row, ["logentryid", "log_entry_id"], 0)),
     description: readString(row, ["description"], ""),
     updatedAt: formatTimestamp(row.createdat ?? row.timestamp),
     updatedBy: engineerName,
-    images: evidence ? [evidence] : undefined,
+    images: images.length > 0 ? images : undefined,
   }
 }
 
@@ -85,15 +88,28 @@ export function mapSubtaskRow(
 export function groupSubtasksByActivity(
   subtaskRows: DbRow[],
   logRows: DbRow[],
+  photoRows: DbRow[] = [],
   engineerNames: Map<number, string> = new Map()
 ): Record<number, Subtask[]> {
   const logsBySubtask = new Map<number, SubtaskUpdate[]>()
+  const photosByLogEntry = new Map<number, string[]>()
+
+  for (const photo of photoRows) {
+    const logEntryId = readNumber(photo, ["logentryid", "log_entry_id"], 0)
+    const photoUrl = readString(photo, ["photourl", "photo_url"], "")
+    if (photoUrl) {
+      const existing = photosByLogEntry.get(logEntryId) ?? []
+      existing.push(photoUrl)
+      photosByLogEntry.set(logEntryId, existing)
+    }
+  }
 
   for (const log of logRows) {
     const subtaskId = readNumber(log, ["subtaskid", "subtask_id"], 0)
     const createdBy = readNumber(log, ["createdby", "created_by"], 0)
     const engineerName = engineerNames.get(createdBy) ?? "Site Engineer"
-    const mapped = mapSubtaskLogRow(log, engineerName)
+    const logEntryId = readNumber(log, ["logentryid", "log_entry_id"], 0)
+    const mapped = mapSubtaskLogRow(log, engineerName, photosByLogEntry.get(logEntryId))
     const existing = logsBySubtask.get(subtaskId) ?? []
     existing.push(mapped)
     logsBySubtask.set(subtaskId, existing)

@@ -188,7 +188,7 @@ function ActivityRow({
   const deadline = activity.deadline || activity.expectedCompletion
   const isDelayed = !!deadline && progress < 100 && new Date(deadline) < new Date()
 
-  const engineerWorker = workers?.find((w) => w.role === "engineer")
+  const engineerWorker = workers?.find((w) => w.role === "Site Engineer")
   const engineerName = engineerWorker?.name || activity.assignedSupervisor
   const crewCount = workers?.length ?? null
 

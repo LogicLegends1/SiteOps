@@ -68,7 +68,7 @@ export default function ActivityProgressPage() {
   const engineerByActivity = useMemo(() => {
     const map: Record<number, string> = {}
     for (const [actId, workers] of Object.entries(activityWorkersDetail)) {
-      const eng = workers.find((w) => w.role === "engineer")
+      const eng = workers.find((w) => w.role === "Site Engineer")
       if (eng) map[Number(actId)] = eng.name
     }
     return map
@@ -269,31 +269,6 @@ export default function ActivityProgressPage() {
     ? subtasksByActivity[selectedActivity.zoneID] ?? []
     : []
 
-  const sidePanel = selectedActivity ? (
-    <div className="w-[380px] border-l border-border bg-card overflow-y-auto shrink-0 flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-        <span className="text-sm font-semibold text-foreground truncate pr-2">{selectedActivity.name}</span>
-        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setSelectedActivity(null)}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        <ActivityDetailsPanel
-          activity={selectedActivity}
-          subtasks={selectedSubtasks}
-          progressPercent={calculateProgressFromSubtasks(selectedSubtasks)}
-          onToggleSubtask={(subtaskId) => handleToggleSubtask(selectedActivity.zoneID, subtaskId)}
-          onSubtaskUpdate={(subtaskId, description, evidencePhotoUrl) =>
-            handleSubtaskUpdate(selectedActivity.zoneID, subtaskId, description, evidencePhotoUrl)
-          }
-          onUpdateSubmitted={fetchProjectAndActivities}
-          activityWorkers={activityWorkersDetail[selectedActivity.zoneID] ?? []}
-          initialTab={detailsTab}
-          asPanel
-        />
-      </div>
-    </div>
-  ) : null
 
   return (
     <div className="flex flex-col gap-4 w-full pb-8">
@@ -326,32 +301,29 @@ export default function ActivityProgressPage() {
 
         {/* Map View */}
         <TabsContent value="map-view" className="mt-4">
-          <div className="flex h-[600px] rounded-xl border border-border overflow-hidden">
-            <div className="flex-1 min-w-0">
-              <LeafletMap
-                activities={activities}
-                project={project}
-                loading={loading}
-                onActivitySelect={(a) => {
-                  setSelectedActivity(a)
-                  setDetailsTab(undefined)
-                }}
-                onViewInTracker={(a) => {
-                  setSelectedActivity(a)
-                  setActiveTab("activity-tracker")
-                }}
-                selectedActivityId={selectedActivity?.zoneID}
-                subtasksByActivity={subtasksByActivity}
-                activityWorkersCache={activityWorkersCache}
-                engineerByActivity={engineerByActivity}
-                onViewPeople={(a) => {
-                  setSelectedActivity(a)
-                  setDetailsTab("people")
-                }}
-                className="h-full rounded-none border-0"
-              />
-            </div>
-            {sidePanel}
+          <div className="h-[600px] rounded-xl border border-border overflow-hidden">
+            <LeafletMap
+              activities={activities}
+              project={project}
+              loading={loading}
+              onActivitySelect={(a) => {
+                setSelectedActivity(a)
+                setDetailsTab(undefined)
+              }}
+              onViewInTracker={(a) => {
+                setSelectedActivity(a)
+                setActiveTab("activity-tracker")
+              }}
+              selectedActivityId={selectedActivity?.zoneID}
+              subtasksByActivity={subtasksByActivity}
+              activityWorkersCache={activityWorkersCache}
+              engineerByActivity={engineerByActivity}
+              onViewPeople={(a) => {
+                setSelectedActivity(a)
+                setDetailsTab("people")
+              }}
+              className="h-full rounded-none border-0"
+            />
           </div>
         </TabsContent>
 
