@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useEffect, useMemo, useState } from "react"
 import DonutChart from "@/components/charts/DonutChart"
-import { equipmentStatusColorMap, workforceRoleColorMap, getColorFromMap } from "@/lib/colorMap"
+import { equipmentStatusColorMap, workforceDisciplineColorMap, getColorFromMap } from "@/lib/colorMap"
 import { type Subtask } from "@/lib/subtasks-data"
 
 export type Activity = {
@@ -36,8 +36,9 @@ type ProjectRecord = {
   locationlatitude: number | null
 }
 
-type WorkforceWorkerRecord = {
-  role: string | null
+type WorkforceDisciplineSummary = {
+  total: number
+  byDiscipline: Record<string, number>
 }
 
 type DonutSegment = {
@@ -89,20 +90,6 @@ const equipmentClassColorMap: Record<string, string> = {
   "rollers & compactors": "text-rose-500",
 }
 
-const workforceRoleMeta: Array<{
-  key: string
-  colorClass: string
-}> = [
-  { key: "supervisor", colorClass: "text-emerald-500" },
-  { key: "technician", colorClass: "text-amber-500" },
-  { key: "operator", colorClass: "text-indigo-500" },
-  { key: "skilled-labour", colorClass: "text-red-500" },
-  { key: "engineer", colorClass: "text-cyan-500" },
-  { key: "developer", colorClass: "text-purple-500" },
-  { key: "system-admin", colorClass: "text-teal-500" },
-  { key: "general-labour", colorClass: "text-zinc-500" },
-]
-
 function getStatusColor(status: string) {
   switch (status) {
     case "completed":
@@ -135,6 +122,16 @@ function formatDate(value?: string | null) {
   if (Number.isNaN(date.getTime())) return value
 
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+}
+
+function formatDisciplineLabel(value: string) {
+  return value
+    .trim()
+    .replace(/[_-]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ")
 }
 
 function getTimelineRank(status?: string) {
@@ -236,7 +233,7 @@ export default function ProjectPage() {
   const projectId = params.id
   const [activities, setActivities] = useState<Activity[]>([])
   const [project, setProject] = useState<ProjectRecord | null>(null)
-  const [workforceWorkers, setWorkforceWorkers] = useState<WorkforceWorkerRecord[]>([])
+  const [workforceSummary, setWorkforceSummary] = useState<WorkforceDisciplineSummary | null>(null)
   const [workforceLoading, setWorkforceLoading] = useState(true)
   const [equipmentSummary, setEquipmentSummary] = useState<EquipmentSummary | null>(null)
   const [equipmentLoading, setEquipmentLoading] = useState(true)
@@ -296,7 +293,7 @@ export default function ProjectPage() {
   }, [projectId])
 
   useEffect(() => {
-    const fetchWorkforce = async () => {
+    const fetchWorkforceDisciplineSummary = async () => {
       if (!projectId) {
         setWorkforceLoading(false)
         return
@@ -304,23 +301,26 @@ export default function ProjectPage() {
 
       try {
         setWorkforceLoading(true)
-        const response = await fetch(`/api/project/${projectId}/workforce`, { cache: "no-store" })
+        const response = await fetch(`/api/project/${projectId}/workforce/discipline`, { cache: "no-store" })
 
         if (!response.ok) {
           throw new Error(`Failed to load workforce data (${response.status})`)
         }
 
         const payload = await response.json()
-        setWorkforceWorkers(Array.isArray(payload.workers) ? payload.workers : [])
+        setWorkforceSummary({
+          total: Number(payload.summary?.total ?? 0),
+          byDiscipline: payload.summary?.byDiscipline && typeof payload.summary.byDiscipline === "object" ? payload.summary.byDiscipline : {},
+        })
       } catch (error) {
         console.error("Error fetching workforce data:", error)
-        setWorkforceWorkers([])
+        setWorkforceSummary(null)
       } finally {
         setWorkforceLoading(false)
       }
     }
 
-    fetchWorkforce()
+    fetchWorkforceDisciplineSummary()
   }, [projectId])
 
   useEffect(() => {
@@ -417,39 +417,17 @@ export default function ProjectPage() {
   const completedActivities = timelineActivities
     .filter((activity) => activity.status?.toUpperCase() === "COMPLETED")
     .sort((left, right) => left.progress - right.progress || (left.activityid ?? 0) - (right.activityid ?? 0))
-  const workforceSummary = useMemo(() => {
-    const roleCounts = workforceWorkers.reduce((acc, worker) => {
-      const role = worker.role?.trim()
-
-      if (!role) {
-        return acc
-      }
-
-      acc[role] = (acc[role] ?? 0) + 1
-      return acc
-    }, {} as Record<string, number>)
-
-    return {
-      roleCounts,
-      total: workforceWorkers.length,
-    }
-  }, [workforceWorkers])
   const workforceSegments = useMemo<DonutSegment[]>(() => {
-    const knownRoles = new Set(workforceRoleMeta.map((role) => role.key))
-    const extraRoles = Object.keys(workforceSummary.roleCounts)
-      .filter((role) => !knownRoles.has(role))
-      .sort((left, right) => left.localeCompare(right))
-
-    return [
-      ...workforceRoleMeta,
-      ...extraRoles.map((role) => ({ key: role, colorClass: "text-zinc-400" })),
-    ].map((entry) => ({
-      key: entry.key,
-      label: entry.key,
-      value: workforceSummary.roleCounts[entry.key] ?? 0,
-      colorClass: getColorFromMap(workforceRoleColorMap, entry.key, entry.colorClass),
-    }))
-  }, [workforceSummary.roleCounts])
+    return Object.entries(workforceSummary?.byDiscipline ?? {})
+      .filter(([, value]) => Number(value) > 0)
+      .sort((left, right) => Number(right[1]) - Number(left[1]))
+      .map(([discipline, value]) => ({
+        key: discipline,
+        label: formatDisciplineLabel(discipline),
+        value: Number(value),
+        colorClass: getColorFromMap(workforceDisciplineColorMap, discipline, "text-zinc-400"),
+      }))
+  }, [workforceSummary])
   const equipmentTotal = equipmentSummary?.total ?? 0
   const equipmentSegments = useMemo<DonutSegment[]>(
     () =>
@@ -508,16 +486,16 @@ export default function ProjectPage() {
                       {project?.description ?? project?.projectdiagram ?? "Mixed-use commercial development comprising 12,400 m² of office and retail space across six stories. Steel-frame construction with curtain wall glazing."}
                     </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex flex-col gap-1 rounded-2xl border border-border/70 bg-background/75 px-5 py-4 shadow-sm backdrop-blur-sm">
+                  <div className="flex flex-wrap items-center p-1 gap-4">
+                  <div className="flex flex-col gap-1 rounded-2xl border border-border/70 bg-background/75 px-5 py-4 shadow-sm backdrop-blur-sm min-w-20">
                     <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">Start</p>
                     <p className="text-sm font-semibold text-foreground">{formatDate(project?.createdat)}</p>
                   </div>
-                  <div className="flex flex-col gap-1 rounded-2xl border border-border/70 bg-background/75 px-5 py-4 shadow-sm backdrop-blur-sm">
+                  <div className="flex flex-col gap-1 rounded-2xl border border-border/70 bg-background/75 px-5 py-4 shadow-sm backdrop-blur-sm min-w-20">
                     <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">Target</p>
                     <p className="text-sm font-semibold text-foreground">{formatDate(project?.projectdeadline)}</p>
                   </div>
-                  <div className="flex flex-col gap-1 rounded-2xl border border-border/70 bg-background/75 px-5 py-4 shadow-sm backdrop-blur-sm">
+                  <div className="flex flex-col gap-1 rounded-2xl border border-border/70 bg-background/75 px-5 py-4 shadow-sm backdrop-blur-sm min-w-30">
                     <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">Budget</p>
                     <p className="text-sm font-semibold text-foreground">$4.2M</p>
                   </div>
@@ -528,12 +506,16 @@ export default function ProjectPage() {
                   <div className="w-full flex-1 min-w-0">
                     {workforceLoading ? (
                       <WorkforceDonutSkeleton />
+                    ) : workforceSummary?.total === 0 ? (
+                      <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-sm text-center text-muted-foreground mt-4">
+                        No workers found.
+                      </div>
                     ) : (
                       <DonutChart
                         segments={workforceSegments}
-                        total={workforceSummary.total}
+                        total={workforceSummary?.total ?? 0}
                         centerLabel="Workers"
-                        ariaLabel="Workforce role distribution donut chart"
+                        ariaLabel="Workforce discipline distribution donut chart"
                       />
                     )}
                   </div>
@@ -666,7 +648,7 @@ export default function ProjectPage() {
 
                 {hoveredActivity && hoverPopup && (
                   <div
-                    className="fixed z-[100] w-80 -translate-x-1/2 -translate-y-full rounded-xl border border-border bg-card p-3 shadow-2xl"
+                    className="fixed z-100 w-80 -translate-x-1/2 -translate-y-full rounded-xl border border-border bg-card p-3 shadow-2xl"
                     style={{ left: hoverPopup.x, top: hoverPopup.y - 12 }}
                   >
                     <div className="flex items-start justify-between gap-3 border-b border-border pb-2">
