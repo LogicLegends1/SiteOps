@@ -193,14 +193,13 @@ export function MaterialAlertsPanel({
               <th className="px-4 py-3 text-[9px] font-black text-zinc-500 uppercase tracking-widest">Project / Zone</th>
               <th className="px-4 py-3 text-[9px] font-black text-zinc-500 uppercase tracking-widest">Severity</th>
               <th className="px-4 py-3 text-[9px] font-black text-zinc-500 uppercase tracking-widest">Detected On</th>
-              <th className="px-4 py-3 text-[9px] font-black text-zinc-500 uppercase tracking-widest">Status</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800/60">
             {isLoading ? (
               <tr>
-                <td colSpan={8} className="py-20 text-center">
+                <td colSpan={7} className="py-20 text-center">
                   <div className="flex flex-col items-center justify-center gap-3">
                     <Loader2 className="h-8 w-8 text-cyan-500 animate-spin" />
                     <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
@@ -211,7 +210,7 @@ export function MaterialAlertsPanel({
               </tr>
             ) : paginatedAlerts.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-20 text-center">
+                <td colSpan={7} className="py-20 text-center">
                   <div className="flex flex-col items-center justify-center gap-3">
                     <FileWarning className="h-8 w-8 text-zinc-600" />
                     <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
@@ -259,11 +258,6 @@ export function MaterialAlertsPanel({
                       <span className="text-xs text-zinc-300">{alert.date}</span>
                       <span className="text-[10px] text-zinc-500 mt-0.5">{alert.time}</span>
                     </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className="text-[9px] font-bold px-2 py-1 rounded border border-red-500/20 bg-red-500/10 text-red-500 uppercase tracking-wider">
-                      {alert.status}
-                    </span>
                   </td>
                   <td className="px-4 py-4 text-right text-zinc-500">
                     <button className="hover:text-white transition-colors">
