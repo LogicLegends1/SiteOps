@@ -245,7 +245,7 @@ export function EquipmentLeafletMap({
       `
 
       if (totalCount === 0) {
-        popupHtml += `<div class="text-[10px] text-zinc-500 italic py-1">No active equipment deployed.</div>`
+        popupHtml += `<div class="text-[10px] text-zinc-500 italic py-1">No active machinery deployed.</div>`
       } else {
         itemsInZone.forEach(item => {
           let statusColor = "#10b981" // Active

@@ -91,12 +91,12 @@ const navItems = [
     icon: Package,
   },
   {
-    title: "Workforce Allocation",
+    title: "Labor & Crew Management",
     segment: "workforce",
     icon: Users,
   },
   {
-    title: "Equipment & Assets",
+    title: "Machinery & Assets",
     segment: "equipment",
     icon: Wrench,
   },

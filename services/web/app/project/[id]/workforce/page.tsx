@@ -82,7 +82,7 @@ export default function WorkforcePage() {
           </div>
           <div>
             <h1 className="text-3xl font-black tracking-tight uppercase leading-tight">
-              Workforce <span className="text-primary font-bold">Allocation</span>
+              Labor & Crew <span className="text-primary font-bold">Management</span>
             </h1>
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">
               Team Capacity and Staffing Monitor
