@@ -65,11 +65,23 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
-      <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <img
+          src="/home_attract.png"
+          alt="Construction site monitoring dashboard with zones and equipment tracking"
+          className="absolute inset-0 h-full w-full animate-in fade-in duration-1000 object-cover"
+        />
+        <div className="absolute inset-0 bg-background/70" />
+
+        <div className="absolute top-1/2 left-1/4 h-72 w-72 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl animate-pulse" />
+        <div className="absolute top-1/3 right-1/4 h-96 w-96 -translate-y-1/2 rounded-full bg-blue-500/5 blur-3xl animate-[pulse_4s_ease-in-out_infinite_reverse]" />
+      </div>
+
+      <div className="absolute right-6 top-6">
         <ThemeToggle />
       </div>
-      <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-4 py-16 sm:p-6">
-        <Card className="w-full max-w-md shadow-lg">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl items-center justify-center p-6 md:p-10">
+        <Card className="w-full max-w-md">
           <CardHeader className="items-center text-center">
             <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
               <HardHat className="h-6 w-6 text-primary-foreground" />
@@ -146,7 +158,7 @@ export default function LoginPage() {
               Continue with Google
             </Button>
 
-            <div className="mt-2 flex flex-col gap-2 text-center text-sm">
+            <div className="text-center text-sm flex flex-col gap-2 mt-2">
               <div>
                 Don&apos;t have an account?{" "}
                 <Link href="/signup" className="text-primary hover:underline font-medium">
