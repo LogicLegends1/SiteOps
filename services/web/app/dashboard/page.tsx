@@ -154,17 +154,17 @@ export default function DashboardPage() {
   }, [loadProjects])
 
   return (
-    <div className="h-[calc(100dvh-8rem)] min-h-96 overflow-hidden">
+    <div className="min-h-[calc(100dvh-8rem)] overflow-hidden">
       <Card className="flex h-full min-h-0 flex-col overflow-hidden border-border bg-card">
         <CardHeader className="shrink-0">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-foreground text-xl">Projects</CardTitle>
             <CreateProjectDialog onCreated={loadProjects} />
           </div>
         </CardHeader>
         <CardContent className="flex-1 min-h-0 overflow-hidden">
-          <div className="flex h-full min-h-0 flex-row gap-4 overflow-hidden">
-            <Card className="h-full min-w-0 w-3/5 shrink-0 overflow-hidden p-0 rounded-lg">
+          <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden lg:flex-row">
+            <Card className="h-80 min-w-0 overflow-hidden rounded-lg p-0 lg:h-full lg:w-3/5 lg:shrink-0">
                   <LeafletMap
                     items={mapItems}
                     className="h-full w-full rounded-l-lg"
@@ -189,7 +189,7 @@ export default function DashboardPage() {
                   />
             </Card>
 
-            <Card className="flex min-w-0 w-2/5 flex-col overflow-hidden rounded-lg">
+                <Card className="flex min-w-0 flex-col overflow-hidden rounded-lg lg:w-2/5">
                   <CardHeader className="shrink-0 border-b border-border pb-3">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-base">Project List</CardTitle>

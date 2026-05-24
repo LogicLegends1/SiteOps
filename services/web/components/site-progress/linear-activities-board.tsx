@@ -47,7 +47,7 @@ interface LinearActivitiesBoardProps {
   subtasksByActivity: Record<number, Subtask[]>
   onActivitySelect: (activity: Activity) => void
   onViewOnMap: (activity: Activity) => void
-  onAddActivity: () => void
+  onAddActivity?: () => void
   onStatusChange?: (activityId: number, newStatus: ActivityStatus) => void
   onToggleSubtask?: (activityId: number, subtaskId: string) => void
   onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string, evidencePhotoUrl?: string) => void
@@ -132,7 +132,7 @@ function TableHeader() {
   return (
     <div
       className={cn(
-        "grid items-center gap-3 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border bg-secondary/20 shrink-0 min-w-[960px]",
+        "grid items-center gap-3 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border bg-secondary/20 shrink-0 min-w-240",
         COL_GRID
       )}
     >
@@ -196,7 +196,7 @@ function ActivityRow({
     <div
       id={`activity-row-${activity.zoneID}`}
       className={cn(
-        "group/row border-b border-border/50 last:border-0 min-w-[960px]",
+        "group/row border-b border-border/50 last:border-0 min-w-240",
         isSelected && "bg-primary/5 border-l-2 border-primary"
       )}
     >
@@ -539,10 +539,12 @@ export function LinearActivitiesBoard({
           ))}
         </div>
         <div className="flex-1" />
-        <Button size="sm" className="h-8 gap-1.5 text-xs shrink-0" onClick={onAddActivity}>
-          <Plus className="h-3.5 w-3.5" />
-          New Activity
-        </Button>
+        {onAddActivity && (
+          <Button size="sm" className="h-8 gap-1.5 text-xs shrink-0" onClick={onAddActivity}>
+            <Plus className="h-3.5 w-3.5" />
+            New Activity
+          </Button>
+        )}
       </div>
 
       {/* Table header */}
