@@ -12,6 +12,7 @@ import {
   ExternalLink,
   FileText,
   ChevronRight,
+  ChevronLeft,
   Cloud,
   MoreHorizontal,
   ArrowRight,
@@ -375,6 +376,8 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [activitySearch, setActivitySearch] = useState("")
   const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null)
+  const [currentPage, setCurrentPage] = useState(0)
+  const DAYS_PER_PAGE = 5
 
   useEffect(() => {
     const styleId = "updates-evidence-scrollbar-styles"
@@ -410,8 +413,13 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
     return filtered
   }, [allEntries, groupedByDate, selectedDate, selectedActivityId, viewMode])
 
+  useEffect(() => { setCurrentPage(0) }, [selectedDate, selectedActivityId, viewMode])
+
   const visibleGrouped = useMemo(() => groupByDate(visibleEntries), [visibleEntries])
   const visibleSortedDates = Object.keys(visibleGrouped).sort((a, b) => b.localeCompare(a))
+
+  const totalPages = Math.ceil(visibleSortedDates.length / DAYS_PER_PAGE)
+  const paginatedDates = visibleSortedDates.slice(currentPage * DAYS_PER_PAGE, (currentPage + 1) * DAYS_PER_PAGE)
 
   const activityUpdateCounts = useMemo(() => {
     const counts: Record<number, number> = {}
@@ -578,26 +586,55 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
             <p className="text-[11px] opacity-50">Updates appear here as your team submits progress</p>
           </div>
         ) : (
-          visibleSortedDates.map((date) => {
-            const dayEntries = visibleGrouped[date]
-            return (
-              <div key={date} className="mb-5">
-                <div className="sticky top-0 z-10 backdrop-blur-md bg-[#030710]/90 px-5 py-2.5 rounded-[14px] border border-white/[0.05] mb-3 flex items-center justify-between">
-                  <h3 className="text-[15px] font-bold text-white">
-                    <DateHeading date={date} />
-                  </h3>
-                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/[0.05] text-white/45">
-                    {dayEntries.length} update{dayEntries.length !== 1 ? "s" : ""}
-                  </span>
+          <>
+            {paginatedDates.map((date) => {
+              const dayEntries = visibleGrouped[date]
+              return (
+                <div key={date} className="mb-5">
+                  <div className="sticky top-0 z-10 backdrop-blur-md bg-[#030710]/90 px-5 py-2.5 rounded-[14px] border border-white/[0.05] mb-3 flex items-center justify-between">
+                    <h3 className="text-[15px] font-bold text-white">
+                      <DateHeading date={date} />
+                    </h3>
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/[0.05] text-white/45">
+                      {dayEntries.length} update{dayEntries.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div>
+                    {dayEntries.map((entry, idx) => (
+                      <UpdateCard key={entry.id} entry={entry} isLatest={idx === 0} />
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  {dayEntries.map((entry, idx) => (
-                    <UpdateCard key={entry.id} entry={entry} isLatest={idx === 0} />
-                  ))}
-                </div>
+              )
+            })}
+
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 py-4 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                  disabled={currentPage === 0}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] text-[11px] font-medium text-white/60 hover:bg-white/[0.06] hover:text-white/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                  Newer
+                </button>
+                <span className="text-[10px] text-white/40 tabular-nums">
+                  {currentPage + 1} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={currentPage >= totalPages - 1}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] text-[11px] font-medium text-white/60 hover:bg-white/[0.06] hover:text-white/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  Older
+                  <ChevronRight className="h-3 w-3" />
+                </button>
               </div>
-            )
-          })
+            )}
+          </>
         )}
       </div>
 
