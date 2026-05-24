@@ -147,16 +147,16 @@ export default function DashboardLayout({
       </Sidebar>
 
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-20 items-center gap-4 border-b border-border bg-background/95 px-6 backdrop-blur supports-backdrop-filter:bg-background/60">
+        <header className="sticky top-0 z-10 flex min-h-16 items-center gap-3 border-b border-border bg-background/95 px-4 py-3 md:h-20 md:px-6 backdrop-blur supports-backdrop-filter:bg-background/60">
           <SidebarTrigger className="md:hidden" />
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold text-foreground">
+            <h1 className="text-lg font-semibold text-foreground md:text-2xl">
               Dashboard
             </h1>
           </div>
           <ThemeToggle />
         </header>
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-3 md:p-6">
           {children}
         </main>
       </SidebarInset>

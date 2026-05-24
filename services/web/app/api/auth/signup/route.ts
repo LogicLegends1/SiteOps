@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
     yearsOfExperience,
     avatarimage
   } = await req.json()
+  const normalizedRole = typeof role === 'string' ? role.trim().toUpperCase() : role
 
   // Validation
   if (!email || !password || !username || !role || !nic) {
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  if (typeof role !== 'string' || !VALID_ROLES.includes(role)) {
+  if (typeof normalizedRole !== 'string' || !VALID_ROLES.includes(normalizedRole)) {
     return NextResponse.json(
       { error: `Invalid role. Allowed roles: ${VALID_ROLES.join(', ')}` },
       { status: 400 }
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
     .insert([
       {
         name: username,
-        position: role,
+        position: normalizedRole,
         yearsofexperience: yearsOfExperience
           ? parseInt(yearsOfExperience)
           : null,
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
         personid: personData.personid,
         username,
         email,
-        role,
+        role: normalizedRole,
         avatarimage: avatarimage ?? null,
       },
     ])

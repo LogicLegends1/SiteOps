@@ -14,6 +14,7 @@ import type { ActivityWorkersSummary } from "@/components/site-progress/leaflet-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { MapPin, LayoutList, FileText, AlertTriangle, X } from "lucide-react"
+import { createClient } from "@/lib/superbase"
 
 export interface ActivityWorkerDetail {
   id: number
@@ -54,6 +55,7 @@ export default function ActivityProgressPage() {
 
   const [activities, setActivities] = useState<Activity[]>([])
   const [project, setProject] = useState<Project | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [subtasksByActivity, setSubtasksByActivity] = useState<Record<number, Subtask[]>>({})
   const [teamMembers, setTeamMembers] = useState<OnSiteMember[]>([])
@@ -64,6 +66,7 @@ export default function ActivityProgressPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [activityWorkersCache, setActivityWorkersCache] = useState<Record<number, ActivityWorkersSummary>>({})
   const [activityWorkersDetail, setActivityWorkersDetail] = useState<Record<number, ActivityWorkerDetail[]>>({})
+  const [userRoleLoaded, setUserRoleLoaded] = useState(false)
 
   const engineerByActivity = useMemo(() => {
     const map: Record<number, string> = {}
@@ -74,6 +77,30 @@ export default function ActivityProgressPage() {
     return map
   }, [activityWorkersDetail])
   const [detailsTab, setDetailsTab] = useState<string | undefined>(undefined)
+  const canSeeAdvancedTabs = userRoleLoaded && userRole !== "SITE_ENGINEER"
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user?.email) {
+        setUserRoleLoaded(true)
+        return
+      }
+
+      const { data: dbUser } = await supabase
+        .from("user")
+        .select("role")
+        .eq("email", user.email)
+        .maybeSingle()
+
+      setUserRole(dbUser?.role ?? null)
+      setUserRoleLoaded(true)
+    }
+
+    fetchRole()
+  }, [])
 
   async function fetchSubtasks() {
     try {
@@ -359,7 +386,7 @@ export default function ActivityProgressPage() {
                 setSelectedActivity(activity)
                 setActiveTab("map-view")
               }}
-              onAddActivity={() => setShowAddModal(true)}
+              onAddActivity={canSeeAdvancedTabs ? () => setShowAddModal(true) : undefined}
               onStatusChange={handleStatusChange}
               onToggleSubtask={handleToggleSubtask}
               onSubtaskUpdate={(activityId, subtaskId, description, evidencePhotoUrl) =>
