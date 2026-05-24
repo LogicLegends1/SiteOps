@@ -503,6 +503,21 @@ export function LinearActivitiesBoard({
     return result
   }, [activities, subtasksByActivity, searchQuery, filter])
 
+  useEffect(() => {
+    const styleId = "activity-board-scrollbar-styles"
+    if (document.getElementById(styleId)) return
+    const style = document.createElement("style")
+    style.id = styleId
+    style.textContent = `
+      .ab-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+      .ab-scroll::-webkit-scrollbar-track { background: transparent; }
+      .ab-scroll::-webkit-scrollbar-thumb { background: rgba(14,165,233,0.15); border-radius: 4px; }
+      .ab-scroll::-webkit-scrollbar-thumb:hover { background: rgba(14,165,233,0.3); }
+    `
+    document.head.appendChild(style)
+    return () => { document.getElementById(styleId)?.remove() }
+  }, [])
+
   return (
     <div className="flex flex-col h-full bg-card rounded-none overflow-hidden">
       {/* Toolbar */}
@@ -551,7 +566,7 @@ export function LinearActivitiesBoard({
       <TableHeader />
 
       {/* Content */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-auto ab-scroll">
         {filteredActivities.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <ListTodo className="h-10 w-10 text-muted-foreground mb-3" />
