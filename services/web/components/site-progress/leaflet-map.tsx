@@ -100,7 +100,7 @@ function buildTooltipHtml(
     const imgSrc = latest.images?.[0]
     if (imgSrc) {
       lastUpdateHtml = `<div style="display:flex;align-items:center;gap:8px;">
-        <img src="${imgSrc}" alt="" style="width:46px;height:34px;object-fit:cover;border-radius:5px;border:1px solid rgba(255,255,255,0.1);" />
+        <img data-zoom-image="${imgSrc}" src="${imgSrc}" alt="" style="width:46px;height:34px;object-fit:cover;border-radius:5px;border:1px solid rgba(255,255,255,0.1);cursor:pointer;" />
         <span style="color:#94a3b8;font-size:11px;">${timeAgo}</span>
       </div>`
     } else {
@@ -188,6 +188,7 @@ export function LeafletMap({
   const mapRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Map<number, L.Marker>>(new Map())
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return
@@ -326,8 +327,22 @@ export function LeafletMap({
       }
     }
 
+    function handleImageZoom(e: MouseEvent) {
+      const img = (e.target as HTMLElement).closest("[data-zoom-image]") as HTMLElement | null
+      if (!img) return
+      e.stopPropagation()
+      const imgUrl = img.getAttribute("data-zoom-image")
+      if (imgUrl) {
+        setZoomedImage(imgUrl)
+      }
+    }
+
     container.addEventListener("click", handleViewActivity, true)
-    return () => container.removeEventListener("click", handleViewActivity, true)
+    container.addEventListener("click", handleImageZoom, true)
+    return () => {
+      container.removeEventListener("click", handleViewActivity, true)
+      container.removeEventListener("click", handleImageZoom, true)
+    }
   }, [activities, onActivitySelect, onViewInTracker])
 
   useEffect(() => {
@@ -436,6 +451,27 @@ export function LeafletMap({
           Selected
         </span>
       </div>
+
+      {zoomedImage && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4"
+          onClick={() => setZoomedImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              className="absolute -top-10 right-0 text-white/80 hover:text-white text-2xl font-light"
+              onClick={() => setZoomedImage(null)}
+            >
+              ×
+            </button>
+            <img
+              src={zoomedImage}
+              alt="Zoomed image"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
