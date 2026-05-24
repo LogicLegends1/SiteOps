@@ -115,10 +115,18 @@ export default function ProjectLayout({
   const projectId = params.id ?? "1"
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
   const [userName, setUserName] = useState<string>("User")
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [userRoleLoaded, setUserRoleLoaded] = useState(false)
   const [project, setProject] = useState<Project | null>(null)
 
   const getProjectHref = (segment: string) =>
     segment ? `/project/${projectId}/${segment}` : `/project/${projectId}`
+
+  const visibleNavItems = !userRoleLoaded
+    ? []
+    : userRole === "SITE_ENGINEER"
+      ? navItems.filter((item) => item.segment === "" || item.segment === "site-progress")
+      : navItems
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -132,11 +140,32 @@ export default function ProjectLayout({
         
         setUserAvatar(avatarUrl)
         setUserName(fullName)
+
+        const { data: dbUser } = await supabase
+          .from("user")
+          .select("role")
+          .eq("email", user.email)
+          .maybeSingle()
+
+        setUserRole(dbUser?.role ?? null)
       }
+
+      setUserRoleLoaded(true)
     }
     
     fetchUser()
   }, [])
+
+  useEffect(() => {
+    if (!userRoleLoaded || userRole !== "SITE_ENGINEER") return
+
+    const pathnameSegment = pathname.replace(`/project/${projectId}`, "")
+    const isAllowedRoute = pathnameSegment === "" || pathnameSegment === "/site-progress"
+
+    if (!isAllowedRoute) {
+      router.replace(`/project/${projectId}`)
+    }
+  }, [pathname, projectId, router, userRole, userRoleLoaded])
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -178,7 +207,7 @@ export default function ProjectLayout({
         <SidebarContent className="overflow-hidden">
           <div className="flex h-full flex-col">
             <SidebarMenu>
-              {navItems.map((item) => (
+              {visibleNavItems.length > 0 ? visibleNavItems.map((item) => (
                 <SidebarMenuItem key={item.segment || "overview"}>
                   <SidebarMenuButton
                     asChild
@@ -191,7 +220,11 @@ export default function ProjectLayout({
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
+              )) : (
+                <SidebarMenuItem>
+                  <div className="px-2 py-3 text-xs text-muted-foreground">Loading navigation…</div>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
             <div className="mt-3 hidden flex-1 bg-linear-to-b from-transparent from-75% to-primary/30 opacity-5 group-data-[state=expanded]:block group-data-[state=expanded]:animate-[fadeIn_0.5s_ease-in-out_forwards]" />
           </div>
@@ -231,7 +264,7 @@ export default function ProjectLayout({
           <SidebarTrigger className="md:hidden" />
           <div className="flex-1">
             <h1 className="text-base font-semibold text-foreground sm:text-lg">
-              {navItems.find((item) => pathname === getProjectHref(item.segment))?.title || "Project Dashboard"}
+              {visibleNavItems.find((item) => pathname === getProjectHref(item.segment))?.title || "Project Dashboard"}
             </h1>
           </div>
           <Popover>
@@ -263,7 +296,7 @@ export default function ProjectLayout({
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">Expanded details for the latest site alerts and issues</p>
               </div>
-              <div className="max-h-[28rem] overflow-y-auto p-3">
+              <div className="max-h-112 overflow-y-auto p-3">
                 <div className="space-y-3">
                   {activeIssues.map((issue) => (
                     <div key={`notification-${issue.id}`} className="rounded-xl border border-border bg-card p-4 shadow-sm">

@@ -24,7 +24,7 @@ export default function SignupPage() {
   const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [role, setRole] = useState("site_engineer")
+  const [role, setRole] = useState("SITE_ENGINEER")
   const [nic, setNic] = useState("")
   const [experience, setExperience] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -59,7 +59,7 @@ export default function SignupPage() {
           password,
           role,
           nic,
-          experience,
+          yearsOfExperience: experience,
         }),
       })
 
@@ -162,7 +162,7 @@ export default function SignupPage() {
                 >
                   <option value="SITE_ENGINEER">Site Engineer</option>
                   <option value="PROJECT_MANAGER">Project Manager</option>
-                  <option value="ADMIN">Admin</option>
+                  <option value="OPERATION_MANAGER">Operation Manager</option>
                 </select>
               </div>
 

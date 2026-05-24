@@ -14,6 +14,7 @@ import type { ActivityWorkersSummary } from "@/components/site-progress/leaflet-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { MapPin, LayoutList, FileText, AlertTriangle, X } from "lucide-react"
+import { createClient } from "@/lib/superbase"
 
 export interface ActivityWorkerDetail {
   id: number
@@ -54,6 +55,7 @@ export default function ActivityProgressPage() {
 
   const [activities, setActivities] = useState<Activity[]>([])
   const [project, setProject] = useState<Project | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [subtasksByActivity, setSubtasksByActivity] = useState<Record<number, Subtask[]>>({})
   const [teamMembers, setTeamMembers] = useState<OnSiteMember[]>([])
@@ -64,6 +66,7 @@ export default function ActivityProgressPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [activityWorkersCache, setActivityWorkersCache] = useState<Record<number, ActivityWorkersSummary>>({})
   const [activityWorkersDetail, setActivityWorkersDetail] = useState<Record<number, ActivityWorkerDetail[]>>({})
+  const [userRoleLoaded, setUserRoleLoaded] = useState(false)
 
   const engineerByActivity = useMemo(() => {
     const map: Record<number, string> = {}
@@ -74,6 +77,30 @@ export default function ActivityProgressPage() {
     return map
   }, [activityWorkersDetail])
   const [detailsTab, setDetailsTab] = useState<string | undefined>(undefined)
+  const canSeeAdvancedTabs = userRoleLoaded && userRole !== "SITE_ENGINEER"
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user?.email) {
+        setUserRoleLoaded(true)
+        return
+      }
+
+      const { data: dbUser } = await supabase
+        .from("user")
+        .select("role")
+        .eq("email", user.email)
+        .maybeSingle()
+
+      setUserRole(dbUser?.role ?? null)
+      setUserRoleLoaded(true)
+    }
+
+    fetchRole()
+  }, [])
 
   async function fetchSubtasks() {
     try {
@@ -289,19 +316,23 @@ export default function ActivityProgressPage() {
             <LayoutList className="h-4 w-4" />
             Activity Tracker
           </TabsTrigger>
-          <TabsTrigger value="updates" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2">
-            <FileText className="h-4 w-4" />
-            Updates & Evidence
-          </TabsTrigger>
-          <TabsTrigger value="issues" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2">
-            <AlertTriangle className="h-4 w-4" />
-            Issues & Risks
-          </TabsTrigger>
+          {canSeeAdvancedTabs && (
+            <TabsTrigger value="updates" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2">
+              <FileText className="h-4 w-4" />
+              Updates & Evidence
+            </TabsTrigger>
+          )}
+          {canSeeAdvancedTabs && (
+            <TabsTrigger value="issues" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2">
+              <AlertTriangle className="h-4 w-4" />
+              Issues & Risks
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Map View */}
         <TabsContent value="map-view" className="mt-4">
-          <div className="h-[600px] rounded-xl border border-border overflow-hidden">
+          <div className="h-150 rounded-xl border border-border overflow-hidden">
             <LeafletMap
               activities={activities}
               project={project}
@@ -329,7 +360,7 @@ export default function ActivityProgressPage() {
 
         {/* Activity Tracker */}
         <TabsContent value="activity-tracker" className="mt-4">
-          <div className="h-[calc(100vh-220px)] min-h-[500px] rounded-xl border border-border overflow-hidden">
+          <div className="h-[calc(100vh-220px)] min-h-125 rounded-xl border border-border overflow-hidden">
             <LinearActivitiesBoard
               activities={activities}
               subtasksByActivity={subtasksByActivity}
@@ -340,7 +371,7 @@ export default function ActivityProgressPage() {
                 setSelectedActivity(activity)
                 setActiveTab("map-view")
               }}
-              onAddActivity={() => setShowAddModal(true)}
+              onAddActivity={canSeeAdvancedTabs ? () => setShowAddModal(true) : undefined}
               onStatusChange={handleStatusChange}
               onToggleSubtask={handleToggleSubtask}
               onSubtaskUpdate={(activityId, subtaskId, description, evidencePhotoUrl) =>
@@ -351,17 +382,21 @@ export default function ActivityProgressPage() {
         </TabsContent>
 
         {/* Updates & Evidence */}
-        <TabsContent value="updates" className="mt-4">
-          <UpdatesEvidenceTab activities={activities} subtasksByActivity={subtasksByActivity} />
-        </TabsContent>
+        {canSeeAdvancedTabs && (
+          <TabsContent value="updates" className="mt-4">
+            <UpdatesEvidenceTab activities={activities} subtasksByActivity={subtasksByActivity} />
+          </TabsContent>
+        )}
 
         {/* Issues & Risks – placeholder */}
-        <TabsContent value="issues" className="mt-4">
-          <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground border border-dashed border-border rounded-xl gap-2">
-            <AlertTriangle className="h-10 w-10 opacity-30" />
-            <p className="text-sm">Issues & Risks coming soon</p>
-          </div>
-        </TabsContent>
+        {canSeeAdvancedTabs && (
+          <TabsContent value="issues" className="mt-4">
+            <div className="h-100 flex flex-col items-center justify-center text-muted-foreground border border-dashed border-border rounded-xl gap-2">
+              <AlertTriangle className="h-10 w-10 opacity-30" />
+              <p className="text-sm">Issues & Risks coming soon</p>
+            </div>
+          </TabsContent>
+        )}
 
       </Tabs>
 
