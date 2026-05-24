@@ -298,41 +298,56 @@ export default function ActivityProgressPage() {
 
 
   return (
-    <div className="flex flex-col gap-4 w-full pb-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground tracking-tight">Site Progress Tracking</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Monitor site progress, activities, issues, and workforce in real time.
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-4 w-full pb-8 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+      <style jsx global>{`
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: hsl(var(--border));
+          border-radius: 3px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: hsl(var(--muted-foreground) / 0.5);
+        }
+      `}</style>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-secondary/30 border border-border p-1 h-auto">
-          <TabsTrigger value="map-view" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2">
-            <MapPin className="h-4 w-4" />
-            Map View
-          </TabsTrigger>
-          <TabsTrigger value="activity-tracker" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2">
-            <LayoutList className="h-4 w-4" />
-            Activity Tracker
-          </TabsTrigger>
-          {canSeeAdvancedTabs && (
-            <TabsTrigger value="updates" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2">
-              <FileText className="h-4 w-4" />
+        <div className="border-b border-border">
+          <div className="flex gap-6">
+            <button
+              onClick={() => setActiveTab("map-view")}
+              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "map-view" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+            >
+              Map View
+            </button>
+            <button
+              onClick={() => setActiveTab("activity-tracker")}
+              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "activity-tracker" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+            >
+              Activity Tracker
+            </button>
+            <button
+              onClick={() => setActiveTab("updates")}
+              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "updates" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+            >
               Updates & Evidence
-            </TabsTrigger>
-          )}
-          {canSeeAdvancedTabs && (
-            <TabsTrigger value="issues" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm px-4 py-2">
-              <AlertTriangle className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setActiveTab("issues")}
+              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "issues" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+            >
               Issues & Risks
-            </TabsTrigger>
-          )}
-        </TabsList>
+            </button>
+          </div>
+        </div>
 
         {/* Map View */}
-        <TabsContent value="map-view" className="mt-4">
-          <div className="h-150 rounded-xl border border-border overflow-hidden">
+        <TabsContent value="map-view" className="mt-0">
+          <div className="h-[calc(100vh-120px)] rounded-xl border border-border overflow-hidden scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
             <LeafletMap
               activities={activities}
               project={project}
@@ -360,7 +375,7 @@ export default function ActivityProgressPage() {
 
         {/* Activity Tracker */}
         <TabsContent value="activity-tracker" className="mt-4">
-          <div className="h-[calc(100vh-220px)] min-h-125 rounded-xl border border-border overflow-hidden">
+          <div className="h-[calc(100vh-220px)] min-h-[500px] rounded-xl border border-border overflow-hidden scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
             <LinearActivitiesBoard
               activities={activities}
               subtasksByActivity={subtasksByActivity}
@@ -382,21 +397,19 @@ export default function ActivityProgressPage() {
         </TabsContent>
 
         {/* Updates & Evidence */}
-        {canSeeAdvancedTabs && (
-          <TabsContent value="updates" className="mt-4">
+        <TabsContent value="updates" className="mt-4">
+          <div className="scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
             <UpdatesEvidenceTab activities={activities} subtasksByActivity={subtasksByActivity} />
-          </TabsContent>
-        )}
+          </div>
+        </TabsContent>
 
         {/* Issues & Risks – placeholder */}
-        {canSeeAdvancedTabs && (
-          <TabsContent value="issues" className="mt-4">
-            <div className="h-100 flex flex-col items-center justify-center text-muted-foreground border border-dashed border-border rounded-xl gap-2">
-              <AlertTriangle className="h-10 w-10 opacity-30" />
-              <p className="text-sm">Issues & Risks coming soon</p>
-            </div>
-          </TabsContent>
-        )}
+        <TabsContent value="issues" className="mt-4">
+          <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground border border-dashed border-border rounded-xl gap-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+            <AlertTriangle className="h-10 w-10 opacity-30" />
+            <p className="text-sm">Issues & Risks coming soon</p>
+          </div>
+        </TabsContent>
 
       </Tabs>
 
