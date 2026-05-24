@@ -62,18 +62,6 @@ export async function POST(
       data: { publicUrl },
     } = supabase.storage.from(BUCKET_NAME).getPublicUrl(filePath)
 
-    const { error: updateError } = await supabase
-      .from("activity")
-      .update({
-        imagepath: filePath,
-        imageurl: publicUrl,
-      })
-      .eq("activityid", numericZoneId)
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
-    }
-
     return NextResponse.json({
       success: true,
       imagepath: filePath,
