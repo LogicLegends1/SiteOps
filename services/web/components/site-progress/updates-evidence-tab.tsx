@@ -233,18 +233,29 @@ function getTagStyles(type: Tag["type"]): string {
   }
 }
 
-function UpdateCard({ entry }: { entry: UpdateEntry }) {
+function UpdateCard({ entry, isLatest = false }: { entry: UpdateEntry; isLatest?: boolean }) {
   const avatarColor = ACTIVITY_COLORS[entry.activityId % ACTIVITY_COLORS.length]
-  const maxVisibleImages = 3
+  const maxVisibleImages = 5
   const extraImages = entry.images.length > maxVisibleImages ? entry.images.length - maxVisibleImages : 0
 
   return (
     <div className="relative flex gap-0 mb-3">
-      {/* Left gutter: time + timeline */}
-      <div className="w-[80px] shrink-0 flex flex-col items-center pt-5 relative">
-        <span className="text-[11px] font-semibold text-white/50 mb-2 tabular-nums">{entry.timeLabel}</span>
-        <div className="w-[10px] h-[10px] rounded-full bg-[#0EA5E9] shadow-[0_0_10px_rgba(14,165,233,0.5)] ring-[3px] ring-[#0a1628] z-10" />
-        <div className="flex-1 w-px bg-gradient-to-b from-[#0EA5E9]/30 via-[#0EA5E9]/10 to-transparent mt-1" />
+      {/* Left gutter: timeline node + time */}
+      <div className="w-[72px] shrink-0 flex flex-col items-center relative">
+        {/* Vertical line behind everything */}
+        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-white/20" />
+        {/* Node */}
+        {isLatest ? (
+          <div className="relative z-10 mt-5 w-[14px] h-[14px] rounded-full border-[2px] border-[#0EA5E9] bg-[#060b14] flex items-center justify-center">
+            <div className="w-[6px] h-[6px] rounded-full bg-[#0EA5E9]" />
+          </div>
+        ) : (
+          <div className="relative z-10 mt-5 w-[12px] h-[12px] rounded-full border-[2px] border-white/40 bg-[#060b14] flex items-center justify-center">
+            <div className="w-[4px] h-[4px] rounded-full bg-white/40" />
+          </div>
+        )}
+        {/* Time label below node */}
+        <span className="text-[10px] font-medium text-white/40 mt-1.5 tabular-nums whitespace-nowrap">{entry.timeLabel}</span>
       </div>
 
       {/* Card */}
@@ -327,7 +338,7 @@ function UpdateCard({ entry }: { entry: UpdateEntry }) {
             {entry.images.slice(0, maxVisibleImages).map((src, idx) => (
               <div
                 key={idx}
-                className="relative shrink-0 w-[80px] h-[56px] rounded-[10px] overflow-hidden border border-white/[0.06] cursor-pointer group/img"
+                className="relative shrink-0 w-[100px] h-[68px] rounded-[10px] overflow-hidden border border-white/[0.06] cursor-pointer group/img"
               >
                 <img src={src} alt={`Evidence ${idx + 1}`} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-200" />
                 {idx === maxVisibleImages - 1 && extraImages > 0 && (
@@ -430,7 +441,7 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
     : ""
 
   return (
-    <div className="grid grid-cols-[300px_minmax(0,1fr)_340px] h-[calc(100vh-200px)] min-h-[600px] rounded-[20px] overflow-hidden bg-gradient-to-br from-[#02050B] via-[#040912] to-[#050B14] border border-white/[0.06]"
+    <div className="grid grid-cols-[220px_minmax(0,1fr)_280px] h-[calc(100vh-200px)] min-h-[600px] rounded-[20px] overflow-hidden bg-gradient-to-br from-[#02050B] via-[#040912] to-[#050B14] border border-white/[0.06]"
       style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03), 0 0 80px rgba(14,165,233,0.03)" }}
     >
       {/* ===== LEFT SIDEBAR ===== */}
@@ -580,8 +591,8 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
                   </span>
                 </div>
                 <div>
-                  {dayEntries.map((entry) => (
-                    <UpdateCard key={entry.id} entry={entry} />
+                  {dayEntries.map((entry, idx) => (
+                    <UpdateCard key={entry.id} entry={entry} isLatest={idx === 0} />
                   ))}
                 </div>
               </div>
