@@ -1,19 +1,24 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import {
   getDisciplineLabel,
   getRoleLabel,
-  getStatusColor,
-  getExperienceLevelColor,
 } from "@/lib/workforce-data"
-import { type WorkforceWorker, type WorkerDiscipline, type WorkerRole } from "@/lib/workforce-live"
+import { cn } from "@/lib/utils"
+import { type WorkforceTeam, type WorkforceWorker, type WorkerDiscipline, type WorkerRole } from "@/lib/workforce-live"
 import { HardHat, Zap, Wrench, ClipboardCheck, Shield, Users, Monitor } from "lucide-react"
 
 const disciplineIcons: Record<WorkerDiscipline, React.ElementType> = {
@@ -28,16 +33,14 @@ const disciplineIcons: Record<WorkerDiscipline, React.ElementType> = {
 
 interface WorkerClassificationProps {
   workers: WorkforceWorker[]
-  selectedWorkers: string[]
-  onWorkerSelect: (workerId: string, selected: boolean) => void
-  selectionMode: boolean
+  teams?: WorkforceTeam[]
+  toolbarRight?: React.ReactNode
 }
 
 export function WorkerClassification({
   workers,
-  selectedWorkers,
-  onWorkerSelect,
-  selectionMode,
+  teams = [],
+  toolbarRight,
 }: WorkerClassificationProps) {
   const [activeTab, setActiveTab] = useState<"discipline" | "role" | "experience">("discipline")
 
@@ -45,149 +48,226 @@ export function WorkerClassification({
   const roles: WorkerRole[] = ["engineer", "supervisor", "technician", "operator", "skilled-labour", "general-labour", "developer", "system-admin"]
   const experienceLevels = ["expert", "senior", "mid-level", "junior"]
 
-  const renderWorkerCard = (worker: WorkforceWorker) => {
-    const isSelected = selectedWorkers.includes(worker.id)
+  const teamById = new Map(teams.map((team) => [team.id, team]))
+
+  const getStatusPresentation = (status: WorkforceWorker["status"]) => {
+    switch (status) {
+      case "assigned":
+        return { label: "ACTIVE", className: "bg-success/15 text-success border-success/30" }
+      case "idle":
+        return { label: "available", className: "bg-primary/10 text-primary border-primary/20" }
+      case "unavailable":
+      default:
+        return { label: "unavailable", className: "bg-muted text-muted-foreground border-border" }
+    }
+  }
+
+  const getThirdColumn = (worker: WorkforceWorker) => {
+    if (activeTab === "discipline") {
+      return {
+        title: "Role/Experience",
+        top: getRoleLabel(worker.role),
+        bottom: `${worker.experienceYears} yrs`,
+      }
+    }
+
+    if (activeTab === "role") {
+      return {
+        title: "Discipline/Experience",
+        top: getDisciplineLabel(worker.discipline),
+        bottom: `${worker.experienceYears} yrs`,
+      }
+    }
+
+    return {
+      title: "Role/Discipline",
+      top: getRoleLabel(worker.role),
+      bottom: getDisciplineLabel(worker.discipline),
+    }
+  }
+
+  const renderWorkerRow = (worker: WorkforceWorker) => {
     const DisciplineIcon = disciplineIcons[worker.discipline]
+    const teamName = worker.assignedTeamId ? teamById.get(worker.assignedTeamId)?.name ?? "—" : "—"
+    const status = getStatusPresentation(worker.status)
+    const third = getThirdColumn(worker)
 
     return (
-      <div
-        key={worker.id}
-        className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
-          isSelected ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-accent/50"
-        } ${selectionMode && worker.status !== "idle" ? "opacity-50" : ""}`}
-      >
-        {selectionMode && (
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={(checked) => onWorkerSelect(worker.id, checked as boolean)}
-            disabled={worker.status !== "idle"}
-          />
-        )}
-        <Avatar className="h-10 w-10">
-          <AvatarFallback className="bg-primary/10 text-primary">
-            {worker.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("")}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-medium text-sm text-foreground truncate">{worker.name}</p>
-            <DisciplineIcon className="h-3 w-3 text-muted-foreground" />
+      <TableRow key={worker.id} className="border-border/60">
+        <TableCell className="w-28 font-mono text-xs text-muted-foreground whitespace-nowrap">
+          {worker.id}
+        </TableCell>
+        <TableCell className="min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <Avatar className="h-9 w-9">
+              <AvatarFallback className="bg-muted/50 text-foreground">
+                {worker.name
+                  .split(" ")
+                  .slice(0, 2)
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground truncate">{worker.name}</span>
+                <DisciplineIcon className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {getRoleLabel(worker.role)} - {worker.experienceYears} yrs
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <Badge variant="outline" className={getStatusColor(worker.status)}>
-            {worker.status}
+        </TableCell>
+        <TableCell className="w-48 text-sm text-foreground">
+          <div className="flex flex-col">
+            <span className="truncate">{third.top}</span>
+            <span className="text-xs text-muted-foreground truncate">{third.bottom}</span>
+          </div>
+        </TableCell>
+        <TableCell className="w-44 text-sm text-foreground truncate">{teamName}</TableCell>
+        <TableCell className="w-28 pr-3 text-right whitespace-nowrap">
+          <Badge variant="outline" className={cn("capitalize px-2", status.className)}>
+            {status.label}
           </Badge>
-          <Badge variant="outline" className={getExperienceLevelColor(worker.experienceLevel)}>
-            {worker.experienceLevel}
-          </Badge>
-        </div>
+        </TableCell>
+      </TableRow>
+    )
+  }
+
+  const GroupHeader = ({
+    icon,
+    title,
+    available,
+  }: {
+    icon?: React.ElementType
+    title: string
+    available: number
+  }) => {
+    const Icon = icon
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+        {Icon ? <Icon className="h-4 w-4 text-primary" /> : null}
+        <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+        <Badge variant="outline" className="ml-auto bg-primary/10 text-primary border-primary/20">
+          {available} available
+        </Badge>
       </div>
     )
   }
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader>
-        <CardTitle className="text-lg text-foreground flex items-center justify-between">
-          Worker Classification
-          {selectionMode && (
-            <Badge variant="outline" className="bg-primary/10 text-primary">
-              {selectedWorkers.length} selected
-            </Badge>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "discipline" | "role" | "experience")}>
-          <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="discipline">By Discipline</TabsTrigger>
-            <TabsTrigger value="role">By Role</TabsTrigger>
-            <TabsTrigger value="experience">By Experience</TabsTrigger>
-          </TabsList>
+    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "discipline" | "role" | "experience")}>
+      <div className="flex items-center justify-between gap-3">
+        <TabsList className="grid w-full max-w-105 grid-cols-3 rounded-lg bg-muted/30 p-1">
+          <TabsTrigger value="discipline" className="rounded-md text-xs font-semibold">
+            By Discipline
+          </TabsTrigger>
+          <TabsTrigger value="role" className="rounded-md text-xs font-semibold">
+            By Role
+          </TabsTrigger>
+          <TabsTrigger value="experience" className="rounded-md text-xs font-semibold">
+            By Experience
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="discipline">
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-4">
-                {disciplines.map((discipline) => {
-                  const disciplineWorkers = workers.filter((w) => w.discipline === discipline)
-                  if (disciplineWorkers.length === 0) return null
-                  const DisciplineIcon = disciplineIcons[discipline]
+        {toolbarRight ? <div className="shrink-0">{toolbarRight}</div> : null}
+      </div>
 
-                  return (
-                    <div key={discipline}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <DisciplineIcon className="h-4 w-4 text-primary" />
-                        <h4 className="text-sm font-semibold text-foreground">
-                          {getDisciplineLabel(discipline)}
-                        </h4>
-                        <Badge variant="secondary" className="ml-auto">
-                          {disciplineWorkers.length}
-                        </Badge>
-                      </div>
-                      <div className="space-y-2">
-                        {disciplineWorkers.map(renderWorkerCard)}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </ScrollArea>
-          </TabsContent>
+      <TabsContent value="discipline" className="mt-4">
+        <ScrollArea className="h-64 pr-2">
+          <div className="space-y-4">
+            {disciplines.map((discipline) => {
+              const disciplineWorkers = workers.filter((w) => w.discipline === discipline)
+              if (disciplineWorkers.length === 0) return null
+              const available = disciplineWorkers.filter((w) => w.status !== "unavailable").length
+              const DisciplineIcon = disciplineIcons[discipline]
 
-          <TabsContent value="role">
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-4">
-                {roles.map((role) => {
-                  const roleWorkers = workers.filter((w) => w.role === role)
-                  if (roleWorkers.length === 0) return null
+              return (
+                <div key={discipline} className="space-y-2">
+                  <GroupHeader icon={DisciplineIcon} title={getDisciplineLabel(discipline)} available={available} />
+                  <div className="rounded-lg border border-border/60 overflow-hidden">
+                    <Table className="w-full table-fixed">
+                      <TableHeader>
+                        <TableRow className="border-border/60 hover:bg-transparent">
+                          <TableHead className="w-28 text-xs">Worker ID</TableHead>
+                          <TableHead className="text-xs">Name</TableHead>
+                          <TableHead className="w-48 text-xs">Role/Experience</TableHead>
+                          <TableHead className="w-44 text-xs">Primary Team</TableHead>
+                          <TableHead className="w-28 pr-3 text-xs text-right">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>{disciplineWorkers.map(renderWorkerRow)}</TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </ScrollArea>
+      </TabsContent>
 
-                  return (
-                    <div key={role}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4 className="text-sm font-semibold text-foreground">{getRoleLabel(role)}</h4>
-                        <Badge variant="secondary" className="ml-auto">
-                          {roleWorkers.length}
-                        </Badge>
-                      </div>
-                      <div className="space-y-2">{roleWorkers.map(renderWorkerCard)}</div>
-                    </div>
-                  )
-                })}
-              </div>
-            </ScrollArea>
-          </TabsContent>
+      <TabsContent value="role" className="mt-4">
+        <ScrollArea className="h-64 pr-2">
+          <div className="space-y-4">
+            {roles.map((role) => {
+              const roleWorkers = workers.filter((w) => w.role === role)
+              if (roleWorkers.length === 0) return null
+              const available = roleWorkers.filter((w) => w.status !== "unavailable").length
 
-          <TabsContent value="experience">
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-4">
-                {experienceLevels.map((level) => {
-                  const levelWorkers = workers.filter((w) => w.experienceLevel === level)
-                  if (levelWorkers.length === 0) return null
+              return (
+                <div key={role} className="space-y-2">
+                  <GroupHeader title={getRoleLabel(role)} available={available} />
+                  <div className="rounded-lg border border-border/60 overflow-hidden">
+                    <Table className="w-full table-fixed">
+                      <TableHeader>
+                        <TableRow className="border-border/60 hover:bg-transparent">
+                          <TableHead className="w-28 text-xs">Worker ID</TableHead>
+                          <TableHead className="text-xs">Name</TableHead>
+                          <TableHead className="w-48 text-xs">Discipline/Experience</TableHead>
+                          <TableHead className="w-44 text-xs">Primary Team</TableHead>
+                          <TableHead className="w-28 pr-3 text-xs text-right">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>{roleWorkers.map(renderWorkerRow)}</TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </ScrollArea>
+      </TabsContent>
 
-                  return (
-                    <div key={level}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4 className="text-sm font-semibold text-foreground capitalize">{level}</h4>
-                        <Badge variant="secondary" className="ml-auto">
-                          {levelWorkers.length}
-                        </Badge>
-                      </div>
-                      <div className="space-y-2">{levelWorkers.map(renderWorkerCard)}</div>
-                    </div>
-                  )
-                })}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+      <TabsContent value="experience" className="mt-4">
+        <ScrollArea className="h-64 pr-2">
+          <div className="space-y-4">
+            {experienceLevels.map((level) => {
+              const levelWorkers = workers.filter((w) => w.experienceLevel === level)
+              if (levelWorkers.length === 0) return null
+              const available = levelWorkers.filter((w) => w.status !== "unavailable").length
+
+              return (
+                <div key={level} className="space-y-2">
+                  <GroupHeader title={level.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())} available={available} />
+                  <div className="rounded-lg border border-border/60 overflow-hidden">
+                    <Table className="w-full table-fixed">
+                      <TableHeader>
+                        <TableRow className="border-border/60 hover:bg-transparent">
+                          <TableHead className="w-28 text-xs">Worker ID</TableHead>
+                          <TableHead className="text-xs">Name</TableHead>
+                          <TableHead className="w-48 text-xs">Role/Discipline</TableHead>
+                          <TableHead className="w-44 text-xs">Primary Team</TableHead>
+                          <TableHead className="w-28 pr-3 text-xs text-right">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>{levelWorkers.map(renderWorkerRow)}</TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </ScrollArea>
+      </TabsContent>
+    </Tabs>
   )
 }

@@ -1,37 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Plus, Users, ChevronRight, UserPlus } from "lucide-react"
+import { Users, ChevronRight } from "lucide-react"
 import {
   getRoleLabel,
   getDisciplineLabel,
 } from "@/lib/workforce-data"
 import { type WorkforceTeam, type WorkforceWorker } from "@/lib/workforce-live"
-import { activities } from "@/lib/site-data"
-import { activityProgress } from "@/lib/delay-engine-data"
 
 import { CreateTeamDialog } from "./create-team-dialog"
 
@@ -39,8 +17,6 @@ interface TeamManagementProps {
   projectId: string
   teams: WorkforceTeam[]
   workers: WorkforceWorker[]
-  selectedWorkers: string[]
-  onClearSelection: () => void
   onTeamCreated: () => void
 }
 
@@ -48,33 +24,11 @@ export function TeamManagement({
   projectId,
   teams,
   workers,
-  selectedWorkers,
-  onClearSelection,
   onTeamCreated,
 }: TeamManagementProps) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null)
 
-  const handleCreateTeam = () => {
-    // In a real app, this would call an API
-    console.log("Creating team:", {
-      name: newTeamName,
-      members: selectedWorkers,
-      leader: selectedLeader,
-      activityId: selectedActivity,
-      workType: selectedWorkType,
-    })
-    setIsCreateDialogOpen(false)
-    setNewTeamName("")
-    setSelectedActivity("")
-    setSelectedWorkType("")
-    setSelectedLeader("")
-    onClearSelection()
-    onTeamCreated()
-  }
-
   const getWorkerById = (id: string) => workers.find((worker) => worker.id === id)
-
-  const selectedWorkerDetails = selectedWorkers.map((id) => getWorkerById(id)).filter(Boolean)
 
   const renderTeamCard = (team: WorkforceTeam) => {
     const leader = team.leaderId ? getWorkerById(team.leaderId) : null
@@ -162,20 +116,30 @@ export function TeamManagement({
   }
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg text-foreground">Teams</CardTitle>
-        <CreateTeamDialog
-          projectId={projectId}
-          workers={workers}
-          onTeamCreated={onTeamCreated}
-        />
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[400px] pr-4">
-          <div className="space-y-3">{teams.map(renderTeamCard)}</div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-xs font-black uppercase tracking-widest text-muted-foreground">Teams</div>
+          <div className="text-sm text-muted-foreground">Manage on-site crews and assignments</div>
+        </div>
+        <CreateTeamDialog projectId={projectId} workers={workers} onTeamCreated={onTeamCreated} />
+      </div>
+
+      <div className="rounded-xl border border-border/60 bg-card/60">
+        <ScrollArea className="h-130 pr-4">
+          <div className="space-y-3 p-4">
+            {teams.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <Users className="h-10 w-10 text-muted-foreground" />
+                <div className="mt-3 text-sm font-medium text-foreground">No teams yet</div>
+                <div className="text-xs text-muted-foreground">Create a team to get started.</div>
+              </div>
+            ) : (
+              teams.map(renderTeamCard)
+            )}
+          </div>
         </ScrollArea>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
