@@ -164,6 +164,7 @@ export function LeafletMap({
   const hoverTooltipRef = useRef<HTMLDivElement | null>(null)
   const hoveredMarkerRef = useRef<L.Marker | null>(null)
   const hoveredContentRef = useRef<string | HTMLElement | null>(null)
+  const resizeObserverRef = useRef<ResizeObserver | null>(null)
 
   const mapCenter = mapOptions?.center ?? DEFAULT_CENTER
   const mapZoom = mapOptions?.zoom ?? DEFAULT_ZOOM
@@ -282,6 +283,21 @@ export function LeafletMap({
     mapRef.current = map
     tileLayerRef.current = tileLayer
 
+    const syncMapSize = () => {
+      window.requestAnimationFrame(() => {
+        map.invalidateSize()
+      })
+    }
+
+    syncMapSize()
+
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserverRef.current = new ResizeObserver(() => {
+        syncMapSize()
+      })
+      resizeObserverRef.current.observe(mapContainerRef.current)
+    }
+
     const updateTooltip = () => {
       updateHoverTooltipPosition()
     }
@@ -347,6 +363,8 @@ export function LeafletMap({
 
     return () => {
       map.off("move zoom resize", updateTooltip)
+      resizeObserverRef.current?.disconnect()
+      resizeObserverRef.current = null
       if (enableBoxSelection) {
         map.off("mousedown")
         map.off("mousemove")
