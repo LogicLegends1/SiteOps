@@ -47,7 +47,7 @@ interface LinearActivitiesBoardProps {
   subtasksByActivity: Record<number, Subtask[]>
   onActivitySelect: (activity: Activity) => void
   onViewOnMap: (activity: Activity) => void
-  onAddActivity: () => void
+  onAddActivity?: () => void
   onStatusChange?: (activityId: number, newStatus: ActivityStatus) => void
   onToggleSubtask?: (activityId: number, subtaskId: string) => void
   onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string, evidencePhotoUrl?: string) => void
@@ -132,7 +132,7 @@ function TableHeader() {
   return (
     <div
       className={cn(
-        "grid items-center gap-3 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border bg-secondary/20 shrink-0 min-w-[960px]",
+        "grid items-center gap-3 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border bg-secondary/20 shrink-0 min-w-240",
         COL_GRID
       )}
     >
@@ -196,7 +196,7 @@ function ActivityRow({
     <div
       id={`activity-row-${activity.zoneID}`}
       className={cn(
-        "group/row border-b border-border/50 last:border-0 min-w-[960px]",
+        "group/row border-b border-border/50 last:border-0 min-w-240",
         isSelected && "bg-primary/5 border-l-2 border-primary"
       )}
     >
@@ -503,6 +503,21 @@ export function LinearActivitiesBoard({
     return result
   }, [activities, subtasksByActivity, searchQuery, filter])
 
+  useEffect(() => {
+    const styleId = "activity-board-scrollbar-styles"
+    if (document.getElementById(styleId)) return
+    const style = document.createElement("style")
+    style.id = styleId
+    style.textContent = `
+      .ab-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+      .ab-scroll::-webkit-scrollbar-track { background: transparent; }
+      .ab-scroll::-webkit-scrollbar-thumb { background: rgba(14,165,233,0.15); border-radius: 4px; }
+      .ab-scroll::-webkit-scrollbar-thumb:hover { background: rgba(14,165,233,0.3); }
+    `
+    document.head.appendChild(style)
+    return () => { document.getElementById(styleId)?.remove() }
+  }, [])
+
   return (
     <div className="flex flex-col h-full bg-card rounded-none overflow-hidden">
       {/* Toolbar */}
@@ -539,17 +554,19 @@ export function LinearActivitiesBoard({
           ))}
         </div>
         <div className="flex-1" />
-        <Button size="sm" className="h-8 gap-1.5 text-xs shrink-0" onClick={onAddActivity}>
-          <Plus className="h-3.5 w-3.5" />
-          New Activity
-        </Button>
+        {onAddActivity && (
+          <Button size="sm" className="h-8 gap-1.5 text-xs shrink-0" onClick={onAddActivity}>
+            <Plus className="h-3.5 w-3.5" />
+            New Activity
+          </Button>
+        )}
       </div>
 
       {/* Table header */}
       <TableHeader />
 
       {/* Content */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-auto ab-scroll">
         {filteredActivities.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <ListTodo className="h-10 w-10 text-muted-foreground mb-3" />

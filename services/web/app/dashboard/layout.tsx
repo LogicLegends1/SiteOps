@@ -33,7 +33,21 @@ export default function DashboardLayout({
 }) {
   const router = useRouter()
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
-  const [userName, setUserName] = useState<string>("User")
+  const [userName, setUserName] = useState<string>("")
+  const [userRole, setUserRole] = useState<string | null>(null)
+
+  const formatRoleLabel = (role: string | null) => {
+    switch (role) {
+      case "OPERATION_MANAGER":
+        return "Operational Director"
+      case "PROJECT_MANAGER":
+        return "Project Manager"
+      case "SITE_ENGINEER":
+        return "Site Engineer"
+      default:
+        return role
+    }
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -46,16 +60,24 @@ export default function DashboardLayout({
         } = await supabase.auth.getUser()
 
         if (user && isMounted) {
-          const avatarUrl = user.user_metadata?.avatar_url
-          const fullName = user.user_metadata?.full_name || "User"
+          const { data: dbUser } = await supabase
+            .from("user")
+            .select("username, role, avatarimage")
+            .eq("email", user.email)
+            .maybeSingle()
+
+          const avatarUrl = dbUser?.avatarimage || user.user_metadata?.avatar_url || null
+          const fullName = dbUser?.username || user.user_metadata?.full_name || ""
 
           setUserAvatar(avatarUrl)
           setUserName(fullName)
+          setUserRole(dbUser?.role ?? null)
         }
       } catch {
         if (isMounted) {
           setUserAvatar(null)
-          setUserName("User")
+          setUserName("")
+          setUserRole(null)
         }
       }
     }
@@ -135,28 +157,28 @@ export default function DashboardLayout({
           <Separator className="my-2" />
           <div className="flex items-center gap-3 px-2 group-data-[collapsible=icon]:justify-center">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={userAvatar || "/placeholder.svg?height=32&width=32"} alt={userName} />
-              <AvatarFallback className="bg-primary/20 text-primary text-xs">{userName.substring(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarImage src={userAvatar || "/placeholder.svg?height=32&width=32"} alt={userName || "User avatar"} />
+              <AvatarFallback className="bg-primary/20 text-primary text-xs">{userName ? userName.substring(0, 2).toUpperCase() : "U"}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-              <span className="text-sm font-medium text-foreground">{userName}</span>
-              <span className="text-xs text-muted-foreground">Project Alpha</span>
+              <span className="text-sm font-medium text-foreground">{userName || ""}</span>
+              <span className="text-xs text-muted-foreground">{formatRoleLabel(userRole)}</span>
             </div>
           </div>
         </SidebarFooter>
       </Sidebar>
 
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-20 items-center gap-4 border-b border-border bg-background/95 px-6 backdrop-blur supports-backdrop-filter:bg-background/60">
+        <header className="sticky top-0 z-10 flex min-h-16 items-center gap-3 border-b border-border bg-background/95 px-4 py-3 md:h-20 md:px-6 backdrop-blur supports-backdrop-filter:bg-background/60">
           <SidebarTrigger className="md:hidden" />
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold text-foreground">
+            <h1 className="text-lg font-semibold text-foreground md:text-2xl">
               Dashboard
             </h1>
           </div>
           <ThemeToggle />
         </header>
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-3 md:p-6">
           {children}
         </main>
       </SidebarInset>

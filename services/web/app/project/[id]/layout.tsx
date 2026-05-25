@@ -91,12 +91,12 @@ const navItems = [
     icon: Package,
   },
   {
-    title: "Workforce Allocation",
+    title: "Labor & Crew Management",
     segment: "workforce",
     icon: Users,
   },
   {
-    title: "Equipment & Assets",
+    title: "Machinery & Assets",
     segment: "equipment",
     icon: Wrench,
   },
@@ -114,11 +114,32 @@ export default function ProjectLayout({
   const router = useRouter()
   const projectId = params.id ?? "1"
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
-  const [userName, setUserName] = useState<string>("User")
+  const [userName, setUserName] = useState<string>("")
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [userRoleLoaded, setUserRoleLoaded] = useState(false)
   const [project, setProject] = useState<Project | null>(null)
+
+  const formatRoleLabel = (role: string | null) => {
+    switch (role) {
+      case "OPERATION_MANAGER":
+        return "Operational Director"
+      case "PROJECT_MANAGER":
+        return "Project Manager"
+      case "SITE_ENGINEER":
+        return "Site Engineer"
+      default:
+        return role
+    }
+  }
 
   const getProjectHref = (segment: string) =>
     segment ? `/project/${projectId}/${segment}` : `/project/${projectId}`
+
+  const visibleNavItems = !userRoleLoaded
+    ? []
+    : userRole === "SITE_ENGINEER"
+      ? navItems.filter((item) => item.segment === "" || item.segment === "site-progress")
+      : navItems
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -126,17 +147,37 @@ export default function ProjectLayout({
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
-        // Get avatar from user metadata
-        const avatarUrl = user.user_metadata?.avatar_url
-        const fullName = user.user_metadata?.full_name || "User"
+        const { data: dbUser } = await supabase
+          .from("user")
+          .select("username, role, avatarimage")
+          .eq("email", user.email)
+          .maybeSingle()
+
+        const avatarUrl = dbUser?.avatarimage || user.user_metadata?.avatar_url || null
+        const fullName = dbUser?.username || user.user_metadata?.full_name || ""
         
         setUserAvatar(avatarUrl)
         setUserName(fullName)
+
+        setUserRole(dbUser?.role ?? null)
       }
+
+      setUserRoleLoaded(true)
     }
     
     fetchUser()
   }, [])
+
+  useEffect(() => {
+    if (!userRoleLoaded || userRole !== "SITE_ENGINEER") return
+
+    const pathnameSegment = pathname.replace(`/project/${projectId}`, "")
+    const isAllowedRoute = pathnameSegment === "" || pathnameSegment === "/site-progress"
+
+    if (!isAllowedRoute) {
+      router.replace(`/project/${projectId}`)
+    }
+  }, [pathname, projectId, router, userRole, userRoleLoaded])
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -178,7 +219,7 @@ export default function ProjectLayout({
         <SidebarContent className="overflow-hidden">
           <div className="flex h-full flex-col">
             <SidebarMenu>
-              {navItems.map((item) => (
+              {visibleNavItems.length > 0 ? visibleNavItems.map((item) => (
                 <SidebarMenuItem key={item.segment || "overview"}>
                   <SidebarMenuButton
                     asChild
@@ -191,7 +232,11 @@ export default function ProjectLayout({
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
+              )) : (
+                <SidebarMenuItem>
+                  <div className="px-2 py-3 text-xs text-muted-foreground">Loading navigation…</div>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
             <div className="mt-3 hidden flex-1 bg-linear-to-b from-transparent from-75% to-primary/30 opacity-5 group-data-[state=expanded]:block group-data-[state=expanded]:animate-[fadeIn_0.5s_ease-in-out_forwards]" />
           </div>
@@ -215,23 +260,23 @@ export default function ProjectLayout({
           <Separator className="my-2" />
           <div className="flex items-center gap-3 px-2 group-data-[collapsible=icon]:justify-center">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={userAvatar || "/placeholder.svg?height=32&width=32"} alt={userName} />
-              <AvatarFallback className="bg-primary/20 text-primary text-xs">{userName.substring(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarImage src={userAvatar || "/placeholder.svg?height=32&width=32"} alt={userName || "User avatar"} />
+              <AvatarFallback className="bg-primary/20 text-primary text-xs">{userName ? userName.substring(0, 2).toUpperCase() : "U"}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-              <span className="text-sm font-medium text-foreground">{userName}</span>
-              <span className="text-xs text-muted-foreground">Project Alpha</span>
+              <span className="text-sm font-medium text-foreground">{userName || ""}</span>
+              <span className="text-xs text-muted-foreground">{formatRoleLabel(userRole)}</span>
             </div>
           </div>
         </SidebarFooter>
       </Sidebar>
 
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b border-border bg-background/95 px-6 backdrop-blur supports-backdrop-filter:bg-background/60">
+        <header className="sticky top-0 z-10 flex min-h-14 items-center gap-3 border-b border-border bg-background/95 px-4 py-3 md:h-14 md:px-6 backdrop-blur supports-backdrop-filter:bg-background/60">
           <SidebarTrigger className="md:hidden" />
           <div className="flex-1">
-            <h1 className="text-lg font-semibold text-foreground">
-              {navItems.find((item) => pathname === getProjectHref(item.segment))?.title || "Project Dashboard"}
+            <h1 className="text-base font-semibold text-foreground sm:text-lg">
+              {visibleNavItems.find((item) => pathname === getProjectHref(item.segment))?.title || "Project Dashboard"}
             </h1>
           </div>
           <Popover>
@@ -263,7 +308,7 @@ export default function ProjectLayout({
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">Expanded details for the latest site alerts and issues</p>
               </div>
-              <div className="max-h-[28rem] overflow-y-auto p-3">
+              <div className="max-h-112 overflow-y-auto p-3">
                 <div className="space-y-3">
                   {activeIssues.map((issue) => (
                     <div key={`notification-${issue.id}`} className="rounded-xl border border-border bg-card p-4 shadow-sm">
@@ -311,7 +356,7 @@ export default function ProjectLayout({
           </Popover>
           <ThemeToggle />
         </header>
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-3 md:p-6">
           <ProjectContext.Provider value={{ project, userName }}>
             {children}
           </ProjectContext.Provider>

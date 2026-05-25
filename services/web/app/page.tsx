@@ -17,11 +17,11 @@ import { FeatureShowcase } from "@/components/feature-showcase";
 //     icon: Package,
 //   },
 //   {
-//     title: "Workforce Allocation",
+//     title: "Labor & Crew Management",
 //     icon: Users,
 //   },
 //   {
-//     title: "Equipment & Assets",
+//     title: "Machinery & Assets",
 //     icon: Wrench,
 //   },
 const features = {
@@ -33,13 +33,13 @@ const features = {
     icon: "Package",
     description: "Predict material requirements and track material usage to optimize procurement and reduce waste."
   },
-  "Workforce Allocation": {
+  "Labor & Crew Management": {
     icon: "Users",
-    description: "Efficiently allocate workforce based on skill sets, availability, and project needs for optimal productivity."
+    description: "Efficiently allocate workforce and crews based on skill sets, availability, and project needs for optimal productivity."
   },
-  "Equipment & Assets": {
+  "Machinery & Assets": {
     icon: "Wrench",
-    description: "Monitor equipment usage, maintenance schedules, and asset performance to maximize uptime and efficiency."
+    description: "Monitor machinery usage, maintenance schedules, and asset performance to maximize uptime and efficiency."
   }
 }
 
@@ -123,4 +123,3 @@ export default function HomePage() {
     </div>
   );
 }
-

@@ -7,23 +7,22 @@ const VALID_STATUSES = ['PENDING', 'IN_PROGRESS', 'PAUSED', 'COMPLETED', 'CANCEL
 export async function GET() {
   try {
     const supabase = await createClient()
+    const dbUser = await getCurrentDbUser(supabase)
 
-    let projectsData: any = null
-    let projectsError: any = null
+    const projectSelect = 'projectid, name, locationlongitude, locationlatitude, projectdiagram, status, projectdeadline'
 
-    // TEMPORARY: Disabled role-based filtering for development to ensure projects are visible.
-    const res = await supabase
-      .from('project')
-      .select('projectid, name, locationlongitude, locationlatitude, projectdiagram, status, projectdeadline')
-    
-    projectsData = res.data
-    projectsError = res.error
+    const res =
+      dbUser.role === 'OPERATION_MANAGER'
+        ? await supabase.from('project').select(projectSelect)
+        : await supabase.rpc('get_projects_assigned_to_person', {
+            p_person_id: dbUser.personid,
+          })
 
-    if (projectsError) {
-      return NextResponse.json({ error: projectsError.message }, { status: 400 })
+    if (res.error) {
+      return NextResponse.json({ error: res.error.message }, { status: 400 })
     }
 
-    return NextResponse.json({ projects: projectsData ?? [] }, { status: 200 })
+    return NextResponse.json({ projects: res.data ?? [] }, { status: 200 })
   } catch (error) {
     if (error instanceof CurrentUserError) {
       return NextResponse.json({ error: error.message }, { status: error.status })
