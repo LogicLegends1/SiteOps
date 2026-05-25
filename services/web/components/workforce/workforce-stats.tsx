@@ -1,80 +1,75 @@
 "use client"
 
-import { Users, UserCheck, UserX, AlertTriangle, Briefcase, HardHat } from "lucide-react"
-import { getWorkforceSummary } from "@/lib/workforce-data"
+import { Users, UserCheck, UserX, Briefcase, HardHat } from "lucide-react"
+import type { WorkforceSummary } from "@/lib/workforce-live"
 import { cn } from "@/lib/utils"
 
-export function WorkforceStats() {
-  const summary = getWorkforceSummary()
+type WorkforceStatsProps = {
+  summary: WorkforceSummary | null
+  loading?: boolean
+}
 
+export function WorkforceStats({ summary, loading = false }: WorkforceStatsProps) {
   const stats = [
     {
       title: "Total Workers",
-      value: summary.total,
+      value: summary?.total ?? 0,
       icon: Users,
       color: "text-blue-600 dark:text-blue-400",
-      border: "border-blue-200 dark:border-blue-900/50",
-      bg: "bg-blue-50 dark:bg-blue-950/20",
+      bg: "bg-blue-50/60 dark:bg-blue-950/20",
     },
     {
       title: "Assigned",
-      value: summary.assigned,
+      value: summary?.assigned ?? 0,
       icon: UserCheck,
       color: "text-green-600 dark:text-green-400",
-      border: "border-green-200 dark:border-green-900/50",
-      bg: "bg-green-50 dark:bg-green-950/20",
+      bg: "bg-green-50/60 dark:bg-green-950/20",
     },
     {
       title: "Idle",
-      value: summary.idle,
+      value: summary?.idle ?? 0,
       icon: Briefcase,
       color: "text-amber-600 dark:text-amber-400",
-      border: "border-amber-200 dark:border-amber-900/50",
-      bg: "bg-amber-50 dark:bg-amber-950/20",
+      bg: "bg-amber-50/60 dark:bg-amber-950/20",
     },
     {
       title: "Unavailable",
-      value: summary.unavailable,
+      value: summary?.unavailable ?? 0,
       icon: UserX,
       color: "text-muted-foreground",
-      border: "border-border",
       bg: "bg-muted/30",
     },
     {
       title: "Teams",
-      value: 3,
+      value: summary?.teams ?? 0,
       icon: HardHat,
       color: "text-cyan-600 dark:text-cyan-400",
-      border: "border-cyan-200 dark:border-cyan-900/50",
-      bg: "bg-cyan-50 dark:bg-cyan-950/20",
-    },
-    {
-      title: "Workforce Gap",
-      value: "Flash A",
-      icon: AlertTriangle,
-      color: "text-red-600 dark:text-red-400",
-      border: "border-red-200 dark:border-red-900/50",
-      bg: "bg-red-50 dark:bg-red-950/20",
+      bg: "bg-cyan-50/60 dark:bg-cyan-950/20",
     },
   ]
 
   return (
-    <div className="flex items-center flex-wrap gap-4">
+    <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       {stats.map((stat) => (
         <div
           key={stat.title}
           className={cn(
-            "flex min-w-[150px] flex-1 items-start gap-3 rounded-xl border p-4 transition-all hover:shadow-sm",
+            "relative flex items-start gap-3 rounded-xl border border-border/60 p-4 transition-all hover:shadow-sm",
             stat.bg,
-            stat.border
+            loading ? "opacity-60" : "opacity-100"
           )}
         >
-          <div className="rounded-lg border bg-background/70 p-2 shadow-sm">
+          <div className="rounded-lg border border-border/60 bg-background/70 p-2 shadow-sm">
             <stat.icon className={cn("h-4 w-4", stat.color)} />
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">{stat.title}</span>
             <span className={cn("mt-1 text-2xl font-bold tracking-tighter", stat.color)}>{stat.value}</span>
+          </div>
+
+          {/* Accent bar (visual only) */}
+          <div className="absolute bottom-2 left-4 right-4">
+            <div className={cn("h-1 w-full rounded-full bg-current opacity-70", stat.color)} />
           </div>
         </div>
       ))}

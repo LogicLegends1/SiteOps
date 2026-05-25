@@ -101,12 +101,16 @@ export function AddWorkerDialog({ projectId, onWorkerAdded }: AddWorkerDialogPro
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-1 bg-primary text-primary-foreground">
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-2 border-border/60 bg-muted/10 text-foreground hover:bg-muted/20"
+        >
           <UserPlus className="h-4 w-4" />
           Add Worker
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-106.25">
         <DialogHeader>
           <DialogTitle>Add New Worker</DialogTitle>
           <DialogDescription>
