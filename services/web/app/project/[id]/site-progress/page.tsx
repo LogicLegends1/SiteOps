@@ -241,16 +241,13 @@ export default function ActivityProgressPage() {
       activityId: number,
       subtaskId: string,
       description: string,
-      evidencePhotoUrl?: string
+      photoUrls: string[] = []
     ) => {
       try {
         const res = await fetch(`/api/subtask/${subtaskId}/logs`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            description,
-            evidencePhoto: evidencePhotoUrl ?? null,
-          }),
+          body: JSON.stringify({ description, photoUrls }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Failed to save update")
@@ -389,8 +386,8 @@ export default function ActivityProgressPage() {
               onAddActivity={canSeeAdvancedTabs ? () => setShowAddModal(true) : undefined}
               onStatusChange={handleStatusChange}
               onToggleSubtask={handleToggleSubtask}
-              onSubtaskUpdate={(activityId, subtaskId, description, evidencePhotoUrl) =>
-                handleSubtaskUpdate(activityId, subtaskId, description, evidencePhotoUrl)
+              onSubtaskUpdate={(activityId, subtaskId, description, photoUrls) =>
+                handleSubtaskUpdate(activityId, subtaskId, description, photoUrls)
               }
             />
           </div>

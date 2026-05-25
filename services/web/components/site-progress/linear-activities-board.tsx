@@ -50,7 +50,7 @@ interface LinearActivitiesBoardProps {
   onAddActivity?: () => void
   onStatusChange?: (activityId: number, newStatus: ActivityStatus) => void
   onToggleSubtask?: (activityId: number, subtaskId: string) => void
-  onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string, evidencePhotoUrl?: string) => void
+  onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string, photoUrls: string[]) => void
   selectedActivityId?: number
   activityWorkersDetail?: Record<number, WorkerSummary[]>
 }
@@ -171,7 +171,7 @@ function ActivityRow({
     activityId: number,
     subtaskId: string,
     description: string,
-    evidencePhotoUrl?: string
+    photoUrls: string[]
   ) => void
   isExpanded: boolean
   onToggleExpand: () => void
@@ -406,7 +406,7 @@ function ActivityRow({
               {onSubtaskUpdate && (
                 <SubtaskProgressModal
                   subtask={subtask}
-                  onSubmit={(desc, url) => onSubtaskUpdate(activity.zoneID, subtask.id, desc, url)}
+                  onSubmit={(desc, urls) => onSubtaskUpdate(activity.zoneID, subtask.id, desc, urls)}
                 />
               )}
               {subtask.dueDate && (

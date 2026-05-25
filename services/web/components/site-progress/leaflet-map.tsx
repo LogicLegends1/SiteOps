@@ -131,7 +131,7 @@ function buildTooltipHtml(
       </div>`
     : ''
 
-  return `<div style="font-family:system-ui,-apple-system,sans-serif;min-width:265px;max-width:300px;color:#f1f5f9;">
+  return `<div style="font-family:system-ui,-apple-system,sans-serif;min-width:340px;max-width:400px;color:#f1f5f9;">
     <div style="margin-bottom:10px;">
       <div style="font-size:14px;font-weight:700;color:#f8fafc;line-height:1.3;margin-bottom:3px;">${activity.name}</div>
     </div>
@@ -242,8 +242,8 @@ export function LeafletMap({
         .bindPopup(popupHtml, {
           className: "site-rich-popup",
           closeButton: true,
-          maxWidth: 320,
-          minWidth: 270,
+          maxWidth: 420,
+          minWidth: 350,
           autoPan: true,
           autoPanPadding: L.point(40, 40),
         })
