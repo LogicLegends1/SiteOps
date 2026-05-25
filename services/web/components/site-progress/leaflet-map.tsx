@@ -19,6 +19,7 @@ interface LeafletMapProps {
   loading?: boolean
   onActivitySelect: (activity: Activity) => void
   onViewInTracker?: (activity: Activity) => void
+  onViewIssues?: (activity: Activity) => void
   selectedActivityId?: number
   className?: string
   subtasksByActivity?: Record<number, Subtask[]>
@@ -65,7 +66,7 @@ function buildTooltipHtml(
   const subtasks = subtasksByActivity?.[activity.zoneID] ?? []
   const progress = subtasks.length > 0 ? calculateProgressFromSubtasks(subtasks) : activity.progress ?? 0
   const track = getTrackLabelFromSubtasks(subtasks)
-  const issues = getIssuesByActivityId(activity.zoneID)
+  const issues = getIssuesByActivityId(activity.zoneID).filter((i) => i.status !== "resolved")
   const workers = activityWorkersCache?.[activity.zoneID]
   const crewSize = workers?.total ?? Math.max(6, (activity.zoneID * 3) % 14 + 4)
 
@@ -131,7 +132,7 @@ function buildTooltipHtml(
       </div>`
     : ''
 
-  return `<div style="font-family:system-ui,-apple-system,sans-serif;min-width:265px;max-width:300px;color:#f1f5f9;">
+  return `<div style="font-family:system-ui,-apple-system,sans-serif;min-width:340px;max-width:400px;color:#f1f5f9;">
     <div style="margin-bottom:10px;">
       <div style="font-size:14px;font-weight:700;color:#f8fafc;line-height:1.3;margin-bottom:3px;">${activity.name}</div>
     </div>
@@ -151,14 +152,14 @@ function buildTooltipHtml(
       <span style="color:#64748b;">Planned Finish</span><span style="color:#e2e8f0;">${deadlineStr}</span>
       <span style="color:#64748b;">Site Engineer</span><span style="color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${engineer}</span>
       <span style="color:#64748b;">Crew Size</span><span style="color:#e2e8f0;">${crewSize} workers</span>
-      <span style="color:#64748b;">Equipment</span><span style="color:#e2e8f0;">${equipment}</span>
+      <span style="color:#64748b;">Assets</span><span style="color:#e2e8f0;">${equipment}</span>
     </div>
     ${subtasksHtml}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <span style="font-size:11px;color:#64748b;">Latest Update</span>
       ${lastUpdateHtml}
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.07);">
+    <div data-view-issues="${activity.zoneID}" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.07);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
       <span style="font-size:11px;color:#64748b;">Open Issues</span>
       <span style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:${issueColor};">
         <span style="width:6px;height:6px;border-radius:50%;background:${issueColor};display:inline-block;"></span>
@@ -177,6 +178,7 @@ export function LeafletMap({
   loading,
   onActivitySelect,
   onViewInTracker,
+  onViewIssues,
   selectedActivityId,
   className,
   subtasksByActivity,
@@ -242,8 +244,8 @@ export function LeafletMap({
         .bindPopup(popupHtml, {
           className: "site-rich-popup",
           closeButton: true,
-          maxWidth: 320,
-          minWidth: 270,
+          maxWidth: 420,
+          minWidth: 350,
           autoPan: true,
           autoPanPadding: L.point(40, 40),
         })
@@ -327,6 +329,18 @@ export function LeafletMap({
       }
     }
 
+    function handleViewIssues(e: MouseEvent) {
+      const btn = (e.target as HTMLElement).closest("[data-view-issues]") as HTMLElement | null
+      if (!btn) return
+      e.stopPropagation()
+      const zoneId = Number(btn.getAttribute("data-view-issues"))
+      const activity = activities.find((a) => a.zoneID === zoneId)
+      if (activity && onViewIssues) {
+        onViewIssues(activity)
+        mapRef.current?.closePopup()
+      }
+    }
+
     function handleImageZoom(e: MouseEvent) {
       const img = (e.target as HTMLElement).closest("[data-zoom-image]") as HTMLElement | null
       if (!img) return
@@ -339,11 +353,13 @@ export function LeafletMap({
 
     container.addEventListener("click", handleViewActivity, true)
     container.addEventListener("click", handleImageZoom, true)
+    container.addEventListener("click", handleViewIssues, true)
     return () => {
       container.removeEventListener("click", handleViewActivity, true)
       container.removeEventListener("click", handleImageZoom, true)
+      container.removeEventListener("click", handleViewIssues, true)
     }
-  }, [activities, onActivitySelect, onViewInTracker])
+  }, [activities, onActivitySelect, onViewInTracker, onViewIssues])
 
   useEffect(() => {
     const handlePopupMouseEnter = (e: MouseEvent) => {

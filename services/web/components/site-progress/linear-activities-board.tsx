@@ -50,7 +50,7 @@ interface LinearActivitiesBoardProps {
   onAddActivity?: () => void
   onStatusChange?: (activityId: number, newStatus: ActivityStatus) => void
   onToggleSubtask?: (activityId: number, subtaskId: string) => void
-  onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string, evidencePhotoUrl?: string) => void
+  onSubtaskUpdate?: (activityId: number, subtaskId: string, description: string, photoUrls: string[]) => void
   selectedActivityId?: number
   activityWorkersDetail?: Record<number, WorkerSummary[]>
 }
@@ -142,7 +142,7 @@ function TableHeader() {
       <span>Planned Finish</span>
       <span>Engineer</span>
       <span>Crew</span>
-      <span>Equipment</span>
+      <span>Assets</span>
       <span>Issues</span>
       <span>Last Update</span>
       <span />
@@ -171,7 +171,7 @@ function ActivityRow({
     activityId: number,
     subtaskId: string,
     description: string,
-    evidencePhotoUrl?: string
+    photoUrls: string[]
   ) => void
   isExpanded: boolean
   onToggleExpand: () => void
@@ -302,7 +302,7 @@ function ActivityRow({
           )}
         </div>
 
-        {/* Equipment */}
+        {/* Assets */}
         <span className="text-[10px] text-muted-foreground truncate">
           {getDummyEquipment(activity)}
         </span>
@@ -406,7 +406,7 @@ function ActivityRow({
               {onSubtaskUpdate && (
                 <SubtaskProgressModal
                   subtask={subtask}
-                  onSubmit={(desc, url) => onSubtaskUpdate(activity.zoneID, subtask.id, desc, url)}
+                  onSubmit={(desc, urls) => onSubtaskUpdate(activity.zoneID, subtask.id, desc, urls)}
                 />
               )}
               {subtask.dueDate && (

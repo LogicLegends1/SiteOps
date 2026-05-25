@@ -145,18 +145,34 @@ function buildUpdateEntries(
   subtasksByActivity: Record<number, Subtask[]>
 ): UpdateEntry[] {
   const entries: UpdateEntry[] = []
+  const now = new Date()
 
   for (const activity of activities) {
     const category = getCategoryFromActivity(activity)
     const subtasks = subtasksByActivity[activity.zoneID] ?? []
+    const totalSubtasks = subtasks.length
+    const subtaskWeight = totalSubtasks > 0 ? Math.round(100 / totalSubtasks) : 0
+
     for (const subtask of subtasks) {
-      for (const upd of subtask.updates) {
+      const sortedUpdates = [...subtask.updates].sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      )
+      const isOverdue = !subtask.completed && new Date(subtask.dueDate) < now
+
+      for (let i = 0; i < sortedUpdates.length; i++) {
+        const upd = sortedUpdates[i]
+        const isLatestForSubtask = i === 0
+        const delta = subtask.completed && isLatestForSubtask ? subtaskWeight : null
+        const status: UpdateEntry["status"] = subtask.completed
+          ? "completed"
+          : isOverdue
+          ? "delayed"
+          : "on-track"
+
         const seed = activity.zoneID + upd.id.charCodeAt(0)
-        const weatherTag = WEATHER_CONDITIONS[seed % WEATHER_CONDITIONS.length]
-        const soilTag = SOIL_CONDITIONS[seed % SOIL_CONDITIONS.length]
-        const tags: Tag[] = [weatherTag]
-        if (seed % 3 !== 0) tags.push(soilTag)
-        const delta = ((seed * 7) % 20) - 3
+        const tags: Tag[] = [WEATHER_CONDITIONS[seed % WEATHER_CONDITIONS.length]]
+        if (isOverdue) tags.push({ label: "Overdue", type: "danger" })
+
         entries.push({
           id: upd.id,
           time: upd.updatedAt,
@@ -167,24 +183,32 @@ function buildUpdateEntries(
           activityName: activity.name,
           zone: activity.markerLabel || "Zone",
           category,
-          status: delta < 0 ? "delayed" : "on-track",
+          status,
           progressDelta: delta,
           description: upd.description,
           images: upd.images ?? [],
           tags,
-          commentCount: (seed % 4) + 1,
-          attachmentCount: (upd.images ?? []).length + (seed % 3),
+          commentCount: sortedUpdates.length,
+          attachmentCount: (upd.images ?? []).length,
         })
       }
     }
 
     if (activity.progressUpdates?.length) {
-      for (const pu of activity.progressUpdates) {
-        const seed = activity.zoneID + pu.id.charCodeAt(0)
+      const sorted = [...activity.progressUpdates].sort(
+        (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+      )
+      let prevProgress = 0
+      for (const pu of sorted) {
         const isDelayed = pu.status === "PAUSED" || pu.status === "CANCELLED"
-        const delta = isDelayed ? -((seed % 8) + 1) : (seed % 15) + 2
-        const tags: Tag[] = [WEATHER_CONDITIONS[seed % WEATHER_CONDITIONS.length]]
-        if (isDelayed) tags.push({ label: "Rain Delay", type: "danger" })
+        const currentProgress = activity.progress ?? 0
+        const perUpdateDelta = totalSubtasks > 0
+          ? Math.round(currentProgress / Math.max(sorted.length, 1))
+          : null
+        const delta = isDelayed ? 0 : perUpdateDelta
+        const tags: Tag[] = [WEATHER_CONDITIONS[(activity.zoneID + sorted.indexOf(pu)) % WEATHER_CONDITIONS.length]]
+        if (isDelayed) tags.push({ label: "Work Paused", type: "danger" })
+
         entries.push({
           id: pu.id,
           time: pu.updatedAt,
@@ -200,9 +224,10 @@ function buildUpdateEntries(
           description: pu.description,
           images: pu.images ?? [],
           tags,
-          commentCount: (seed % 5) + 1,
-          attachmentCount: (pu.images ?? []).length + 1,
+          commentCount: sorted.length,
+          attachmentCount: (pu.images ?? []).length,
         })
+        prevProgress = currentProgress
       }
     }
   }
@@ -234,7 +259,7 @@ function getTagStyles(type: Tag["type"]): string {
   }
 }
 
-function UpdateCard({ entry, isLatest = false }: { entry: UpdateEntry; isLatest?: boolean }) {
+function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEntry; isLatest?: boolean; onImageClick?: (src: string) => void }) {
   const avatarColor = ACTIVITY_COLORS[entry.activityId % ACTIVITY_COLORS.length]
   const maxVisibleImages = 5
   const extraImages = entry.images.length > maxVisibleImages ? entry.images.length - maxVisibleImages : 0
@@ -339,6 +364,7 @@ function UpdateCard({ entry, isLatest = false }: { entry: UpdateEntry; isLatest?
             {entry.images.slice(0, maxVisibleImages).map((src, idx) => (
               <div
                 key={idx}
+                onClick={() => onImageClick?.(src)}
                 className="relative shrink-0 w-[100px] h-[68px] rounded-[10px] overflow-hidden border border-white/[0.06] cursor-pointer group/img"
               >
                 <img src={src} alt={`Evidence ${idx + 1}`} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-200" />
@@ -377,6 +403,7 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
   const [activitySearch, setActivitySearch] = useState("")
   const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(0)
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const DAYS_PER_PAGE = 5
 
   useEffect(() => {
@@ -601,7 +628,7 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
                   </div>
                   <div>
                     {dayEntries.map((entry, idx) => (
-                      <UpdateCard key={entry.id} entry={entry} isLatest={idx === 0} />
+                      <UpdateCard key={entry.id} entry={entry} isLatest={idx === 0} onImageClick={setZoomedImage} />
                     ))}
                   </div>
                 </div>
@@ -764,6 +791,28 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
           </div>
         </div>
       </div>
+
+      {/* Image lightbox */}
+      {zoomedImage && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setZoomedImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              className="absolute -top-10 right-0 text-white/80 hover:text-white text-2xl font-light"
+              onClick={() => setZoomedImage(null)}
+            >
+              ×
+            </button>
+            <img
+              src={zoomedImage}
+              alt="Zoomed evidence"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

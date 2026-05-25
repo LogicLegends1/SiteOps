@@ -7,7 +7,7 @@ import { CheckCircle2, Circle, Calendar, User, Images } from "lucide-react"
 
 interface SubtaskTimelineProps {
   subtasks: Subtask[]
-  onAddUpdate: (subtaskId: string, description: string, evidencePhotoUrl?: string) => void
+  onAddUpdate: (subtaskId: string, description: string, photoUrls: string[]) => void
   onToggleComplete?: (subtaskId: string) => void
 }
 
@@ -88,7 +88,7 @@ export function SubtaskTimeline({ subtasks, onAddUpdate, onToggleComplete }: Sub
               </div>
               <SubtaskProgressModal
                 subtask={subtask}
-                onSubmit={(desc, evidence) => onAddUpdate(subtask.id, desc, evidence)}
+                onSubmit={(desc, urls) => onAddUpdate(subtask.id, desc, urls)}
               />
             </div>
 

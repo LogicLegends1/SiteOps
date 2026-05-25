@@ -34,14 +34,18 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Subtask not found" }, { status: 404 })
     }
 
+    const photoUrls: string[] = Array.isArray(body.photoUrls)
+      ? body.photoUrls.filter((u: unknown) => typeof u === "string" && u.trim()).map((u: string) => u.trim())
+      : []
+
     const insertPayload: Record<string, unknown> = {
       subtaskid: numericSubtaskId,
       description: body.description.trim(),
       createdby: dbUser.id,
     }
 
-    if (typeof body.evidencePhoto === "string" && body.evidencePhoto.trim()) {
-      insertPayload.evidencephoto = body.evidencePhoto.trim()
+    if (photoUrls.length > 0) {
+      insertPayload.evidencephoto = photoUrls[0]
     }
 
     const { data, error } = await supabase
@@ -57,9 +61,20 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
+    const logEntryId = data.logentryid as number
+    const extraPhotos = photoUrls.slice(1)
+
+    if (extraPhotos.length > 0) {
+      const photoInserts = extraPhotos.map((url) => ({
+        logentryid: logEntryId,
+        photourl: url,
+      }))
+      await supabase.from("subtask_log_photos").insert(photoInserts)
+    }
+
     return NextResponse.json(
       {
-        log: mapSubtaskLogRow(data, dbUser.username ?? "Site Engineer"),
+        log: mapSubtaskLogRow(data, dbUser.username ?? "Site Engineer", extraPhotos),
       },
       { status: 201 }
     )
