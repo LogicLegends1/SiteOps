@@ -162,12 +162,12 @@ export default function DashboardPage() {
             <CreateProjectDialog onCreated={loadProjects} />
           </div>
         </CardHeader>
-        <CardContent className="flex-1 min-h-0 overflow-hidden">
-          <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden lg:flex-row">
-            <Card className="h-80 min-w-0 overflow-hidden rounded-lg p-0 lg:h-full lg:w-3/5 lg:shrink-0">
+        <CardContent className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
+          <div className="flex min-h-0 flex-col gap-4 overflow-visible lg:h-full lg:flex-row lg:overflow-hidden">
+            <Card className="h-[55vh] min-h-90 min-w-0 overflow-hidden rounded-lg p-0 sm:h-[60vh] lg:h-[calc(100vh-12rem)] lg:w-3/5 lg:shrink-0">
                   <LeafletMap
                     items={mapItems}
-                    className="h-full w-full rounded-l-lg"
+                    className="h-full w-full rounded-lg lg:rounded-l-lg"
                     mapClassName="h-full w-full"
                     mapOptions={mapOptions}
                     markerOptions={{
@@ -189,8 +189,8 @@ export default function DashboardPage() {
                   />
             </Card>
 
-                <Card className="flex min-w-0 flex-col overflow-hidden rounded-lg lg:w-2/5">
-                  <CardHeader className="shrink-0 border-b border-border pb-3">
+            <Card className="flex min-w-0 flex-col overflow-hidden rounded-lg lg:h-[calc(100vh-12rem)] lg:w-2/5">
+              <CardHeader className="shrink-0 border-b border-border pb-3">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-base">Project List</CardTitle>
                   <Badge variant="secondary">{projects.length}</Badge>

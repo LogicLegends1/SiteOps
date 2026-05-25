@@ -162,7 +162,7 @@ export default function SignupPage() {
                 >
                   <option value="SITE_ENGINEER">Site Engineer</option>
                   <option value="PROJECT_MANAGER">Project Manager</option>
-                  <option value="OPERATION_MANAGER">Operation Manager</option>
+                  <option value="OPERATION_MANAGER">Operational Director</option>
                 </select>
               </div>
 

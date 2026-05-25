@@ -44,7 +44,7 @@ export function EquipmentRegistryPanel({ equipment }: EquipmentRegistryPanelProp
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/20 hover:bg-muted/20 border-b-2">
-              <TableHead className="text-xs font-black uppercase tracking-wider py-5 px-6">Equipment Unit</TableHead>
+              <TableHead className="text-xs font-black uppercase tracking-wider py-5 px-6">Machinery Unit</TableHead>
               <TableHead className="text-xs font-black uppercase tracking-wider py-5 px-6">Model / Specification</TableHead>
               <TableHead className="text-xs font-black uppercase tracking-wider py-5 px-6">Tech Specs</TableHead>
               <TableHead className="text-xs font-black uppercase tracking-wider py-5 px-6 text-center">Reliability</TableHead>

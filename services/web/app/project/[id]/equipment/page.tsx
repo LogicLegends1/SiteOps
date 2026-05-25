@@ -133,7 +133,7 @@ export default function UnifiedEquipmentDashboard() {
             </div>
           </div>
           <div className="flex items-center justify-between mt-1">
-             <span className="text-[10px] text-zinc-500">All Equipment</span>
+             <span className="text-[10px] text-zinc-500">All Machinery</span>
              <span className="text-[10px] text-emerald-500 font-medium">↑ 6 vs last 7 days</span>
           </div>
         </div>
