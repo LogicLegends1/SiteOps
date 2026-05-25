@@ -142,7 +142,7 @@ function TableHeader() {
       <span>Planned Finish</span>
       <span>Engineer</span>
       <span>Crew</span>
-      <span>Equipment</span>
+      <span>Assets</span>
       <span>Issues</span>
       <span>Last Update</span>
       <span />
@@ -302,7 +302,7 @@ function ActivityRow({
           )}
         </div>
 
-        {/* Equipment */}
+        {/* Assets */}
         <span className="text-[10px] text-muted-foreground truncate">
           {getDummyEquipment(activity)}
         </span>

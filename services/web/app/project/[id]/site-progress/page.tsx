@@ -7,6 +7,7 @@ import { ActivityDetailsPanel } from "@/components/site-progress/activity-detail
 import { LinearActivitiesBoard } from "@/components/site-progress/linear-activities-board"
 import { AddActivityModal } from "@/components/site-progress/add-activity-modal"
 import { UpdatesEvidenceTab } from "@/components/site-progress/updates-evidence-tab"
+import { IssuesRisksTab } from "@/components/site-progress/issues-risks-tab"
 import { type Activity, type ActivityStatus, type Project } from "@/lib/site-data"
 import { type Subtask, calculateProgressFromSubtasks } from "@/lib/subtasks-data"
 import type { OnSiteMember } from "@/lib/site-team-types"
@@ -361,6 +362,9 @@ export default function ActivityProgressPage() {
               subtasksByActivity={subtasksByActivity}
               activityWorkersCache={activityWorkersCache}
               engineerByActivity={engineerByActivity}
+              onViewIssues={() => {
+                setActiveTab("issues")
+              }}
               onViewPeople={(a) => {
                 setSelectedActivity(a)
                 setDetailsTab("people")
@@ -400,12 +404,9 @@ export default function ActivityProgressPage() {
           </div>
         </TabsContent>
 
-        {/* Issues & Risks – placeholder */}
+        {/* Issues & Risks */}
         <TabsContent value="issues" className="mt-4">
-          <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground border border-dashed border-border rounded-xl gap-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-            <AlertTriangle className="h-10 w-10 opacity-30" />
-            <p className="text-sm">Issues & Risks coming soon</p>
-          </div>
+          <IssuesRisksTab activities={activities} />
         </TabsContent>
 
       </Tabs>
