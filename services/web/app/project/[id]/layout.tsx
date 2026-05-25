@@ -114,10 +114,23 @@ export default function ProjectLayout({
   const router = useRouter()
   const projectId = params.id ?? "1"
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
-  const [userName, setUserName] = useState<string>("User")
+  const [userName, setUserName] = useState<string>("")
   const [userRole, setUserRole] = useState<string | null>(null)
   const [userRoleLoaded, setUserRoleLoaded] = useState(false)
   const [project, setProject] = useState<Project | null>(null)
+
+  const formatRoleLabel = (role: string | null) => {
+    switch (role) {
+      case "OPERATION_MANAGER":
+        return "Operational Director"
+      case "PROJECT_MANAGER":
+        return "Project Manager"
+      case "SITE_ENGINEER":
+        return "Site Engineer"
+      default:
+        return role
+    }
+  }
 
   const getProjectHref = (segment: string) =>
     segment ? `/project/${projectId}/${segment}` : `/project/${projectId}`
@@ -134,18 +147,17 @@ export default function ProjectLayout({
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
-        // Get avatar from user metadata
-        const avatarUrl = user.user_metadata?.avatar_url
-        const fullName = user.user_metadata?.full_name || "User"
+        const { data: dbUser } = await supabase
+          .from("user")
+          .select("username, role, avatarimage")
+          .eq("email", user.email)
+          .maybeSingle()
+
+        const avatarUrl = dbUser?.avatarimage || user.user_metadata?.avatar_url || null
+        const fullName = dbUser?.username || user.user_metadata?.full_name || ""
         
         setUserAvatar(avatarUrl)
         setUserName(fullName)
-
-        const { data: dbUser } = await supabase
-          .from("user")
-          .select("role")
-          .eq("email", user.email)
-          .maybeSingle()
 
         setUserRole(dbUser?.role ?? null)
       }
@@ -248,12 +260,12 @@ export default function ProjectLayout({
           <Separator className="my-2" />
           <div className="flex items-center gap-3 px-2 group-data-[collapsible=icon]:justify-center">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={userAvatar || "/placeholder.svg?height=32&width=32"} alt={userName} />
-              <AvatarFallback className="bg-primary/20 text-primary text-xs">{userName.substring(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarImage src={userAvatar || "/placeholder.svg?height=32&width=32"} alt={userName || "User avatar"} />
+              <AvatarFallback className="bg-primary/20 text-primary text-xs">{userName ? userName.substring(0, 2).toUpperCase() : "U"}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-              <span className="text-sm font-medium text-foreground">{userName}</span>
-              <span className="text-xs text-muted-foreground">Project Alpha</span>
+              <span className="text-sm font-medium text-foreground">{userName || ""}</span>
+              <span className="text-xs text-muted-foreground">{formatRoleLabel(userRole)}</span>
             </div>
           </div>
         </SidebarFooter>
