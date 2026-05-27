@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import { type Activity } from "@/lib/site-data"
 import {
   issues as allIssues,
+  issueActivityNames,
   type Issue,
   type IssuePriority,
   type IssueStatus,
@@ -316,7 +317,7 @@ export function IssuesRisksTab({ activities }: IssuesRisksTabProps) {
           sortedActivityIds.map((activityId) => {
             const activityIssues = issuesByActivity[activityId] ?? []
             const activity = activityMap[activityId]
-            const activityName = activity?.name ?? `Activity ${activityId}`
+            const activityName = activity?.name ?? issueActivityNames[activityId] ?? `Activity ${activityId}`
             const isExpanded = expandedActivities.has(activityId)
             const criticalCount = activityIssues.filter((i) => i.priority === "critical" && i.status !== "resolved").length
             const openCount = activityIssues.filter((i) => i.status === "open").length
