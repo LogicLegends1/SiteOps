@@ -28,25 +28,30 @@ interface AddWorkerDialogProps {
 }
 
 const DISCIPLINES = [
-  { value: "civil", label: "Civil" },
-  { value: "electrical", label: "Electrical" },
-  { value: "mechanical", label: "Mechanical" },
-  { value: "qa", label: "QA/QC" },
-  { value: "safety", label: "Safety" },
-  { value: "general", label: "General" },
-  { value: "it", label: "IT" },
+  { value: "Heavy Equipment", label: "Heavy Equipment" },
+  { value: "Transport", label: "Transport" },
+  { value: "Civil Engineering", label: "Civil Engineering" },
+  { value: "Electrical", label: "Electrical" },
+  { value: "General Construction", label: "General Construction" },
 ]
 
-const ROLES = [
-  { value: "engineer", label: "Engineer" },
-  { value: "supervisor", label: "Supervisor" },
-  { value: "technician", label: "Technician" },
-  { value: "operator", label: "Operator" },
-  { value: "developer", label: "Developer" },
-  { value: "system-admin", label: "System Admin" },
-  { value: "skilled-labour", label: "Skilled Labour" },
-  { value: "general-labour", label: "General Labour" },
-]
+const ROLES_BY_DISCIPLINE: Record<string, { value: string; label: string }[]> = {
+  "Heavy Equipment": [
+    { value: "Tower Crane Operators", label: "Tower Crane Operators" },
+    { value: "Excavator Operators", label: "Excavator Operators" },
+    { value: "Crawler Crane Operators", label: "Crawler Crane Operators" },
+  ],
+  Transport: [{ value: "Tipper Drivers", label: "Tipper Drivers" }],
+  "Civil Engineering": [
+    { value: "Surveyors", label: "Surveyors" },
+    { value: "Masons", label: "Masons" },
+    { value: "Carpenters", label: "Carpenters" },
+    { value: "Steel Fixers", label: "Steel Fixers" },
+    { value: "Site Engineers", label: "Site Engineers" },
+  ],
+  Electrical: [{ value: "Electricians", label: "Electricians" }],
+  "General Construction": [{ value: "General Laborers", label: "General Laborers" }],
+}
 
 export function AddWorkerDialog({ projectId, onWorkerAdded }: AddWorkerDialogProps) {
   const [open, setOpen] = useState(false)
@@ -56,6 +61,8 @@ export function AddWorkerDialog({ projectId, onWorkerAdded }: AddWorkerDialogPro
   const [discipline, setDiscipline] = useState("")
   const [role, setRole] = useState("")
   const [experience, setExperience] = useState("")
+
+  const rolesForSelectedDiscipline = discipline ? (ROLES_BY_DISCIPLINE[discipline] ?? []) : []
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -131,7 +138,15 @@ export function AddWorkerDialog({ projectId, onWorkerAdded }: AddWorkerDialogPro
           
           <div className="space-y-2">
             <Label htmlFor="discipline">Discipline</Label>
-            <Select value={discipline} onValueChange={setDiscipline} required>
+            <Select
+              value={discipline}
+              onValueChange={(v) => {
+                setDiscipline(v)
+                // Prevent selecting role before discipline and avoid stale role when discipline changes.
+                setRole("")
+              }}
+              required
+            >
               <SelectTrigger id="discipline">
                 <SelectValue placeholder="Select discipline" />
               </SelectTrigger>
@@ -147,12 +162,12 @@ export function AddWorkerDialog({ projectId, onWorkerAdded }: AddWorkerDialogPro
 
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={setRole} required>
+            <Select value={role} onValueChange={setRole} required disabled={!discipline}>
               <SelectTrigger id="role">
-                <SelectValue placeholder="Select role" />
+                <SelectValue placeholder={discipline ? "Select role" : "Select discipline first"} />
               </SelectTrigger>
               <SelectContent>
-                {ROLES.map((r) => (
+                {rolesForSelectedDiscipline.map((r) => (
                   <SelectItem key={r.value} value={r.value}>
                     {r.label}
                   </SelectItem>

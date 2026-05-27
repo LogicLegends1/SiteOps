@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,9 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2, Plus, Users, ArrowRight, X } from "lucide-react"
+import { Loader2, Plus, X } from "lucide-react"
 import { type WorkforceWorker } from "@/lib/workforce-live"
-import { getDisciplineLabel, getRoleLabel } from "@/lib/workforce-data"
 import { useToast } from "@/hooks/use-toast"
 
 interface Activity {
@@ -58,12 +57,52 @@ export function CreateTeamDialog({ projectId, workers, onTeamCreated, disabled =
     (w) => w.assignedTeamId === null && w.status !== "unavailable"
   )
 
+  const getWorkerDisciplineLabel = (worker: WorkforceWorker) => {
+    const raw = (worker.disciplineName ?? worker.discipline ?? "").toString().trim()
+    return raw || "Unspecified"
+  }
+
+  const getWorkerRoleLabel = (worker: WorkforceWorker) => {
+    const raw = (worker.roleName ?? worker.role ?? "").toString().trim()
+    return raw || "Unspecified"
+  }
+
+  const availableWorkersByDiscipline = useMemo(() => {
+    const grouped = new Map<string, Map<string, WorkforceWorker[]>>()
+
+    for (const worker of availableWorkers) {
+      const discipline = getWorkerDisciplineLabel(worker)
+      const role = getWorkerRoleLabel(worker)
+
+      if (!grouped.has(discipline)) grouped.set(discipline, new Map())
+      const roleMap = grouped.get(discipline)!
+      if (!roleMap.has(role)) roleMap.set(role, [])
+      roleMap.get(role)!.push(worker)
+    }
+
+    // sort workers by name within each role
+    for (const roleMap of grouped.values()) {
+      for (const list of roleMap.values()) {
+        list.sort((a, b) => a.name.localeCompare(b.name))
+      }
+    }
+
+    const disciplines = Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b))
+
+    return disciplines.map((discipline) => {
+      const roleMap = grouped.get(discipline)!
+      const roles = Array.from(roleMap.entries()).sort(([a], [b]) => a.localeCompare(b))
+      const total = roles.reduce((sum, [, list]) => sum + list.length, 0)
+      return { discipline, roles, total }
+    })
+  }, [availableWorkers])
+
   const selectedWorkersList = workers.filter((w) => selectedWorkerIds.includes(w.id))
 
   useEffect(() => {
     if (open && projectId) {
       setLoadingActivities(true)
-      fetch(`/api/project/${projectId}/activities`)
+      fetch(`/api/project/${projectId}/activities?unassignedTeamOnly=1`)
         .then((r) => r.json())
         .then((data) => {
           if (data.activities) {
@@ -134,7 +173,7 @@ export function CreateTeamDialog({ projectId, workers, onTeamCreated, disabled =
           Create Team
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[800px] gap-6">
+      <DialogContent className="sm:max-w-200 gap-6 max-h-screen overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Create New Team</DialogTitle>
           <DialogDescription>
@@ -142,7 +181,8 @@ export function CreateTeamDialog({ projectId, workers, onTeamCreated, disabled =
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-[1fr,1fr] gap-6">
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="grid grid-cols-[1fr,1fr] gap-6">
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="team-name">Team Name</Label>
@@ -179,7 +219,7 @@ export function CreateTeamDialog({ projectId, workers, onTeamCreated, disabled =
                 <SelectContent position="popper">
                   {selectedWorkersList.map((worker) => (
                     <SelectItem key={worker.id} value={worker.id}>
-                      {worker.name} ({getRoleLabel(worker.role)})
+                      {worker.name} ({getWorkerRoleLabel(worker)})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -187,41 +227,73 @@ export function CreateTeamDialog({ projectId, workers, onTeamCreated, disabled =
             </div>
           </div>
 
-          <div className="flex flex-col border rounded-md h-[400px]">
+          <div className="flex flex-col border rounded-md h-100">
             <div className="bg-muted px-4 py-2 font-semibold text-sm border-b flex justify-between items-center">
               <span>Available Workers</span>
               <Badge variant="outline">{availableWorkers.length}</Badge>
             </div>
             <ScrollArea className="flex-1 p-2">
-              <div className="space-y-1">
+              <div className="space-y-4">
                 {availableWorkers.length === 0 ? (
                   <p className="text-sm text-muted-foreground p-4 text-center">No unassigned workers available.</p>
                 ) : (
-                  availableWorkers.map((worker) => {
-                    const isSelected = selectedWorkerIds.includes(worker.id)
-                    return (
-                      <div
-                        key={worker.id}
-                        className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
-                          isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-accent border border-transparent"
-                        }`}
-                        onClick={() => toggleWorkerSelection(worker.id)}
-                      >
-                        <Checkbox checked={isSelected} readOnly />
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="text-xs">
-                            {worker.name.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold truncate">{worker.name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">
-                            {getDisciplineLabel(worker.discipline)} • {getRoleLabel(worker.role)} • {worker.experienceYears}y
-                          </p>
+                  availableWorkersByDiscipline.map(({ discipline, roles, total }) => (
+                    <div key={discipline} className="space-y-2">
+                      <div className="flex items-center justify-between px-2 pt-2">
+                        <div className="text-xs font-semibold text-muted-foreground">
+                          {discipline}
                         </div>
+                        <Badge variant="outline" className="text-[10px]">
+                          {total}
+                        </Badge>
                       </div>
-                    )
-                  })
+
+                      <div className="space-y-3">
+                        {roles.map(([role, roleWorkers]) => (
+                          <div key={`${discipline}-${role}`} className="space-y-1">
+                            <div className="flex items-center justify-between px-2">
+                              <div className="text-[11px] font-medium text-foreground/80">
+                                {role}
+                              </div>
+                              <Badge variant="secondary" className="text-[10px]">
+                                {roleWorkers.length}
+                              </Badge>
+                            </div>
+
+                            <div className="space-y-1">
+                              {roleWorkers.map((worker) => {
+                                const isSelected = selectedWorkerIds.includes(worker.id)
+                                return (
+                                  <div
+                                    key={worker.id}
+                                    className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
+                                      isSelected
+                                        ? "bg-primary/10 border border-primary/20"
+                                        : "hover:bg-accent border border-transparent"
+                                    }`}
+                                    onClick={() => toggleWorkerSelection(worker.id)}
+                                  >
+                                    <Checkbox checked={isSelected} readOnly />
+                                    <Avatar className="h-8 w-8">
+                                      <AvatarFallback className="text-xs">
+                                        {worker.name.substring(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-semibold truncate">{worker.name}</p>
+                                      <p className="text-[10px] text-muted-foreground truncate">
+                                        {getWorkerDisciplineLabel(worker)} • {getWorkerRoleLabel(worker)} • {worker.experienceYears}y
+                                      </p>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
             </ScrollArea>
@@ -248,6 +320,7 @@ export function CreateTeamDialog({ projectId, workers, onTeamCreated, disabled =
                 </div>
               </div>
             )}
+          </div>
           </div>
         </div>
 

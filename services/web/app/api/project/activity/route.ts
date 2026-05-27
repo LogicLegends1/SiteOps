@@ -8,6 +8,41 @@ type SubtaskInput = {
   displayorder?: number
 }
 
+type WorkerRequirementsInput = {
+  tower_crane_operators?: unknown
+  excavator_operators?: unknown
+  crawler_crane_operators?: unknown
+  tipper_drivers?: unknown
+  surveyors?: unknown
+  masons?: unknown
+  carpenters?: unknown
+  steel_fixers?: unknown
+  electricians?: unknown
+  general_labors?: unknown
+  site_engineers?: unknown
+}
+
+const workerRequirementKeys = [
+  "tower_crane_operators",
+  "excavator_operators",
+  "crawler_crane_operators",
+  "tipper_drivers",
+  "surveyors",
+  "masons",
+  "carpenters",
+  "steel_fixers",
+  "electricians",
+  "general_labors",
+  "site_engineers",
+] as const
+
+function toNonNegativeInt(value: unknown) {
+  if (value === null || value === undefined) return 0
+  if (typeof value !== "number" || !Number.isFinite(value)) return null
+  if (!Number.isInteger(value) || value < 0) return null
+  return value
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()
@@ -65,6 +100,59 @@ export async function POST(req: NextRequest) {
     }
 
     const activityId = data.activityid as number
+
+    // Worker requirements are mandatory: at least one role must be > 0
+    const rawWorkerRequirements = (body.workerRequirements ?? null) as WorkerRequirementsInput | null
+    if (!rawWorkerRequirements || typeof rawWorkerRequirements !== "object") {
+      return NextResponse.json(
+        { error: "Worker requirements are required" },
+        { status: 400 }
+      )
+    }
+
+    const workerInsert: Record<string, number> = {}
+    let totalWorkers = 0
+    for (const key of workerRequirementKeys) {
+      const parsed = toNonNegativeInt((rawWorkerRequirements as Record<string, unknown>)[key])
+      if (parsed === null) {
+        return NextResponse.json(
+          { error: `Worker requirement '${key}' must be a non-negative integer` },
+          { status: 400 }
+        )
+      }
+      workerInsert[key] = parsed
+      totalWorkers += parsed
+    }
+
+    if (totalWorkers <= 0) {
+      return NextResponse.json(
+        { error: "At least one worker role must be specified" },
+        { status: 400 }
+      )
+    }
+
+    let workerRequirementsRow: Record<string, unknown> | null = null
+    let workerRequirementsError: string | null = null
+
+    const { data: wrData, error: wrError } = await supabase
+      .from("activity_worker_requirements")
+      .insert([
+        {
+          activity_id: activityId,
+          ...workerInsert,
+        },
+      ])
+      .select(
+        "id, activity_id, tower_crane_operators, excavator_operators, crawler_crane_operators, tipper_drivers, surveyors, masons, carpenters, steel_fixers, electricians, general_labors, site_engineers"
+      )
+      .single()
+
+    if (wrError) {
+      workerRequirementsError = wrError.message
+    } else {
+      workerRequirementsRow = wrData
+    }
+
     const subtaskInputs: SubtaskInput[] = Array.isArray(body.subtasks) ? body.subtasks : []
     const createdSubtasks = []
 
@@ -90,8 +178,12 @@ export async function POST(req: NextRequest) {
         if (subtaskError) {
           return NextResponse.json(
             {
-              error: `Activity created but subtasks failed: ${subtaskError.message}`,
+              error:
+                workerRequirementsError != null
+                  ? `Activity created but worker requirements failed: ${workerRequirementsError}. Subtasks failed: ${subtaskError.message}`
+                  : `Activity created but subtasks failed: ${subtaskError.message}`,
               activity: mapActivityRow(data),
+              workerRequirements: workerRequirementsRow,
             },
             { status: 207 }
           )
@@ -114,7 +206,22 @@ export async function POST(req: NextRequest) {
       activity.progress = refreshedActivity.progress
     }
 
-    return NextResponse.json({ activity, subtasks: createdSubtasks }, { status: 201 })
+    if (workerRequirementsError != null) {
+      return NextResponse.json(
+        {
+          error: `Activity created but worker requirements failed: ${workerRequirementsError}`,
+          activity,
+          workerRequirements: workerRequirementsRow,
+          subtasks: createdSubtasks,
+        },
+        { status: 207 }
+      )
+    }
+
+    return NextResponse.json(
+      { activity, workerRequirements: workerRequirementsRow, subtasks: createdSubtasks },
+      { status: 201 }
+    )
   } catch (error) {
     console.error("POST activity error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

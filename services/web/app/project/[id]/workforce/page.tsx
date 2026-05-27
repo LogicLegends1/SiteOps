@@ -12,6 +12,7 @@ import { AddWorkerDialog } from "@/components/workforce/add-worker-dialog"
 import { WorkforceBottomCharts } from "@/components/workforce/workforce-bottom-charts"
 import {
   ActivityWorkforceDistributionPanel,
+  WorkforceAllocationAlertsPanel,
   WorkforceAllocationTimelinePanel,
 } from "@/components/workforce/workforce-right-panels"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -112,6 +113,7 @@ export default function WorkforcePage() {
                     <Button variant="outline" size="icon" className="border-border/60 bg-muted/10">
                       <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
                     </Button>
+                    <AddWorkerDialog projectId={projectId} onWorkerAdded={reload} />
                   </div>
 
                   {/* Main tabs */}
@@ -136,7 +138,7 @@ export default function WorkforcePage() {
                   <WorkerClassification
                     workers={filteredWorkers}
                     teams={teams ?? []}
-                    toolbarRight={<AddWorkerDialog projectId={projectId} onWorkerAdded={reload} />}
+                    toolbarRight={null}
                   />
                 </TabsContent>
 
@@ -153,8 +155,13 @@ export default function WorkforcePage() {
 
         {/* Right column (hard-coded for now) */}
         <div className="space-y-4">
-          <ActivityWorkforceDistributionPanel />
+          <WorkforceAllocationAlertsPanel projectId={projectId} />
           <WorkforceAllocationTimelinePanel />
+        </div>
+
+        {/* Full-width section (spans both columns) */}
+        <div className="lg:col-span-2">
+          <ActivityWorkforceDistributionPanel />
         </div>
       </div>
     </div>
