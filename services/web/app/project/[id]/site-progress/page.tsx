@@ -7,6 +7,7 @@ import { ActivityDetailsPanel } from "@/components/site-progress/activity-detail
 import { LinearActivitiesBoard } from "@/components/site-progress/linear-activities-board"
 import { AddActivityModal } from "@/components/site-progress/add-activity-modal"
 import { UpdatesEvidenceTab } from "@/components/site-progress/updates-evidence-tab"
+import { IssuesRisksTab } from "@/components/site-progress/issues-risks-tab"
 import { type Activity, type ActivityStatus, type Project } from "@/lib/site-data"
 import { type Subtask, calculateProgressFromSubtasks } from "@/lib/subtasks-data"
 import type { OnSiteMember } from "@/lib/site-team-types"
@@ -241,16 +242,13 @@ export default function ActivityProgressPage() {
       activityId: number,
       subtaskId: string,
       description: string,
-      evidencePhotoUrl?: string
+      photoUrls: string[] = []
     ) => {
       try {
         const res = await fetch(`/api/subtask/${subtaskId}/logs`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            description,
-            evidencePhoto: evidencePhotoUrl ?? null,
-          }),
+          body: JSON.stringify({ description, photoUrls }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Failed to save update")
@@ -364,6 +362,9 @@ export default function ActivityProgressPage() {
               subtasksByActivity={subtasksByActivity}
               activityWorkersCache={activityWorkersCache}
               engineerByActivity={engineerByActivity}
+              onViewIssues={() => {
+                setActiveTab("issues")
+              }}
               onViewPeople={(a) => {
                 setSelectedActivity(a)
                 setDetailsTab("people")
@@ -389,8 +390,8 @@ export default function ActivityProgressPage() {
               onAddActivity={canSeeAdvancedTabs ? () => setShowAddModal(true) : undefined}
               onStatusChange={handleStatusChange}
               onToggleSubtask={handleToggleSubtask}
-              onSubtaskUpdate={(activityId, subtaskId, description, evidencePhotoUrl) =>
-                handleSubtaskUpdate(activityId, subtaskId, description, evidencePhotoUrl)
+              onSubtaskUpdate={(activityId, subtaskId, description, photoUrls) =>
+                handleSubtaskUpdate(activityId, subtaskId, description, photoUrls)
               }
             />
           </div>
@@ -403,12 +404,9 @@ export default function ActivityProgressPage() {
           </div>
         </TabsContent>
 
-        {/* Issues & Risks – placeholder */}
+        {/* Issues & Risks */}
         <TabsContent value="issues" className="mt-4">
-          <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground border border-dashed border-border rounded-xl gap-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-            <AlertTriangle className="h-10 w-10 opacity-30" />
-            <p className="text-sm">Issues & Risks coming soon</p>
-          </div>
+          <IssuesRisksTab activities={activities} />
         </TabsContent>
 
       </Tabs>

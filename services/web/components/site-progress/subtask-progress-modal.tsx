@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import {
   Dialog,
   DialogContent,
@@ -10,41 +10,66 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { type Subtask } from "@/lib/subtasks-data"
 import { Spinner } from "@/components/ui/spinner"
-import { Plus, Upload, X } from "lucide-react"
+import { Plus, Upload, X, ImagePlus } from "lucide-react"
 
 interface SubtaskProgressModalProps {
   subtask: Subtask
-  onSubmit: (description: string, evidencePhotoUrl?: string) => Promise<void> | void
+  onSubmit: (description: string, photoUrls: string[]) => Promise<void> | void
+}
+
+interface ImageEntry {
+  file: File
+  preview: string
 }
 
 export function SubtaskProgressModal({ subtask, onSubmit }: SubtaskProgressModalProps) {
   const [open, setOpen] = useState(false)
   const [description, setDescription] = useState("")
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [images, setImages] = useState<ImageEntry[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const reset = () => {
     setDescription("")
-    setImageFile(null)
-    setImagePreview(null)
+    setImages([])
     setError(null)
     setIsSubmitting(false)
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setImageFile(file)
-    const reader = new FileReader()
-    reader.onloadend = () => setImagePreview(reader.result as string)
-    reader.readAsDataURL(file)
+  const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    const remaining = 6 - images.length
+    const toAdd = files.slice(0, remaining)
+    toAdd.forEach((file) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImages((prev) => [...prev, { file, preview: reader.result as string }])
+      }
+      reader.readAsDataURL(file)
+    })
+    if (inputRef.current) inputRef.current.value = ""
+  }
+
+  const removeImage = (idx: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  const uploadFile = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append("file", file)
+    const res = await fetch(`/api/subtask/${subtask.id}/logs/evidence`, {
+      method: "POST",
+      body: formData,
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || "Image upload failed")
+    return data.url as string
   }
 
   const handleSubmit = async () => {
@@ -53,22 +78,12 @@ export function SubtaskProgressModal({ subtask, onSubmit }: SubtaskProgressModal
     setError(null)
 
     try {
-      let evidencePhotoUrl: string | undefined
-      if (imageFile) {
-        const formData = new FormData()
-        formData.append("file", imageFile)
-        const uploadRes = await fetch(`/api/subtask/${subtask.id}/logs/evidence`, {
-          method: "POST",
-          body: formData,
-        })
-        const uploadData = await uploadRes.json()
-        if (!uploadRes.ok) {
-          throw new Error(uploadData.error || "Image upload failed")
-        }
-        evidencePhotoUrl = uploadData.url
+      const photoUrls: string[] = []
+      for (const img of images) {
+        const url = await uploadFile(img.file)
+        photoUrls.push(url)
       }
-
-      await onSubmit(description.trim(), evidencePhotoUrl)
+      await onSubmit(description.trim(), photoUrls)
       reset()
       setOpen(false)
     } catch (e) {
@@ -92,7 +107,7 @@ export function SubtaskProgressModal({ subtask, onSubmit }: SubtaskProgressModal
           Update
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Subtask Progress</DialogTitle>
           <DialogDescription>{subtask.title}</DialogDescription>
@@ -114,21 +129,36 @@ export function SubtaskProgressModal({ subtask, onSubmit }: SubtaskProgressModal
           </div>
 
           <div className="space-y-2">
-            <Label>Proof image (optional)</Label>
-            {imagePreview ? (
-              <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-border">
-                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+            <div className="flex items-center justify-between">
+              <Label>Proof photos (optional, up to 6)</Label>
+              {images.length > 0 && images.length < 6 && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setImageFile(null)
-                    setImagePreview(null)
-                  }}
-                  className="absolute top-2 right-2 p-1 bg-destructive/80 hover:bg-destructive rounded-full text-white"
+                  onClick={() => inputRef.current?.click()}
                   disabled={isSubmitting}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <X className="h-3 w-3" />
+                  <ImagePlus className="h-3.5 w-3.5" />
+                  Add more
                 </button>
+              )}
+            </div>
+
+            {images.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2">
+                {images.map((img, idx) => (
+                  <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border border-border">
+                    <img src={img.preview} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(idx)}
+                      disabled={isSubmitting}
+                      className="absolute top-1 right-1 p-0.5 bg-destructive/80 hover:bg-destructive rounded-full text-white"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
               </div>
             ) : (
               <label
@@ -136,18 +166,21 @@ export function SubtaskProgressModal({ subtask, onSubmit }: SubtaskProgressModal
                 className="flex flex-col items-center justify-center w-full p-5 border-2 border-dashed border-border rounded-lg cursor-pointer bg-secondary/20 hover:bg-secondary/40 transition-colors"
               >
                 <Upload className="h-5 w-5 text-muted-foreground mb-2" />
-                <p className="text-sm font-medium text-foreground">Upload proof photo</p>
-                <p className="text-xs text-muted-foreground">PNG, JPG, WEBP — max 10MB</p>
-                <input
-                  id={`evidence-${subtask.id}`}
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg,image/webp"
-                  onChange={handleImageChange}
-                  className="hidden"
-                  disabled={isSubmitting}
-                />
+                <p className="text-sm font-medium text-foreground">Upload proof photos</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG, WEBP — max 10MB each, up to 6</p>
               </label>
             )}
+
+            <input
+              ref={inputRef}
+              id={`evidence-${subtask.id}`}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              multiple
+              onChange={handleFilesChange}
+              className="hidden"
+              disabled={isSubmitting}
+            />
           </div>
 
           <div className="flex gap-2 justify-end pt-2">
