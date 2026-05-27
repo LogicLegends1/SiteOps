@@ -88,11 +88,16 @@ function readNumber(row: DbRow, keys: string[], fallback = 0): number {
 function normalizeDiscipline(value: string): WorkerDiscipline {
   const normalized = value.toLowerCase().trim()
 
+  // Support domain buckets used in the workforce UI.
+  if (normalized.includes("heavy") || normalized.includes("equipment")) return "mechanical"
+  if (normalized.includes("transport") || normalized.includes("driver")) return "general"
+  if (normalized.includes("general construction")) return "general"
+  if (normalized.includes("civil")) return "civil"
   if (normalized.includes("elect")) return "electrical"
+
   if (normalized.includes("mech")) return "mechanical"
   if (normalized.includes("qa") || normalized.includes("quality")) return "qa"
   if (normalized.includes("safety")) return "safety"
-  if (normalized.includes("civil")) return "civil"
   if (normalized === "it") return "it"
 
   return "general"
@@ -220,6 +225,8 @@ export async function GET(_req: NextRequest, context: RouteContext) {
       return {
         id: workerId,
         name: readString(row, ["name", "workername", "full_name"], "Unknown Worker"),
+        disciplineName: disciplineRaw,
+        roleName: roleRaw,
         discipline: normalizeDiscipline(disciplineRaw),
         role: normalizeRole(roleRaw),
         experienceYears,

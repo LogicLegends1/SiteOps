@@ -23,18 +23,86 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import {
   Plus,
+  Minus,
   AlertCircle,
   CheckCircle2,
   MapPin,
   ListTodo,
   Trash2,
   Calendar,
+  Users,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 import { type Activity, type Project } from "@/lib/site-data"
 import { type Subtask } from "@/lib/subtasks-data"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
+
+type WorkerRequirements = {
+  tower_crane_operators: number
+  excavator_operators: number
+  crawler_crane_operators: number
+  tipper_drivers: number
+  surveyors: number
+  masons: number
+  carpenters: number
+  steel_fixers: number
+  electricians: number
+  general_labors: number
+  site_engineers: number
+}
+
+const defaultWorkerRequirements: WorkerRequirements = {
+  tower_crane_operators: 0,
+  excavator_operators: 0,
+  crawler_crane_operators: 0,
+  tipper_drivers: 0,
+  surveyors: 0,
+  masons: 0,
+  carpenters: 0,
+  steel_fixers: 0,
+  electricians: 0,
+  general_labors: 0,
+  site_engineers: 0,
+}
+
+const workerRoleGroups: Array<{
+  discipline: string
+  roles: Array<{ key: keyof WorkerRequirements; label: string }>
+}> = [
+  {
+    discipline: "Heavy Equipment",
+    roles: [
+      { key: "tower_crane_operators", label: "Tower Crane Operators" },
+      { key: "excavator_operators", label: "Excavator Operators" },
+      { key: "crawler_crane_operators", label: "Crawler Crane Operators" },
+    ],
+  },
+  {
+    discipline: "Transport",
+    roles: [{ key: "tipper_drivers", label: "Tipper Drivers" }],
+  },
+  {
+    discipline: "Civil Engineering",
+    roles: [
+      { key: "surveyors", label: "Surveyors" },
+      { key: "masons", label: "Masons" },
+      { key: "carpenters", label: "Carpenters" },
+      { key: "steel_fixers", label: "Steel Fixers" },
+      { key: "site_engineers", label: "Site Engineers" },
+    ],
+  },
+  {
+    discipline: "Electrical",
+    roles: [{ key: "electricians", label: "Electricians" }],
+  },
+  {
+    discipline: "General Construction",
+    roles: [{ key: "general_labors", label: "General Laborers" }],
+  },
+]
 
 interface AddActivityModalProps {
   projectId: number
@@ -92,6 +160,10 @@ export function AddActivityModal({
   const [lng, setLng] = useState(
     project?.locationLongitude != null ? String(project.locationLongitude) : ""
   )
+  const [workerRequirements, setWorkerRequirements] = useState<WorkerRequirements>(
+    defaultWorkerRequirements
+  )
+  const [workersExpanded, setWorkersExpanded] = useState(true)
   const [subtaskDrafts, setSubtaskDrafts] = useState<SubtaskDraft[]>([newSubtaskDraft()])
 
   const resetForm = () => {
@@ -101,9 +173,24 @@ export function AddActivityModal({
     setDeadline("")
     setLat(project?.locationLatitude != null ? String(project.locationLatitude) : "")
     setLng(project?.locationLongitude != null ? String(project.locationLongitude) : "")
+    setWorkerRequirements(defaultWorkerRequirements)
+    setWorkersExpanded(true)
     setSubtaskDrafts([newSubtaskDraft()])
     setError(null)
     setSuccess(false)
+  }
+
+  const totalRequiredWorkers = Object.values(workerRequirements).reduce(
+    (sum, value) => sum + (Number.isFinite(value) ? value : 0),
+    0
+  )
+
+  const adjustWorkerRequirement = (key: keyof WorkerRequirements, delta: number) => {
+    setWorkerRequirements((prev) => {
+      const current = Number.isFinite(prev[key]) ? prev[key] : 0
+      const next = Math.max(0, Math.round(current + delta))
+      return { ...prev, [key]: next }
+    })
   }
 
   const addSubtaskRow = () => {
@@ -130,6 +217,11 @@ export function AddActivityModal({
       return
     }
 
+    if (totalRequiredWorkers <= 0) {
+      setError("At least one worker role must be specified")
+      return
+    }
+
     const validSubtasks = subtaskDrafts.filter((s) => s.title.trim())
 
     setIsLoading(true)
@@ -143,6 +235,7 @@ export function AddActivityModal({
         deadline: deadline || null,
         lat: lat ? parseFloat(lat) : null,
         lng: lng ? parseFloat(lng) : null,
+        workerRequirements,
         subtasks: validSubtasks.map((s, index) => ({
           title: s.title.trim(),
           duedate: s.dueDate || null,
@@ -319,6 +412,92 @@ export function AddActivityModal({
                   />
                 </div>
               </div>
+            </section>
+
+            <Separator />
+
+            <section className="space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">Required Workers *</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Set required headcount per role (defaults to 0). Total: {totalRequiredWorkers}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  onClick={() => setWorkersExpanded((v) => !v)}
+                  disabled={isLoading}
+                >
+                  {workersExpanded ? (
+                    <>
+                      <ChevronUp className="h-3 w-3" />
+                      Hide
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3 w-3" />
+                      Show
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {workersExpanded && (
+                <div className="space-y-4">
+                  {workerRoleGroups.map((group) => (
+                    <div
+                      key={group.discipline}
+                      className="rounded-lg border border-border bg-secondary/10 p-4 space-y-3"
+                    >
+                      <div className="text-xs font-semibold text-muted-foreground">
+                        {group.discipline}
+                      </div>
+                      <div className="space-y-2">
+                        {group.roles.map((role) => (
+                          <div
+                            key={role.key}
+                            className="flex items-center justify-between gap-3"
+                          >
+                            <div className="text-sm text-foreground">{role.label}</div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => adjustWorkerRequirement(role.key, -1)}
+                                disabled={isLoading || workerRequirements[role.key] <= 0}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                              <div className="min-w-10 text-center text-sm font-medium tabular-nums">
+                                {workerRequirements[role.key]}
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => adjustWorkerRequirement(role.key, +1)}
+                                disabled={isLoading}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
 
             <Separator />
