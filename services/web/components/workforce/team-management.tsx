@@ -28,6 +28,16 @@ export function TeamManagement({
 }: TeamManagementProps) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null)
 
+  const getWorkerDisciplineLabel = (worker: WorkforceWorker) => {
+    const raw = (worker.disciplineName ?? worker.discipline ?? "").toString().trim()
+    return raw || getDisciplineLabel(worker.discipline)
+  }
+
+  const getWorkerRoleLabel = (worker: WorkforceWorker) => {
+    const raw = (worker.roleName ?? worker.role ?? "").toString().trim()
+    return raw || getRoleLabel(worker.role)
+  }
+
   const getWorkerById = (id: string) => workers.find((worker) => worker.id === id)
 
   const renderTeamCard = (team: WorkforceTeam) => {
@@ -73,7 +83,7 @@ export function TeamManagement({
                   </Avatar>
                   <span className="text-sm font-medium text-foreground">{leader.name}</span>
                   <Badge variant="secondary" className="text-xs">
-                    {getRoleLabel(leader.role)}
+                    {getWorkerRoleLabel(leader)}
                   </Badge>
                 </div>
               ) : (
@@ -102,7 +112,7 @@ export function TeamManagement({
                     <div className="min-w-0">
                       <p className="text-xs font-medium text-foreground truncate">{member.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {getDisciplineLabel(member.discipline)}
+                        {getWorkerDisciplineLabel(member)}
                       </p>
                     </div>
                   </div>

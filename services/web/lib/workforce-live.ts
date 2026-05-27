@@ -19,6 +19,12 @@ export interface WorkforceWorker {
   name: string
   discipline: WorkerDiscipline
   role: WorkerRole
+  /**
+   * Raw values from the `worker` table.
+   * Used for UI display/grouping when the DB stores domain-specific labels.
+   */
+  disciplineName?: string
+  roleName?: string
   experienceYears: number
   experienceLevel: ExperienceLevel
   status: WorkerStatus
