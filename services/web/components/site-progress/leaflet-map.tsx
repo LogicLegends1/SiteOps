@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import { type Activity, type Project } from "@/lib/site-data"
@@ -91,7 +91,7 @@ function buildTooltipHtml(
   const allUpdates = subtasks
     .flatMap((s) => s.updates)
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-  let lastUpdateHtml = `<span style="color:#475569;font-size:11px;">No updates yet</span>`
+  let lastUpdateHtml = `<span style="color:#475569;font-size:13px;">No updates yet</span>`
   if (allUpdates.length > 0) {
     const latest = allUpdates[0]
     const diffMs = Date.now() - new Date(latest.updatedAt).getTime()
@@ -102,10 +102,10 @@ function buildTooltipHtml(
     if (imgSrc) {
       lastUpdateHtml = `<div style="display:flex;align-items:center;gap:8px;">
         <img data-zoom-image="${imgSrc}" src="${imgSrc}" alt="" style="width:46px;height:34px;object-fit:cover;border-radius:5px;border:1px solid rgba(255,255,255,0.1);cursor:pointer;" />
-        <span style="color:#94a3b8;font-size:11px;">${timeAgo}</span>
+        <span style="color:#94a3b8;font-size:13px;">${timeAgo}</span>
       </div>`
     } else {
-      lastUpdateHtml = `<span style="color:#94a3b8;font-size:11px;">${timeAgo}</span>`
+      lastUpdateHtml = `<span style="color:#94a3b8;font-size:13px;">${timeAgo}</span>`
     }
   }
 
@@ -120,35 +120,35 @@ function buildTooltipHtml(
   const totalSubtasks = subtasks.length
   const subtasksHtml = totalSubtasks > 0
     ? `<div style="padding:8px 0 6px;border-top:1px solid rgba(255,255,255,0.07);margin-bottom:8px;">
-        <div style="font-size:11px;color:#64748b;margin-bottom:5px;">Subtasks <span style="color:#94a3b8;">${completedSubtasks}/${totalSubtasks} done</span></div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:5px;">Subtasks <span style="color:#94a3b8;">${completedSubtasks}/${totalSubtasks} done</span></div>
         <div style="display:flex;flex-direction:column;gap:3px;">
           ${subtasks.slice(0, 5).map((st) => `
             <div style="display:flex;align-items:center;gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${st.completed ? '#10b981' : 'rgba(255,255,255,0.1)'};border:1px solid ${st.completed ? '#10b981' : 'rgba(255,255,255,0.25)'};"></span>
-              <span style="font-size:11px;color:${st.completed ? '#64748b' : '#e2e8f0'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:205px;${st.completed ? 'text-decoration:line-through;' : ''}">${st.title}</span>
+              <span style="font-size:13px;color:${st.completed ? '#64748b' : '#e2e8f0'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:205px;${st.completed ? 'text-decoration:line-through;' : ''}">${st.title}</span>
             </div>`).join('')}
-          ${subtasks.length > 5 ? `<span style="font-size:10px;color:#64748b;padding-left:14px;">+${subtasks.length - 5} more</span>` : ''}
+          ${subtasks.length > 5 ? `<span style="font-size:12px;color:#64748b;padding-left:14px;">+${subtasks.length - 5} more</span>` : ''}
         </div>
       </div>`
     : ''
 
   return `<div style="font-family:system-ui,-apple-system,sans-serif;min-width:340px;max-width:400px;color:#f1f5f9;">
     <div style="margin-bottom:10px;">
-      <div style="font-size:14px;font-weight:700;color:#f8fafc;line-height:1.3;margin-bottom:3px;">${activity.name}</div>
+      <div style="font-size:16px;font-weight:700;color:#f8fafc;line-height:1.3;margin-bottom:3px;">${activity.name}</div>
     </div>
     <div style="margin-bottom:10px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-        <span style="font-size:11px;color:#64748b;">Progress</span>
+        <span style="font-size:13px;color:#64748b;">Progress</span>
         <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:13px;font-weight:700;color:${progressBarColor};">${progress}%</span>
-          <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:${statusBg};color:${statusColor};">${statusLabel}</span>
+          <span style="font-size:15px;font-weight:700;color:${progressBarColor};">${progress}%</span>
+          <span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;background:${statusBg};color:${statusColor};">${statusLabel}</span>
         </div>
       </div>
       <div style="height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
         <div style="height:100%;width:${progress}%;background:${progressBarColor};border-radius:3px;"></div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:11px;padding:8px 0;border-top:1px solid rgba(255,255,255,0.07);border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:8px;">
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;padding:8px 0;border-top:1px solid rgba(255,255,255,0.07);border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:8px;">
       <span style="color:#64748b;">Planned Finish</span><span style="color:#e2e8f0;">${deadlineStr}</span>
       <span style="color:#64748b;">Site Engineer</span><span style="color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${engineer}</span>
       <span style="color:#64748b;">Crew Size</span><span style="color:#e2e8f0;">${crewSize} workers</span>
@@ -156,20 +156,138 @@ function buildTooltipHtml(
     </div>
     ${subtasksHtml}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <span style="font-size:11px;color:#64748b;">Latest Update</span>
+      <span style="font-size:13px;color:#64748b;">Latest Update</span>
       ${lastUpdateHtml}
     </div>
     <div data-view-issues="${activity.zoneID}" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.07);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
-      <span style="font-size:11px;color:#64748b;">Open Issues</span>
-      <span style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:${issueColor};">
+      <span style="font-size:13px;color:#64748b;">Open Issues</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:14px;font-weight:700;color:${issueColor};">
         <span style="width:6px;height:6px;border-radius:50%;background:${issueColor};display:inline-block;"></span>
         ${issues.length}
       </span>
     </div>
-    <button data-view-in-tracker="${activity.zoneID}" style="width:100%;padding:8px 0;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);border-radius:7px;color:#818cf8;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.01em;">
+    <button data-view-in-tracker="${activity.zoneID}" style="width:100%;padding:8px 0;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);border-radius:7px;color:#818cf8;font-size:14px;font-weight:600;cursor:pointer;letter-spacing:0.01em;">
       View Activity &rarr;
     </button>
   </div>`
+}
+
+// ── Weather Overlay (dummy data) ──────────────────────────────────────────────
+
+interface WeatherDay {
+  label: string
+  icon: string
+  temp: string
+  high: string
+  low: string
+  condition: string
+  wind: string
+  humidity: string
+}
+
+function getWeatherForecast(): WeatherDay[] {
+  const today = new Date()
+  const days: WeatherDay[] = [
+    {
+      label: "Today",
+      icon: "☀️",
+      temp: "32°C",
+      high: "33°",
+      low: "26°",
+      condition: "Sunny",
+      wind: "12 km/h",
+      humidity: "62%",
+    },
+    {
+      label: new Date(today.getTime() + 86400000).toLocaleDateString("en-US", { weekday: "short" }),
+      icon: "⛅",
+      temp: "30°C",
+      high: "31°",
+      low: "25°",
+      condition: "Partly Cloudy",
+      wind: "15 km/h",
+      humidity: "68%",
+    },
+    {
+      label: new Date(today.getTime() + 86400000 * 2).toLocaleDateString("en-US", { weekday: "short" }),
+      icon: "🌧️",
+      temp: "28°C",
+      high: "29°",
+      low: "24°",
+      condition: "Light Rain",
+      wind: "20 km/h",
+      humidity: "78%",
+    },
+    {
+      label: new Date(today.getTime() + 86400000 * 3).toLocaleDateString("en-US", { weekday: "short" }),
+      icon: "🌤️",
+      temp: "31°C",
+      high: "32°",
+      low: "25°",
+      condition: "Mostly Sunny",
+      wind: "10 km/h",
+      humidity: "60%",
+    },
+  ]
+  return days
+}
+
+function WeatherOverlay({ activityName }: { activityName: string }) {
+  const forecast = useMemo(() => getWeatherForecast(), [])
+
+  return (
+    <div className="absolute top-3 right-3 z-[500] pointer-events-none animate-in fade-in slide-in-from-top-2 duration-300">
+      <div className="bg-[rgba(15,23,42,0.92)] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-3 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+        <div className="flex items-center gap-2 mb-2.5 px-1">
+          <svg className="w-3.5 h-3.5 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+          </svg>
+          <span className="text-[11px] font-bold text-white/50 uppercase tracking-wider">Site Weather</span>
+        </div>
+        <div className="flex gap-2">
+          {forecast.map((day, i) => (
+            <div
+              key={i}
+              className={cn(
+                "flex flex-col items-center rounded-xl px-3.5 py-2.5 min-w-[82px] border transition-all",
+                i === 0
+                  ? "bg-gradient-to-b from-sky-500/15 to-sky-500/5 border-sky-500/20"
+                  : "bg-white/[0.03] border-white/[0.06]"
+              )}
+            >
+              <span
+                className={cn(
+                  "text-[10px] font-bold uppercase tracking-wide mb-1",
+                  i === 0 ? "text-sky-400" : "text-white/40"
+                )}
+              >
+                {day.label}
+              </span>
+              <span className="text-[22px] leading-none mb-1">{day.icon}</span>
+              <span className="text-[15px] font-extrabold text-white leading-none mb-0.5">
+                {day.temp}
+              </span>
+              <span className="text-[10px] text-white/35 font-medium mb-1.5">
+                {day.high} / {day.low}
+              </span>
+              <span
+                className={cn(
+                  "text-[10px] font-semibold leading-tight",
+                  i === 0 ? "text-sky-300/80" : "text-white/45"
+                )}
+              >
+                {day.condition}
+              </span>
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-[9px] text-white/30">💨 {day.wind}</span>
+              </div>
+              <span className="text-[9px] text-white/30">💧 {day.humidity}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function LeafletMap({
@@ -191,6 +309,12 @@ export function LeafletMap({
   const markersRef = useRef<Map<number, L.Marker>>(new Map())
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
+  const [hoveredActivityId, setHoveredActivityId] = useState<number | null>(null)
+
+  const hoveredActivity = useMemo(
+    () => activities.find((a) => a.zoneID === hoveredActivityId) ?? null,
+    [activities, hoveredActivityId]
+  )
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return
@@ -213,6 +337,10 @@ export function LeafletMap({
     }).addTo(map)
 
     mapRef.current = map
+
+    map.on("popupclose", () => {
+      setHoveredActivityId(null)
+    })
 
     return () => {
       // kept for strict-mode; invalidateSize handles resize
@@ -258,10 +386,12 @@ export function LeafletMap({
             closeTimeoutRef.current = null
           }
           marker.openPopup()
+          setHoveredActivityId(activity.zoneID)
         })
         .on("mouseout", () => {
           closeTimeoutRef.current = setTimeout(() => {
             marker.closePopup()
+            setHoveredActivityId(null)
           }, 200)
         })
         .addTo(mapRef.current!)
@@ -377,6 +507,7 @@ export function LeafletMap({
       if (target.closest(".leaflet-popup")) {
         closeTimeoutRef.current = setTimeout(() => {
           mapRef.current?.closePopup()
+          setHoveredActivityId(null)
         }, 200)
       }
     }
@@ -447,6 +578,9 @@ export function LeafletMap({
       )}
 
       <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
+
+      {/* Weather forecast overlay */}
+      {hoveredActivity && <WeatherOverlay activityName={hoveredActivity.name} />}
 
       <div className="absolute bottom-3 left-3 text-[10px] text-muted-foreground bg-background/90 backdrop-blur-sm px-2.5 py-1.5 rounded-md z-[400] pointer-events-none border border-border/50">
         © OpenStreetMap

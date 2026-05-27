@@ -214,6 +214,17 @@ export const issues: Issue[] = [
   },
 ]
 
+// Human-readable names for the hard-coded issue activityIDs (1-6).
+// These are used when the activityID doesn't match any fetched activity zoneID.
+export const issueActivityNames: Record<number, string> = {
+  1: "Foundation Excavation",
+  2: "Piling Work",
+  3: "Rebar Installation",
+  4: "Concrete Pouring",
+  5: "Electrical Conduit",
+  6: "Drainage Installation",
+}
+
 export function getIssuesByActivityId(activityID: number) {
   return issues.filter((issue) => issue.activityID === activityID)
 }
