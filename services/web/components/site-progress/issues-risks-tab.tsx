@@ -222,13 +222,13 @@ export function IssuesRisksTab({ activities }: IssuesRisksTabProps) {
   const hasActiveFilters = filterPriority !== "all" || filterStatus !== "all" || filterType !== "all"
 
   return (
-    <div className="h-[calc(100vh-220px)] min-h-[500px] flex flex-col rounded-xl border border-border overflow-hidden bg-[rgba(3,6,12,0.6)]">
+    <div className="h-[calc(100vh-220px)] min-h-[500px] flex flex-col rounded-xl border border-border overflow-hidden bg-card/80 dark:bg-[rgba(3,6,12,0.6)]">
       {/* Summary bar */}
-      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.06] bg-[rgba(15,23,42,0.4)] shrink-0">
+      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border bg-muted/30 dark:bg-[rgba(15,23,42,0.4)] shrink-0">
         <div className="flex items-center gap-2 mr-auto">
           <AlertTriangle className="h-4 w-4 text-amber-400" />
-          <span className="text-[14px] font-bold text-white">Issues & Risks</span>
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/[0.06] text-white/45">{counts.total}</span>
+          <span className="text-[14px] font-bold text-foreground">Issues & Risks</span>
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{counts.total}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-red-500/10 text-red-400 border border-red-500/15">
@@ -248,23 +248,23 @@ export function IssuesRisksTab({ activities }: IssuesRisksTabProps) {
       </div>
 
       {/* Search + filters */}
-      <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.06] bg-[rgba(15,23,42,0.25)] shrink-0 flex-wrap">
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-muted/20 dark:bg-[rgba(15,23,42,0.25)] shrink-0 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/25" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search issues..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px] text-white placeholder:text-white/30 outline-none focus:border-blue-500/40 focus:bg-white/[0.06] transition-colors"
+            className="w-full pl-9 pr-3 py-2 rounded-lg bg-background border border-border text-[12px] text-foreground placeholder:text-muted-foreground outline-none focus:border-blue-500/40 transition-colors"
           />
         </div>
         <div className="flex items-center gap-1.5">
-          <Filter className="h-3.5 w-3.5 text-white/30" />
+          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value as IssuePriority | "all")}
-            className="text-[11px] bg-white/[0.04] border border-white/[0.08] text-white/70 rounded-lg px-2.5 py-2 outline-none focus:border-blue-500/40 cursor-pointer appearance-none"
+            className="text-[11px] bg-background border border-border text-muted-foreground rounded-lg px-2.5 py-2 outline-none focus:border-blue-500/40 cursor-pointer appearance-none"
           >
             <option value="all">All Priorities</option>
             <option value="critical">Critical</option>
@@ -275,7 +275,7 @@ export function IssuesRisksTab({ activities }: IssuesRisksTabProps) {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as IssueStatus | "all")}
-            className="text-[11px] bg-white/[0.04] border border-white/[0.08] text-white/70 rounded-lg px-2.5 py-2 outline-none focus:border-blue-500/40 cursor-pointer appearance-none"
+            className="text-[11px] bg-background border border-border text-muted-foreground rounded-lg px-2.5 py-2 outline-none focus:border-blue-500/40 cursor-pointer appearance-none"
           >
             <option value="all">All Statuses</option>
             <option value="open">Open</option>
@@ -285,7 +285,7 @@ export function IssuesRisksTab({ activities }: IssuesRisksTabProps) {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value as Issue["type"] | "all")}
-            className="text-[11px] bg-white/[0.04] border border-white/[0.08] text-white/70 rounded-lg px-2.5 py-2 outline-none focus:border-blue-500/40 cursor-pointer appearance-none"
+            className="text-[11px] bg-background border border-border text-muted-foreground rounded-lg px-2.5 py-2 outline-none focus:border-blue-500/40 cursor-pointer appearance-none"
           >
             <option value="all">All Types</option>
             <option value="equipment-failure">Equipment</option>
@@ -297,7 +297,7 @@ export function IssuesRisksTab({ activities }: IssuesRisksTabProps) {
           {hasActiveFilters && (
             <button
               onClick={() => { setFilterPriority("all"); setFilterStatus("all"); setFilterType("all") }}
-              className="text-[10px] text-white/40 hover:text-white/70 transition-colors flex items-center gap-1 px-2 py-1.5"
+              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 px-2 py-1.5"
             >
               <X className="h-3 w-3" /> Clear
             </button>
@@ -308,7 +308,7 @@ export function IssuesRisksTab({ activities }: IssuesRisksTabProps) {
       {/* Issues list grouped by activity */}
       <div className="flex-1 overflow-y-auto ir-scroll p-4">
         {sortedActivityIds.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-white/35 gap-3">
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
             <AlertTriangle className="h-12 w-12 opacity-15" />
             <p className="text-sm font-medium">No issues found</p>
             <p className="text-[11px] opacity-50">Try adjusting your filters</p>
@@ -327,14 +327,14 @@ export function IssuesRisksTab({ activities }: IssuesRisksTabProps) {
                 {/* Activity group header */}
                 <button
                   onClick={() => toggleActivity(activityId)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[rgba(15,23,42,0.6)] border border-white/[0.06] hover:border-white/[0.12] transition-colors mb-2"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-muted/40 dark:bg-[rgba(15,23,42,0.6)] border border-border hover:border-foreground/20 transition-colors mb-2"
                 >
                   {isExpanded ? (
-                    <ChevronDown className="h-3.5 w-3.5 text-white/40 shrink-0" />
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   ) : (
-                    <ChevronRight className="h-3.5 w-3.5 text-white/40 shrink-0" />
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   )}
-                  <span className="text-[13px] font-bold text-white flex-1 text-left">{activityName}</span>
+                  <span className="text-[13px] font-bold text-foreground flex-1 text-left">{activityName}</span>
                   <div className="flex items-center gap-2">
                     {criticalCount > 0 && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-500/15 text-red-400 border border-red-500/20">
@@ -342,11 +342,11 @@ export function IssuesRisksTab({ activities }: IssuesRisksTabProps) {
                       </span>
                     )}
                     {openCount > 0 && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white/[0.05] text-white/45">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
                         {openCount} open
                       </span>
                     )}
-                    <span className="text-[10px] font-semibold text-white/30">
+                    <span className="text-[10px] font-semibold text-muted-foreground">
                       {activityIssues.length} issue{activityIssues.length !== 1 ? "s" : ""}
                     </span>
                   </div>

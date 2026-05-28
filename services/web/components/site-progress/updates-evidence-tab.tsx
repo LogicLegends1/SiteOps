@@ -476,14 +476,14 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
     : ""
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)_280px] h-auto min-h-[calc(100dvh-9rem)] md:h-[calc(100vh-200px)] md:min-h-150 rounded-[20px] overflow-hidden bg-linear-to-br from-[#02050B] via-[#040912] to-[#050B14] border border-white/6"
+    <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)_280px] h-auto min-h-[calc(100dvh-9rem)] md:h-[calc(100vh-200px)] md:min-h-150 rounded-[20px] overflow-hidden border border-border bg-background dark:bg-linear-to-br dark:from-[#02050B] dark:via-[#040912] dark:to-[#050B14]"
       style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03), 0 0 80px rgba(14,165,233,0.03)" }}
     >
       {/* ===== LEFT SIDEBAR ===== */}
-      <div className="border-b md:border-b-0 md:border-r border-white/6 flex flex-col shrink-0 bg-[rgba(5,8,15,0.92)] overflow-hidden">
+      <div className="border-b md:border-b-0 md:border-r border-border flex flex-col shrink-0 bg-muted/20 dark:bg-[rgba(5,8,15,0.92)] overflow-hidden">
         {/* Toggle */}
         <div className="p-4 pb-3 shrink-0">
-          <div className="flex rounded-[12px] border border-white/[0.08] overflow-hidden bg-black/30">
+          <div className="flex rounded-[12px] border border-border overflow-hidden bg-muted/40 dark:bg-black/30">
             <button
               type="button"
               onClick={() => { setViewMode("day"); setSelectedActivityId(null) }}
@@ -491,7 +491,7 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
                 "flex-1 text-[12px] py-2.5 font-semibold transition-all duration-200",
                 viewMode === "day"
                   ? "bg-[#0EA5E9] text-white shadow-[0_0_12px_rgba(14,165,233,0.3)]"
-                  : "text-white/45 hover:text-white/70 hover:bg-white/[0.04]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:text-white/45 dark:hover:text-white/70 dark:hover:bg-white/[0.04]"
               )}
             >
               By Day
@@ -500,10 +500,10 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
               type="button"
               onClick={() => { setViewMode("activity"); setSelectedDate(null) }}
               className={cn(
-                "flex-1 text-[12px] py-2.5 font-semibold transition-all duration-200 border-l border-white/[0.08]",
+                "flex-1 text-[12px] py-2.5 font-semibold transition-all duration-200 border-l border-border",
                 viewMode === "activity"
                   ? "bg-[#0EA5E9] text-white shadow-[0_0_12px_rgba(14,165,233,0.3)]"
-                  : "text-white/45 hover:text-white/70 hover:bg-white/[0.04]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:text-white/45 dark:hover:text-white/70 dark:hover:bg-white/[0.04]"
               )}
             >
               By Activity
@@ -516,7 +516,7 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
           {viewMode === "day" && (
             <div className="px-3 pb-2">
               {sortedDates.length === 0 ? (
-                <p className="text-[11px] text-white/35 px-3 py-3">No updates yet</p>
+                <p className="text-[11px] text-muted-foreground px-3 py-3">No updates yet</p>
               ) : (
                 <div className="space-y-0.5">
                   {sortedDates.map((date) => {
@@ -550,18 +550,18 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
           )}
 
           {/* Divider + Activities section */}
-          <div className={cn(viewMode === "day" ? "border-t border-white/[0.06]" : "")}>
+          <div className={cn(viewMode === "day" ? "border-t border-border" : "")}>
             <div className="px-4 pt-3 pb-2">
-              <h5 className="text-[11px] font-bold text-white/50 uppercase tracking-wider">Activities</h5>
+              <h5 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Activities</h5>
             </div>
             <div className="px-3 pb-3">
               <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <input
                   placeholder="Search activities..."
                   value={activitySearch}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setActivitySearch(e.target.value)}
-                  className="w-full pl-9 pr-3 h-9 text-[11px] bg-black/30 border border-white/[0.06] rounded-[10px] text-white placeholder-white/25 focus:outline-none focus:border-[#0EA5E9]/40 focus:ring-1 focus:ring-[#0EA5E9]/15 shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)]"
+                  className="w-full pl-9 pr-3 h-9 text-[11px] bg-background/80 dark:bg-black/30 border border-border rounded-[10px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#0EA5E9]/40 focus:ring-1 focus:ring-[#0EA5E9]/15 shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]"
                 />
               </div>
               <div className="space-y-0.5">
@@ -587,7 +587,7 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
                       >
                         {activity.name.charAt(0)}
                       </span>
-                      <span className={cn("flex-1 text-[12px] truncate font-medium", isSelected ? "text-[#0EA5E9]" : "text-white/85")}>
+                      <span className={cn("flex-1 text-[12px] truncate font-medium", isSelected ? "text-[#0EA5E9]" : "text-foreground")}>
                         {activity.name}
                       </span>
                       {count > 0 && (
@@ -605,9 +605,9 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
       </div>
 
       {/* ===== CENTER TIMELINE ===== */}
-      <div className="min-w-0 overflow-y-auto ue-scroll p-3 sm:p-4 md:p-5 bg-[rgba(3,6,12,0.5)]">
+      <div className="min-w-0 overflow-y-auto ue-scroll p-3 sm:p-4 md:p-5 bg-muted/10 dark:bg-[rgba(3,6,12,0.5)]">
         {visibleSortedDates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-white/35 gap-3">
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
             <FileText className="h-12 w-12 opacity-15" />
             <p className="text-sm font-medium">No updates found</p>
             <p className="text-[11px] opacity-50">Updates appear here as your team submits progress</p>

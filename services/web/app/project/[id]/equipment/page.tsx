@@ -115,12 +115,12 @@ export default function UnifiedEquipmentDashboard() {
   const filteredCount = data.filteredCount ?? totalAssets
 
   return (
-    <div className="flex flex-col gap-6 min-h-screen bg-[#0A0D14] text-zinc-300 pb-12 font-sans selection:bg-blue-500/30">
+    <div className="flex flex-col gap-6 min-h-screen bg-background text-foreground pb-12 font-sans selection:bg-blue-500/30">
       
       {/* KPI CARDS */}
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4 px-6 pt-6">
         {/* Total Assets */}
-        <div className="flex flex-col gap-3 p-4 bg-[#11141D] border border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
+        <div className="flex flex-col gap-3 p-4 bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">
@@ -128,7 +128,7 @@ export default function UnifiedEquipmentDashboard() {
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Total Assets</span>
-                <span className="text-2xl font-semibold text-white mt-0.5">{totalAssets}</span>
+                <span className="text-2xl font-semibold text-foreground dark:text-white mt-0.5">{totalAssets}</span>
               </div>
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function UnifiedEquipmentDashboard() {
         </div>
 
         {/* Active */}
-        <div className="flex flex-col gap-3 p-4 bg-[#11141D] border border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
+        <div className="flex flex-col gap-3 p-4 bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-full border border-emerald-500/20">
@@ -147,7 +147,7 @@ export default function UnifiedEquipmentDashboard() {
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Active</span>
-                <span className="text-2xl font-semibold text-white mt-0.5">{activeCount}</span>
+                <span className="text-2xl font-semibold text-foreground dark:text-white mt-0.5">{activeCount}</span>
               </div>
             </div>
           </div>
@@ -158,7 +158,7 @@ export default function UnifiedEquipmentDashboard() {
         </div>
 
         {/* Idle */}
-        <div className="flex flex-col gap-3 p-4 bg-[#11141D] border border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
+        <div className="flex flex-col gap-3 p-4 bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-3">
               <div className="p-2 text-amber-500 rounded-full">
@@ -166,7 +166,7 @@ export default function UnifiedEquipmentDashboard() {
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Idle</span>
-                <span className="text-2xl font-semibold text-white mt-0.5">{idleCount}</span>
+                <span className="text-2xl font-semibold text-foreground dark:text-white mt-0.5">{idleCount}</span>
               </div>
             </div>
           </div>
@@ -177,7 +177,7 @@ export default function UnifiedEquipmentDashboard() {
         </div>
 
         {/* Maintenance */}
-        <div className="flex flex-col gap-3 p-4 bg-[#11141D] border border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
+        <div className="flex flex-col gap-3 p-4 bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-full border border-indigo-500/20">
@@ -185,7 +185,7 @@ export default function UnifiedEquipmentDashboard() {
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">In Maintenance</span>
-                <span className="text-2xl font-semibold text-white mt-0.5">{maintCount}</span>
+                <span className="text-2xl font-semibold text-foreground dark:text-white mt-0.5">{maintCount}</span>
               </div>
             </div>
           </div>
@@ -196,7 +196,7 @@ export default function UnifiedEquipmentDashboard() {
         </div>
 
         {/* Down / At Risk */}
-        <div className="flex flex-col gap-3 p-4 bg-[#11141D] border border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
+        <div className="flex flex-col gap-3 p-4 bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-red-500/10 text-red-500 rounded-lg">
@@ -204,7 +204,7 @@ export default function UnifiedEquipmentDashboard() {
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Down / At Risk</span>
-                <span className="text-2xl font-semibold text-white mt-0.5">{downCount}</span>
+                <span className="text-2xl font-semibold text-foreground dark:text-white mt-0.5">{downCount}</span>
               </div>
             </div>
           </div>
@@ -215,7 +215,7 @@ export default function UnifiedEquipmentDashboard() {
         </div>
 
         {/* Unassigned */}
-        <div className="flex flex-col gap-3 p-4 bg-[#11141D] border border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
+        <div className="flex flex-col gap-3 p-4 bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-zinc-800/50 text-zinc-400 rounded-lg">
@@ -223,7 +223,7 @@ export default function UnifiedEquipmentDashboard() {
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Unassigned</span>
-                <span className="text-2xl font-semibold text-white mt-0.5">{unassignedCount}</span>
+                <span className="text-2xl font-semibold text-foreground dark:text-white mt-0.5">{unassignedCount}</span>
               </div>
             </div>
           </div>
@@ -234,7 +234,7 @@ export default function UnifiedEquipmentDashboard() {
         </div>
 
         {/* Service Due */}
-        <div className="flex flex-col gap-3 p-4 bg-[#11141D] border border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
+        <div className="flex flex-col gap-3 p-4 bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl relative overflow-hidden group hover:border-zinc-700 transition-colors">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-amber-500/10 text-amber-500 rounded-lg">
@@ -242,7 +242,7 @@ export default function UnifiedEquipmentDashboard() {
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Service Due Soon</span>
-                <span className="text-2xl font-semibold text-white mt-0.5">{serviceDueCount}</span>
+                <span className="text-2xl font-semibold text-foreground dark:text-white mt-0.5">{serviceDueCount}</span>
               </div>
             </div>
           </div>
@@ -254,23 +254,23 @@ export default function UnifiedEquipmentDashboard() {
       </div>
 
       {/* TABS SWITCHER */}
-      <div className="px-6 border-b border-zinc-800/60">
+      <div className="px-6 border-b border-border">
         <div className="flex gap-6">
           <button 
             onClick={() => setActiveTab("catalog")} 
-            className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "catalog" ? "text-cyan-400 border-cyan-400" : "text-zinc-500 border-transparent hover:text-zinc-300"}`}
+            className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "catalog" ? "text-cyan-500 border-cyan-500" : "text-muted-foreground border-transparent hover:text-foreground"}`}
           >
             Asset Catalog
           </button>
           <button 
             onClick={() => setActiveTab("map")} 
-            className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "map" ? "text-cyan-400 border-cyan-400" : "text-zinc-500 border-transparent hover:text-zinc-300"}`}
+            className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "map" ? "text-cyan-500 border-cyan-500" : "text-muted-foreground border-transparent hover:text-foreground"}`}
           >
             Geospatial Map
           </button>
           <button 
             onClick={() => setActiveTab("service")} 
-            className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "service" ? "text-cyan-400 border-cyan-400" : "text-zinc-500 border-transparent hover:text-zinc-300"}`}
+            className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "service" ? "text-cyan-500 border-cyan-500" : "text-muted-foreground border-transparent hover:text-foreground"}`}
           >
             Service Schedule
           </button>
@@ -291,7 +291,7 @@ export default function UnifiedEquipmentDashboard() {
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 placeholder="Search assets by ID, name, model..." 
-                className="w-full pl-9 pr-4 py-2 bg-[#11141D] border border-zinc-800 rounded-md text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                className="w-full pl-9 pr-4 py-2 bg-card border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-cyan-500/50 transition-colors"
               />
             </div>
 
@@ -300,7 +300,7 @@ export default function UnifiedEquipmentDashboard() {
               <select 
                 value={selectedClass} 
                 onChange={(e) => { setSelectedClass(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-3 pr-8 py-2 bg-[#11141D] border border-zinc-800 hover:bg-zinc-800/50 rounded-md text-xs text-zinc-300 appearance-none cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
+                className="w-full pl-3 pr-8 py-2 bg-card border border-border hover:bg-muted/60 rounded-md text-xs text-muted-foreground appearance-none cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
               >
                 <option value="all" className="bg-[#11141D]">Asset Class: All</option>
                 {uniqueClasses.map(c => <option key={c} value={c} className="bg-[#11141D]">{c}</option>)}
@@ -313,7 +313,7 @@ export default function UnifiedEquipmentDashboard() {
               <select 
                 value={selectedStatus} 
                 onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-3 pr-8 py-2 bg-[#11141D] border border-zinc-800 hover:bg-zinc-800/50 rounded-md text-xs text-zinc-300 appearance-none cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
+                className="w-full pl-3 pr-8 py-2 bg-card border border-border hover:bg-muted/60 rounded-md text-xs text-muted-foreground appearance-none cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
               >
                 <option value="all" className="bg-[#11141D]">Status: All</option>
                 <option value="active" className="bg-[#11141D]">Active</option>
@@ -330,7 +330,7 @@ export default function UnifiedEquipmentDashboard() {
               <select 
                 value={selectedProject} 
                 onChange={(e) => { setSelectedProject(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-3 pr-8 py-2 bg-[#11141D] border border-zinc-800 hover:bg-zinc-800/50 rounded-md text-xs text-zinc-300 appearance-none cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
+                className="w-full pl-3 pr-8 py-2 bg-card border border-border hover:bg-muted/60 rounded-md text-xs text-muted-foreground appearance-none cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
               >
                 <option value="all" className="bg-[#11141D]">Project: All</option>
                 {uniqueProjects.map(p => <option key={p} value={String(p)} className="bg-[#11141D]">Project {p}</option>)}
@@ -343,7 +343,7 @@ export default function UnifiedEquipmentDashboard() {
               <select 
                 value={selectedZone} 
                 onChange={(e) => { setSelectedZone(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-3 pr-8 py-2 bg-[#11141D] border border-zinc-800 hover:bg-zinc-800/50 rounded-md text-xs text-zinc-300 appearance-none cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
+                className="w-full pl-3 pr-8 py-2 bg-card border border-border hover:bg-muted/60 rounded-md text-xs text-muted-foreground appearance-none cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
               >
                 <option value="all" className="bg-[#11141D]">Zone: All</option>
                 {uniqueZones.map(z => <option key={z} value={String(z)} className="bg-[#11141D]">Zone {z}</option>)}
@@ -356,7 +356,7 @@ export default function UnifiedEquipmentDashboard() {
               <select 
                 value={selectedMaint} 
                 onChange={(e) => { setSelectedMaint(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-3 pr-8 py-2 bg-[#11141D] border border-zinc-800 hover:bg-zinc-800/50 rounded-md text-xs text-zinc-300 appearance-none cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
+                className="w-full pl-3 pr-8 py-2 bg-card border border-border hover:bg-muted/60 rounded-md text-xs text-muted-foreground appearance-none cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
               >
                 <option value="all" className="bg-[#11141D]">Maintenance: All</option>
                 <option value="service_due" className="bg-[#11141D]">Service Due Soon</option>
@@ -367,7 +367,7 @@ export default function UnifiedEquipmentDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-[#11141D] border border-zinc-800 hover:bg-zinc-800/50 rounded-md text-xs text-zinc-300 transition-colors">
+            <button className="flex items-center gap-2 px-4 py-2 bg-card border border-border hover:bg-muted/60 rounded-md text-xs text-muted-foreground transition-colors">
               <span className="flex flex-col gap-0.5 items-center">
                 <div className="h-[1px] w-3 bg-current" />
                 <div className="h-[1px] w-2 bg-current" />
@@ -375,7 +375,7 @@ export default function UnifiedEquipmentDashboard() {
               </span>
               Sort
             </button>
-            <div className="flex items-center bg-[#11141D] border border-zinc-800 rounded-md p-0.5">
+            <div className="flex items-center bg-card border border-border rounded-md p-0.5">
               <button className="p-1.5 bg-zinc-800 rounded text-white"><List className="h-4 w-4" /></button>
               <button className="p-1.5 text-zinc-500 hover:text-white transition-colors"><Grid className="h-4 w-4" /></button>
             </div>
@@ -434,7 +434,7 @@ export default function UnifiedEquipmentDashboard() {
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 px-6">
         
         {/* ASSET CATALOG (Left 3 Columns) */}
-        <div className="xl:col-span-3 bg-[#11141D] border border-zinc-800/60 rounded-xl overflow-hidden flex flex-col h-full relative">
+        <div className="xl:col-span-3 bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl overflow-hidden flex flex-col h-full relative">
           {loading && (
             <div className="absolute inset-0 bg-[#0A0D14]/40 backdrop-blur-[1.5px] z-20 flex items-center justify-center">
               <div className="flex items-center gap-2 px-4 py-3 bg-[#11141D]/95 border border-zinc-800 rounded-lg shadow-2xl">
@@ -443,13 +443,13 @@ export default function UnifiedEquipmentDashboard() {
               </div>
             </div>
           )}
-          <div className="flex items-center justify-between p-4 border-b border-zinc-800/60 shrink-0">
-            <h2 className="text-sm font-semibold text-white">Asset Catalog <span className="text-xs font-normal text-zinc-500 ml-2">{filteredCount} assets</span></h2>
+          <div className="flex items-center justify-between p-4 border-b border-border dark:border-zinc-800/60 shrink-0">
+            <h2 className="text-sm font-semibold text-foreground dark:text-white">Asset Catalog <span className="text-xs font-normal text-muted-foreground ml-2">{filteredCount} assets</span></h2>
           </div>
           
           <div className="overflow-auto flex-1 min-h-0">
             <table className="w-full text-left text-sm whitespace-nowrap relative">
-              <thead className="bg-[#0A0D14]/95 backdrop-blur border-b border-zinc-800/60 sticky top-0 z-10 shadow-sm">
+              <thead className="bg-muted/40 dark:bg-[#0A0D14]/95 backdrop-blur border-b border-border dark:border-zinc-800/60 sticky top-0 z-10 shadow-sm">
                 <tr>
                   <th className="px-4 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider w-48">Asset ID <ChevronDown className="inline h-3 w-3 ml-1" /></th>
                   <th className="px-4 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Asset Type</th>
@@ -476,7 +476,7 @@ export default function UnifiedEquipmentDashboard() {
                   const rScore = item.reliabilityScore || 90;
 
                   return (
-                    <tr key={item.id} className="hover:bg-zinc-800/20 transition-colors group">
+                    <tr key={item.id} className="hover:bg-muted/40 dark:hover:bg-zinc-800/20 transition-colors group">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded bg-zinc-800/80 flex items-center justify-center border border-zinc-700">
@@ -543,7 +543,7 @@ export default function UnifiedEquipmentDashboard() {
           </div>
           
           {/* Pagination Footer */}
-          <div className="flex items-center justify-between p-4 border-t border-zinc-800/60 bg-[#0A0D14]/30 mt-auto shrink-0">
+          <div className="flex items-center justify-between p-4 border-t border-border dark:border-zinc-800/60 bg-muted/20 dark:bg-[#0A0D14]/30 mt-auto shrink-0">
             <div className="flex items-center gap-3">
               <span className="text-[11px] text-zinc-500">Rows per page:</span>
               <button className="flex items-center justify-between gap-2 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-300 min-w-[50px]">
@@ -586,18 +586,18 @@ export default function UnifiedEquipmentDashboard() {
         <div className="xl:col-span-1 flex flex-col gap-6">
           
           {/* Immediate Risks */}
-          <div className="bg-[#11141D] border border-zinc-800/60 rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-zinc-800/60">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-white flex items-center gap-2">
+          <div className="bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border dark:border-zinc-800/60">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-foreground dark:text-white flex items-center gap-2">
                 Immediate Risks <Badge className="bg-red-500 text-white hover:bg-red-500 border-none px-1.5 py-0 min-w-[20px] flex justify-center text-[10px] rounded-full">{downCount}</Badge>
               </h3>
             </div>
-            <div className="flex flex-col divide-y divide-zinc-800/60">
+            <div className="flex flex-col divide-y divide-border dark:divide-zinc-800/60">
               {(data.immediateRisks || []).slice(0, 3).map(item => (
-                <div key={item.id} className="p-4 hover:bg-zinc-800/20 transition-colors flex items-start gap-3">
+                <div key={item.id} className="p-4 hover:bg-muted/40 dark:hover:bg-zinc-800/20 transition-colors flex items-start gap-3">
                   <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
                   <div className="flex flex-col gap-0.5 flex-1">
-                    <span className="text-[11px] font-bold text-zinc-200">{item.name.replace(/#P\d+-/, "#")}</span>
+                    <span className="text-[11px] font-bold text-foreground dark:text-zinc-200">{item.name.replace(/#P\d+-/, "#")}</span>
                     <span className="text-[10px] text-zinc-500">Critical Breakdown</span>
                   </div>
                   <span className="text-[9px] text-zinc-600 uppercase">Zone {item.activeZoneId || "?"}</span>
@@ -610,9 +610,9 @@ export default function UnifiedEquipmentDashboard() {
           </div>
 
           {/* Assets By Status */}
-          <div className="bg-[#11141D] border border-zinc-800/60 rounded-xl p-5">
+          <div className="bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-white">Assets By Status</h3>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-foreground dark:text-white">Assets By Status</h3>
             </div>
             <div className="flex items-center gap-6">
               {/* Donut Chart Mockup */}
@@ -632,7 +632,7 @@ export default function UnifiedEquipmentDashboard() {
                   <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#52525b" strokeWidth="4" strokeDasharray="15 85" strokeDashoffset="-85"></circle>
                 </svg>
                 <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-lg font-bold text-white leading-none">{totalAssets}</span>
+                  <span className="text-lg font-bold text-foreground dark:text-white leading-none">{totalAssets}</span>
                   <span className="text-[8px] text-zinc-500 uppercase mt-0.5">Total</span>
                 </div>
               </div>
@@ -651,15 +651,15 @@ export default function UnifiedEquipmentDashboard() {
                       <span className="text-zinc-400">{stat.label}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-white font-medium">{stat.count}</span>
+                      <span className="text-foreground dark:text-white font-medium">{stat.count}</span>
                       <span className="text-zinc-600 w-8 text-right">({totalAssets > 0 ? Math.round((stat.count / totalAssets) * 100) : 0}%)</span>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-zinc-800/60 flex items-center justify-between">
-              <span className="text-[10px] text-zinc-500">View by: <span className="text-white">Status <ChevronDown className="inline h-3 w-3 ml-1" /></span></span>
+            <div className="mt-4 pt-4 border-t border-border dark:border-zinc-800/60 flex items-center justify-between">
+              <span className="text-[10px] text-zinc-500">View by: <span className="text-foreground dark:text-white">Status <ChevronDown className="inline h-3 w-3 ml-1" /></span></span>
             </div>
           </div>
 
@@ -755,7 +755,7 @@ export default function UnifiedEquipmentDashboard() {
                     <div key={zoneGroup.id} className="flex flex-col gap-1">
                       <div className={`px-2.5 py-1.5 rounded border text-[10px] font-bold ${zoneGroup.color} flex items-center justify-between`}>
                         <span>{zoneGroup.label}</span>
-                        <span className="px-1 py-0.5 rounded bg-black/30 text-[8px]">{zoneAssets.length}</span>
+                        <span className="px-1 py-0.5 rounded bg-muted/60 dark:bg-black/30 text-[8px]">{zoneAssets.length}</span>
                       </div>
                       <div className="flex flex-col gap-1 pl-1 mt-1">
                         {zoneAssets.map(item => {
@@ -981,37 +981,37 @@ export default function UnifiedEquipmentDashboard() {
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
             {/* Quick Metrics */}
             <div className="xl:col-span-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-[#11141D] border border-zinc-800/60 rounded-xl p-4 flex items-center gap-4">
+              <div className="bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl p-4 flex items-center gap-4">
                 <div className="p-3 bg-red-500/10 text-red-500 rounded-lg"><AlertTriangle className="h-6 w-6" /></div>
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold text-zinc-500 uppercase">Overdue Service</span>
-                  <span className="text-xl font-bold text-white mt-0.5">{filteredEq.filter(e => e.nextServiceDate && new Date(e.nextServiceDate).getTime() < Date.now()).length} assets</span>
+                  <span className="text-xl font-bold text-foreground dark:text-white mt-0.5">{filteredEq.filter(e => e.nextServiceDate && new Date(e.nextServiceDate).getTime() < Date.now()).length} assets</span>
                 </div>
               </div>
-              <div className="bg-[#11141D] border border-zinc-800/60 rounded-xl p-4 flex items-center gap-4">
+              <div className="bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl p-4 flex items-center gap-4">
                 <div className="p-3 bg-amber-500/10 text-amber-500 rounded-lg"><Clock className="h-6 w-6" /></div>
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold text-zinc-500 uppercase">Due in 7 Days</span>
-                  <span className="text-xl font-bold text-white mt-0.5">{filteredEq.filter(e => e.nextServiceDate && new Date(e.nextServiceDate).getTime() >= Date.now() && new Date(e.nextServiceDate).getTime() < Date.now() + 7 * 86400000).length} assets</span>
+                  <span className="text-xl font-bold text-foreground dark:text-white mt-0.5">{filteredEq.filter(e => e.nextServiceDate && new Date(e.nextServiceDate).getTime() >= Date.now() && new Date(e.nextServiceDate).getTime() < Date.now() + 7 * 86400000).length} assets</span>
                 </div>
               </div>
-              <div className="bg-[#11141D] border border-zinc-800/60 rounded-xl p-4 flex items-center gap-4">
+              <div className="bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl p-4 flex items-center gap-4">
                 <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-lg"><CheckCircle2 className="h-6 w-6" /></div>
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold text-zinc-500 uppercase">Up to Date</span>
-                  <span className="text-xl font-bold text-white mt-0.5">{filteredEq.filter(e => !e.nextServiceDate || new Date(e.nextServiceDate).getTime() >= Date.now() + 7 * 86400000).length} assets</span>
+                  <span className="text-xl font-bold text-foreground dark:text-white mt-0.5">{filteredEq.filter(e => !e.nextServiceDate || new Date(e.nextServiceDate).getTime() >= Date.now() + 7 * 86400000).length} assets</span>
                 </div>
               </div>
             </div>
 
             {/* Service Log Table */}
-            <div className="xl:col-span-4 bg-[#11141D] border border-zinc-800/60 rounded-xl overflow-hidden flex flex-col h-[550px]">
-              <div className="flex items-center justify-between p-4 border-b border-zinc-800/60 shrink-0">
-                <h3 className="text-sm font-semibold text-white">Asset Service Schedule</h3>
+            <div className="xl:col-span-4 bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl overflow-hidden flex flex-col h-[550px]">
+              <div className="flex items-center justify-between p-4 border-b border-border dark:border-zinc-800/60 shrink-0">
+                <h3 className="text-sm font-semibold text-foreground dark:text-white">Asset Service Schedule</h3>
               </div>
               <div className="overflow-auto flex-1 min-h-0">
                 <table className="w-full text-left text-sm whitespace-nowrap relative">
-                  <thead className="bg-[#0A0D14]/95 border-b border-zinc-800/60 sticky top-0 z-10">
+                  <thead className="bg-muted/40 dark:bg-[#0A0D14]/95 border-b border-border dark:border-zinc-800/60 sticky top-0 z-10">
                     <tr>
                       <th className="px-4 py-3 text-[10px] font-bold text-zinc-500 uppercase">Asset Name</th>
                       <th className="px-4 py-3 text-[10px] font-bold text-zinc-500 uppercase">Service Type</th>

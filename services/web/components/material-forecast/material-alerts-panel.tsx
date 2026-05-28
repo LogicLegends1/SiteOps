@@ -116,21 +116,21 @@ export function MaterialAlertsPanel({
   }
 
   return (
-    <div className="flex flex-col bg-[#11141D] border border-zinc-800/60 rounded-xl overflow-hidden shadow-lg h-full">
+    <div className="flex flex-col bg-card border border-border dark:bg-[#11141D] dark:border-zinc-800/60 rounded-xl overflow-hidden shadow-lg h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 py-5 border-b border-zinc-800/60">
+      <div className="flex items-center gap-3 px-6 py-5 border-b border-border dark:border-zinc-800/60">
         <AlertTriangle className="h-4 w-4 text-red-500" />
-        <h2 className="text-sm font-bold text-white uppercase tracking-wider">Alerts & Incidents</h2>
+        <h2 className="text-sm font-bold text-foreground dark:text-white uppercase tracking-wider">Alerts & Incidents</h2>
       </div>
 
       {/* Tabs and Sort */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/60">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border dark:border-zinc-800/60">
         <div className="flex items-center gap-6">
           <button 
             onClick={() => { setActiveTab("pending"); setCurrentPage(1); }}
             className={cn(
               "flex items-center gap-2 pb-1 text-[11px] font-bold uppercase tracking-wider transition-colors border-b-2",
-              activeTab === "pending" ? "text-white border-red-500" : "text-zinc-500 border-transparent hover:text-zinc-300"
+              activeTab === "pending" ? "text-foreground dark:text-white border-red-500" : "text-muted-foreground border-transparent hover:text-foreground dark:hover:text-zinc-300"
             )}
           >
             Pending <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full ml-1">{pendingAlerts.length}</span>
@@ -139,42 +139,42 @@ export function MaterialAlertsPanel({
             onClick={() => { setActiveTab("resolved"); setCurrentPage(1); }}
             className={cn(
               "flex items-center gap-2 pb-1 text-[11px] font-bold uppercase tracking-wider transition-colors border-b-2",
-              activeTab === "resolved" ? "text-white border-zinc-500" : "text-zinc-500 border-transparent hover:text-zinc-300"
+              activeTab === "resolved" ? "text-foreground dark:text-white border-zinc-500" : "text-muted-foreground border-transparent hover:text-foreground dark:hover:text-zinc-300"
             )}
           >
-            Resolved <span className="bg-zinc-700 text-zinc-300 text-[9px] px-1.5 py-0.5 rounded-full ml-1">{resolvedAlerts.length}</span>
+            Resolved <span className="bg-muted text-muted-foreground dark:bg-zinc-700 dark:text-zinc-300 text-[9px] px-1.5 py-0.5 rounded-full ml-1">{resolvedAlerts.length}</span>
           </button>
         </div>
         <div className="flex items-center gap-3">
-          <select className="bg-[#0A0D14] border border-zinc-800 text-zinc-300 text-[11px] rounded-md px-3 py-1.5 focus:outline-none">
+          <select className="bg-background dark:bg-[#0A0D14] border border-border dark:border-zinc-800 text-muted-foreground dark:text-zinc-300 text-[11px] rounded-md px-3 py-1.5 focus:outline-none">
             <option>Sort by: Newest</option>
           </select>
-          <button className="p-1.5 bg-[#0A0D14] border border-zinc-800 rounded-md text-zinc-400 hover:text-white">
+          <button className="p-1.5 bg-background dark:bg-[#0A0D14] border border-border dark:border-zinc-800 rounded-md text-muted-foreground dark:text-zinc-400 hover:text-foreground dark:hover:text-white">
             <List className="h-4 w-4" />
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-zinc-800/60 overflow-x-auto">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-border dark:border-zinc-800/60 overflow-x-auto">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input 
             type="text" 
             placeholder="Search alerts..." 
-            className="bg-[#0A0D14] border border-zinc-800 text-white rounded-lg pl-9 pr-4 py-1.5 text-[11px] focus:outline-none focus:border-cyan-500 w-48 placeholder-zinc-600"
+            className="bg-background dark:bg-[#0A0D14] border border-border dark:border-zinc-800 text-foreground dark:text-white rounded-lg pl-9 pr-4 py-1.5 text-[11px] focus:outline-none focus:border-cyan-500 w-48 placeholder:text-muted-foreground"
           />
         </div>
-        <select className="bg-[#0A0D14] border border-zinc-800 text-zinc-300 rounded-lg px-3 py-1.5 text-[11px] focus:outline-none">
+        <select className="bg-background dark:bg-[#0A0D14] border border-border dark:border-zinc-800 text-muted-foreground dark:text-zinc-300 rounded-lg px-3 py-1.5 text-[11px] focus:outline-none">
           <option>Severity: All</option>
         </select>
-        <select className="bg-[#0A0D14] border border-zinc-800 text-zinc-300 rounded-lg px-3 py-1.5 text-[11px] focus:outline-none">
+        <select className="bg-background dark:bg-[#0A0D14] border border-border dark:border-zinc-800 text-muted-foreground dark:text-zinc-300 rounded-lg px-3 py-1.5 text-[11px] focus:outline-none">
           <option>Type: All</option>
         </select>
-        <select className="bg-[#0A0D14] border border-zinc-800 text-zinc-300 rounded-lg px-3 py-1.5 text-[11px] focus:outline-none">
+        <select className="bg-background dark:bg-[#0A0D14] border border-border dark:border-zinc-800 text-muted-foreground dark:text-zinc-300 rounded-lg px-3 py-1.5 text-[11px] focus:outline-none">
           <option>Material: All</option>
         </select>
-        <select className="bg-[#0A0D14] border border-zinc-800 text-zinc-300 rounded-lg px-3 py-1.5 text-[11px] focus:outline-none">
+        <select className="bg-background dark:bg-[#0A0D14] border border-border dark:border-zinc-800 text-muted-foreground dark:text-zinc-300 rounded-lg px-3 py-1.5 text-[11px] focus:outline-none">
           <option>Project Zone: All</option>
         </select>
         <button className="flex items-center gap-1.5 text-cyan-500 hover:text-cyan-400 text-[11px] font-medium ml-2 whitespace-nowrap">
@@ -185,7 +185,7 @@ export function MaterialAlertsPanel({
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-left whitespace-nowrap">
-          <thead className="bg-[#0A0D14]/50 border-b border-zinc-800/60">
+          <thead className="bg-muted/30 dark:bg-[#0A0D14]/50 border-b border-border dark:border-zinc-800/60">
             <tr>
               <th className="px-6 py-3 text-[9px] font-black text-zinc-500 uppercase tracking-widest">Alert / Incident</th>
               <th className="px-4 py-3 text-[9px] font-black text-zinc-500 uppercase tracking-widest">Type</th>
@@ -202,7 +202,7 @@ export function MaterialAlertsPanel({
                 <td colSpan={7} className="py-20 text-center">
                   <div className="flex flex-col items-center justify-center gap-3">
                     <Loader2 className="h-8 w-8 text-cyan-500 animate-spin" />
-                    <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                       Synchronizing Alert Matrix...
                     </span>
                   </div>
@@ -212,8 +212,8 @@ export function MaterialAlertsPanel({
               <tr>
                 <td colSpan={7} className="py-20 text-center">
                   <div className="flex flex-col items-center justify-center gap-3">
-                    <FileWarning className="h-8 w-8 text-zinc-600" />
-                    <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                    <FileWarning className="h-8 w-8 text-muted-foreground" />
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                       No Alerts Found
                     </span>
                   </div>
@@ -221,12 +221,12 @@ export function MaterialAlertsPanel({
               </tr>
             ) : (
               paginatedAlerts.map((alert) => (
-                <tr key={alert.id} className="hover:bg-zinc-800/20 transition-colors">
+                <tr key={alert.id} className="hover:bg-muted/40 dark:hover:bg-zinc-800/20 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-start gap-3">
                       <alert.icon className={cn("h-4 w-4 mt-0.5", alert.iconColor)} />
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-zinc-200">{alert.title}</span>
+                        <span className="text-xs font-semibold text-foreground dark:text-zinc-200">{alert.title}</span>
                         <span className="text-[10px] text-zinc-500 mt-0.5">{alert.sub}</span>
                       </div>
                     </div>
@@ -238,13 +238,13 @@ export function MaterialAlertsPanel({
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex flex-col">
-                      <span className="text-xs text-zinc-300">{alert.mat}</span>
+                      <span className="text-xs text-foreground dark:text-zinc-300">{alert.mat}</span>
                       <span className="text-[10px] text-zinc-500 mt-0.5">{alert.matSub}</span>
                     </div>
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex flex-col">
-                      <span className="text-xs text-zinc-300">{alert.proj}</span>
+                      <span className="text-xs text-foreground dark:text-zinc-300">{alert.proj}</span>
                       <span className="text-[10px] text-zinc-500 mt-0.5">{alert.zone}</span>
                     </div>
                   </td>
@@ -255,12 +255,12 @@ export function MaterialAlertsPanel({
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex flex-col">
-                      <span className="text-xs text-zinc-300">{alert.date}</span>
+                      <span className="text-xs text-foreground dark:text-zinc-300">{alert.date}</span>
                       <span className="text-[10px] text-zinc-500 mt-0.5">{alert.time}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-right text-zinc-500">
-                    <button className="hover:text-white transition-colors">
+                  <td className="px-4 py-4 text-right text-zinc-500 dark:text-zinc-500">
+                    <button className="hover:text-foreground dark:hover:text-white transition-colors">
                       <MoreHorizontal className="h-4 w-4" />
                     </button>
                   </td>
@@ -272,15 +272,15 @@ export function MaterialAlertsPanel({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800/60 mt-auto">
-        <span className="text-[11px] text-zinc-500">
+      <div className="flex items-center justify-between px-6 py-4 border-t border-border dark:border-zinc-800/60 mt-auto">
+        <span className="text-[11px] text-muted-foreground dark:text-zinc-500">
           Showing {totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} alerts
         </span>
         <div className="flex items-center gap-1">
           <button 
             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
-            className="p-1.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300 disabled:opacity-50"
+            className="p-1.5 rounded bg-muted/30 dark:bg-zinc-900 border border-border dark:border-zinc-800 text-muted-foreground dark:text-zinc-500 hover:text-foreground dark:hover:text-zinc-300 disabled:opacity-50"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </button>
@@ -291,7 +291,7 @@ export function MaterialAlertsPanel({
               onClick={() => setCurrentPage(i + 1)}
               className={cn(
                 "w-6 h-6 rounded text-[11px] font-bold flex items-center justify-center transition-colors",
-                currentPage === i + 1 ? "bg-cyan-500 text-black" : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+                currentPage === i + 1 ? "bg-cyan-500 text-black" : "bg-muted/30 dark:bg-zinc-900 border border-border dark:border-zinc-800 text-muted-foreground dark:text-zinc-400 hover:text-foreground dark:hover:text-white"
               )}
             >
               {i + 1}
@@ -301,7 +301,7 @@ export function MaterialAlertsPanel({
           <button 
             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
             disabled={currentPage === totalPages}
-            className="p-1.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300 disabled:opacity-50"
+            className="p-1.5 rounded bg-muted/30 dark:bg-zinc-900 border border-border dark:border-zinc-800 text-muted-foreground dark:text-zinc-500 hover:text-foreground dark:hover:text-zinc-300 disabled:opacity-50"
           >
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
