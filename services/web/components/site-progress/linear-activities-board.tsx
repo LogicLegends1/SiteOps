@@ -55,6 +55,15 @@ type CrewRequirementSummary = {
   site_engineers?: number
 }
 
+type EquipmentRequestSummary = {
+  id?: number
+  projectid?: number
+  activity_id?: number
+  details?: string | null
+  quantity?: number | null
+  created_at?: string | null
+}
+
 const CREW_REQUEST_FIELDS: Array<{ key: keyof Omit<CrewRequirementSummary, "id" | "activityId">; label: string }> = [
   { key: "site_engineers", label: "Site Engineers" },
   { key: "surveyors", label: "Surveyors" },
@@ -196,6 +205,36 @@ function TableHeader({ viewMode }: { viewMode: ViewMode }) {
   )
 }
 
+function getViewModeLabel(viewMode: ViewMode) {
+  switch (viewMode) {
+    case "progress":
+      return "Activity Progress"
+    case "crew":
+      return "Crew Members"
+    case "machines":
+      return "Machines"
+    case "request":
+      return "Crew/Machines Request"
+    default:
+      return "Activity Progress"
+  }
+}
+
+function getMobileExpandLabel(viewMode: ViewMode, isExpanded: boolean) {
+  if (isExpanded) return "Hide details"
+
+  switch (viewMode) {
+    case "crew":
+      return "View crew"
+    case "machines":
+      return "View machines"
+    case "request":
+      return "View requests"
+    default:
+      return "Update activity"
+  }
+}
+
 function ActivityRow({
   activity,
   subtasks,
@@ -251,6 +290,9 @@ function ActivityRow({
   const [requestDialogType, setRequestDialogType] = useState<"crew" | "machine" | null>(null)
   const [crewRequestSummary, setCrewRequestSummary] = useState<CrewRequirementSummary | null>(null)
   const [crewRequestLoading, setCrewRequestLoading] = useState(false)
+  const [equipmentRequestSummary, setEquipmentRequestSummary] = useState<EquipmentRequestSummary[]>([])
+  const [equipmentRequestLoading, setEquipmentRequestLoading] = useState(false)
+  const [requestRefreshKey, setRequestRefreshKey] = useState(0)
 
   useEffect(() => {
     setWorkersState(workers ?? [])
@@ -261,35 +303,57 @@ function ActivityRow({
     setRequestDialogOpen(true)
   }
 
+  const handleRequestDialogOpenChange = (nextOpen: boolean) => {
+    setRequestDialogOpen(nextOpen)
+    if (!nextOpen) {
+      setRequestRefreshKey((key) => key + 1)
+    }
+  }
+
   useEffect(() => {
     if (viewMode !== "request" || !isExpanded || !activity.projectID) {
       setCrewRequestSummary(null)
+      setEquipmentRequestSummary([])
       return
     }
 
     let active = true
-    const loadCrewRequest = async () => {
+    const loadRequests = async () => {
       try {
         setCrewRequestLoading(true)
-        const res = await fetch(`/api/project/${activity.projectID}/activity/${activity.zoneID}/worker-requirements`)
-        const data = await res.json().catch(() => null)
+        setEquipmentRequestLoading(true)
+
+        const [crewRes, equipmentRes] = await Promise.all([
+          fetch(`/api/project/${activity.projectID}/activity/${activity.zoneID}/worker-requirements`),
+          fetch(`/api/project/${activity.projectID}/activity/${activity.zoneID}/equipment-requests`),
+        ])
+        const [crewData, equipmentData] = await Promise.all([
+          crewRes.json().catch(() => null),
+          equipmentRes.json().catch(() => null),
+        ])
+
         if (!active) return
-        setCrewRequestSummary(data?.requirements ?? null)
+        setCrewRequestSummary(crewData?.requirements ?? null)
+        setEquipmentRequestSummary(Array.isArray(equipmentData?.requests) ? equipmentData.requests : [])
       } catch (error) {
         if (!active) return
-        console.error("Failed to load crew request summary", error)
+        console.error("Failed to load request summaries", error)
         setCrewRequestSummary(null)
+        setEquipmentRequestSummary([])
       } finally {
-        if (active) setCrewRequestLoading(false)
+        if (active) {
+          setCrewRequestLoading(false)
+          setEquipmentRequestLoading(false)
+        }
       }
     }
 
-    void loadCrewRequest()
+    void loadRequests()
 
     return () => {
       active = false
     }
-  }, [activity.projectID, activity.zoneID, isExpanded, viewMode])
+  }, [activity.projectID, activity.zoneID, isExpanded, requestRefreshKey, viewMode])
 
   const updateWorkerAvailability = async (workerId: number, nextAvailable: boolean) => {
     if (!activity.projectID) return
@@ -431,6 +495,12 @@ function ActivityRow({
 
             <div className="mt-3 space-y-1 text-[11px] text-muted-foreground">
               <div className="flex min-w-0 items-center justify-between gap-3">
+                <span>View</span>
+                <span className="min-w-0 text-right font-medium text-foreground wrap-break-word">
+                  {getViewModeLabel(viewMode ?? "progress")}
+                </span>
+              </div>
+              <div className="flex min-w-0 items-center justify-between gap-3">
                 <span>Finish</span>
                 <span className="min-w-0 text-right wrap-break-word">
                   {deadline ? formatDateShort(deadline) : "–"}
@@ -451,8 +521,43 @@ function ActivityRow({
                 onToggleExpand()
               }}
             >
-              {isExpanded ? "Hide updates" : "Update activity"}
+              {getMobileExpandLabel(viewMode ?? "progress", isExpanded)}
             </Button>
+
+            {viewMode === "request" && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 h-9 w-full justify-between rounded-xl text-xs"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    New request
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)]">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openRequestDialog("crew")
+                    }}
+                  >
+                    Crew Request
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openRequestDialog("machine")
+                    }}
+                  >
+                    Equipment Request
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             {track === "Behind" && (
               <div className="mt-3">
@@ -466,7 +571,7 @@ function ActivityRow({
             )}
           </div>
 
-          {isExpanded && (
+          {isExpanded && viewMode === "progress" && (
             <div className="border-t border-border/60 px-3 py-3 bg-secondary/10 space-y-2">
               {subtasks.length > 0 ? (
                 subtasks.map((subtask) => (
@@ -516,6 +621,179 @@ function ActivityRow({
                     <ListTodo className="h-3.5 w-3.5" />
                     No subtasks yet
                   </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isExpanded && viewMode === "crew" && (
+            <div className="border-t border-border/60 px-3 py-3 bg-secondary/10 space-y-2">
+              {crewMembers.length > 0 ? (
+                crewMembers.map((w) => (
+                  <div key={w.id} className="flex items-center justify-between gap-3 rounded-xl bg-background/80 px-2.5 py-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">{w.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {w.role}
+                        {w.discipline ? ` · ${w.discipline}` : ""}
+                        {w.teamName ? ` · ${w.teamName}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className={cn("text-[10px] font-semibold", w.isAvailable ? "text-emerald-500" : "text-amber-500")}>
+                        {w.isAvailable ? "Available" : "Unavailable"}
+                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-[10px]"
+                            disabled={updatingWorkerId === w.id}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Change
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              void updateWorkerAvailability(w.id, true)
+                            }}
+                          >
+                            Mark Available
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              void updateWorkerAvailability(w.id, false)
+                            }}
+                          >
+                            Mark Unavailable
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="w-full rounded-xl border border-dashed border-border/60 bg-background/70 px-3 py-3">
+                  <p className="text-xs text-muted-foreground">No crew members assigned</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isExpanded && viewMode === "machines" && (
+            <div className="border-t border-border/60 px-3 py-3 bg-secondary/10 space-y-2">
+              {eqLoading ? (
+                <div className="w-full rounded-xl border border-dashed border-border/60 bg-background/70 px-3 py-3">
+                  <p className="text-xs text-muted-foreground">Loading dedicated machines...</p>
+                </div>
+              ) : activityEquipment.length > 0 ? (
+                activityEquipment.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-background/80 px-2.5 py-2">
+                    <p className="min-w-0 truncate text-xs font-medium text-foreground">{item.name || item.id}</p>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className={cn("text-[10px] font-semibold", getColorFromMap(equipmentStatusColorMap, item.status, "text-zinc-400"))}>
+                        {item.status}
+                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-[10px]"
+                            disabled={eqLoading}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Change
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          {["active", "idle", "down", "maintenance", "unassigned"].map((status) => (
+                            <DropdownMenuItem
+                              key={status}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                void updateEquipmentStatus(item.id, status)
+                              }}
+                            >
+                              {status.charAt(0).toUpperCase() + status.slice(1)}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="w-full rounded-xl border border-dashed border-border/60 bg-background/70 px-3 py-3">
+                  <p className="text-xs text-muted-foreground">No dedicated machines for this activity</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isExpanded && viewMode === "request" && (
+            <div className="max-h-[56vh] overflow-y-auto overscroll-contain border-t border-border/60 bg-secondary/10 px-3 py-3 pr-2 space-y-2 ab-scroll">
+              {crewRequestLoading ? (
+                <div className="w-full rounded-xl border border-dashed border-border/60 bg-background/70 px-3 py-3">
+                  <p className="text-xs text-muted-foreground">Loading crew request...</p>
+                </div>
+              ) : crewRequestSummary ? (
+                <div className="rounded-xl bg-background/80 px-2.5 py-2">
+                  <p className="mb-2 text-xs font-semibold text-foreground">Saved Crew Request</p>
+                  <div className="space-y-1.5">
+                    {CREW_REQUEST_FIELDS.map((field) => {
+                      const value = crewRequestSummary[field.key] ?? 0
+                      if (value <= 0) return null
+                      return (
+                        <div key={field.key} className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-muted-foreground">{field.label}</span>
+                          <span className="text-xs font-semibold text-foreground">{value}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full rounded-xl border border-dashed border-border/60 bg-background/70 px-3 py-3">
+                  <p className="text-xs text-muted-foreground">No crew request saved for this activity</p>
+                </div>
+              )}
+
+              {equipmentRequestLoading ? (
+                <div className="w-full rounded-xl border border-dashed border-border/60 bg-background/70 px-3 py-3">
+                  <p className="text-xs text-muted-foreground">Loading equipment requests...</p>
+                </div>
+              ) : equipmentRequestSummary.length > 0 ? (
+                <div className="rounded-xl bg-background/80 px-2.5 py-2">
+                  <p className="mb-2 text-xs font-semibold text-foreground">Saved Equipment Requests</p>
+                  <div className="space-y-1.5">
+                    {equipmentRequestSummary.map((request, index) => (
+                      <div key={request.id ?? `${request.created_at ?? "equipment-request"}-${index}`} className="rounded-lg bg-secondary/20 px-2 py-1.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="min-w-0 text-xs font-medium text-foreground wrap-break-word">{request.details || "Equipment request"}</p>
+                          {request.quantity ? <span className="shrink-0 text-xs font-semibold text-foreground">Qty {request.quantity}</span> : null}
+                        </div>
+                        {request.created_at ? (
+                          <p className="mt-1 text-[10px] text-muted-foreground">
+                            {new Date(request.created_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full rounded-xl border border-dashed border-border/60 bg-background/70 px-3 py-3">
+                  <p className="text-xs text-muted-foreground">No equipment request saved for this activity</p>
                 </div>
               )}
             </div>
@@ -742,7 +1020,7 @@ function ActivityRow({
 
       {/* Expanded crew members (crew mode) */}
       {isExpanded && viewMode === "crew" && (
-        <div className="ml-10 mr-3 mb-2 mt-1 border-l-2 border-border/40 pl-3 space-y-1.5">
+        <div className="hidden md:block ml-10 mr-3 mb-2 mt-1 border-l-2 border-border/40 pl-3 space-y-1.5">
           {crewMembers.length > 0 ? (
             crewMembers.map((w) => (
               <div
@@ -808,7 +1086,7 @@ function ActivityRow({
 
       {/* Expanded machines (machines mode) */}
       {isExpanded && viewMode === "machines" && (
-        <div className="ml-10 mr-3 mb-2 mt-1 border-l-2 border-border/40 pl-3 space-y-1.5">
+        <div className="hidden md:block ml-10 mr-3 mb-2 mt-1 border-l-2 border-border/40 pl-3 space-y-1.5">
           {eqLoading && (
             <div className="py-2 px-3 rounded-md bg-secondary/10 border border-dashed border-border/60">
               <p className="text-xs text-muted-foreground">Loading dedicated machines...</p>
@@ -855,7 +1133,7 @@ function ActivityRow({
 
       {/* Expanded subtasks */}
       {isExpanded && viewMode === "progress" && subtasks.length > 0 && (
-        <div className="ml-10 mr-3 mb-2 mt-1 border-l-2 border-border/40 pl-3 space-y-0.5">
+        <div className="hidden md:block ml-10 mr-3 mb-2 mt-1 border-l-2 border-border/40 pl-3 space-y-0.5">
           {subtasks.map((subtask) => (
             <div
               key={subtask.id}
@@ -901,7 +1179,7 @@ function ActivityRow({
         </div>
       )}
       {isExpanded && viewMode === "progress" && subtasks.length === 0 && (
-        <div className="ml-10 mr-3 mb-2 mt-1 py-2 px-3 rounded-md bg-secondary/10 border border-dashed border-border/60">
+        <div className="hidden md:block ml-10 mr-3 mb-2 mt-1 py-2 px-3 rounded-md bg-secondary/10 border border-dashed border-border/60">
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             <ListTodo className="h-3 w-3" />
             No subtasks yet
@@ -910,7 +1188,7 @@ function ActivityRow({
       )}
 
       {isExpanded && viewMode === "request" && (
-        <div className="ml-10 mr-3 mb-2 mt-1 border-l-2 border-border/40 pl-3 space-y-2">
+        <div className="hidden md:block ml-10 mr-3 mb-2 mt-1 border-l-2 border-border/40 pl-3 space-y-2">
           {crewRequestLoading ? (
             <div className="py-2 px-3 rounded-md bg-secondary/10 border border-dashed border-border/60">
               <p className="text-xs text-muted-foreground">Loading crew request...</p>
@@ -939,6 +1217,51 @@ function ActivityRow({
               <p className="text-xs text-muted-foreground">No crew request saved for this activity</p>
             </div>
           )}
+
+          {equipmentRequestLoading ? (
+            <div className="py-2 px-3 rounded-md bg-secondary/10 border border-dashed border-border/60">
+              <p className="text-xs text-muted-foreground">Loading equipment requests...</p>
+            </div>
+          ) : equipmentRequestSummary.length > 0 ? (
+            <div className="rounded-md border border-border/60 bg-background/70 px-3 py-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-foreground">Saved Equipment Requests</p>
+                <span className="text-[10px] text-muted-foreground">equipment_requests</span>
+              </div>
+              <div className="space-y-1.5">
+                {equipmentRequestSummary.map((request, index) => (
+                  <div
+                    key={request.id ?? `${request.created_at ?? "equipment-request"}-${index}`}
+                    className="flex flex-col gap-1 rounded bg-secondary/10 px-2 py-1.5 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground wrap-break-word">
+                        {request.details || "Equipment request"}
+                      </p>
+                      {request.created_at ? (
+                        <p className="text-[10px] text-muted-foreground">
+                          {new Date(request.created_at).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </p>
+                      ) : null}
+                    </div>
+                    {request.quantity ? (
+                      <span className="shrink-0 text-xs font-semibold text-foreground">
+                        Qty {request.quantity}
+                      </span>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="py-2 px-3 rounded-md bg-secondary/10 border border-dashed border-border/60">
+              <p className="text-xs text-muted-foreground">No equipment request saved for this activity</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -946,7 +1269,7 @@ function ActivityRow({
         activity={activity}
         open={requestDialogOpen}
         requestType={requestDialogType}
-        onOpenChange={setRequestDialogOpen}
+        onOpenChange={handleRequestDialogOpenChange}
         onMachineRequestSubmit={(activityId, details) => onCrewMachineRequest?.(activityId, "machine", details)}
       />
     </div>
@@ -1053,7 +1376,7 @@ export function LinearActivitiesBoard({
             className="pl-9 h-8 text-sm bg-secondary/20"
           />
         </div>
-        <div className="flex w-full flex-wrap items-center gap-1.5 md:w-auto">
+        <div className="flex w-full flex-nowrap items-center gap-1.5 overflow-x-auto pb-1 md:w-auto md:flex-wrap md:overflow-visible md:pb-0">
           {(["all", "on-track", "behind", "completed"] as FilterType[]).map((f) => (
             <Button
               key={f}
@@ -1075,21 +1398,16 @@ export function LinearActivitiesBoard({
             </Button>
           ))}
         </div>
-        <div className="ml-2">
+        <div className="w-full md:ml-2 md:w-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" className="h-7 text-xs px-2.5">
-                {viewMode === "progress"
-                  ? "Activity (Progress)"
-                  : viewMode === "crew"
-                  ? "Crew Members"
-                  : viewMode === "machines"
-                  ? "Machines"
-                  : "Crew/Machines Request"}
+              <Button size="sm" className="h-9 w-full justify-between px-3 text-xs md:h-7 md:w-auto md:min-w-44 md:px-2.5">
+                <span className="truncate">{getViewModeLabel(viewMode)}</span>
+                <ChevronDown className="ml-2 h-3.5 w-3.5 shrink-0" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setViewMode("progress")}>Activity (Progress)</DropdownMenuItem>
+            <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] md:w-56">
+              <DropdownMenuItem onClick={() => setViewMode("progress")}>Activity Progress</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setViewMode("crew")}>Crew Members</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setViewMode("machines")}>Machines</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setViewMode("request")}>Crew/Machines Request</DropdownMenuItem>

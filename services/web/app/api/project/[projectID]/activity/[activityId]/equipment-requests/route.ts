@@ -1,11 +1,17 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/superbase/server"
 
-type Params = { params: { projectID: string; activityId: string } }
+type RouteContext = {
+  params: Promise<{
+    projectID: string
+    activityId: string
+  }>
+}
 
-export async function GET(_request: Request, { params }: Params) {
-  const projectID = Number(params.projectID)
-  const activityId = Number(params.activityId)
+export async function GET(_request: NextRequest, context: RouteContext) {
+  const { projectID: rawProjectID, activityId: rawActivityId } = await context.params
+  const projectID = Number(rawProjectID)
+  const activityId = Number(rawActivityId)
 
   if (Number.isNaN(projectID) || Number.isNaN(activityId)) {
     return NextResponse.json({ error: "Invalid project or activity id" }, { status: 400 })
@@ -16,6 +22,7 @@ export async function GET(_request: Request, { params }: Params) {
   const { data, error } = await supabase
     .from("equipment_requests")
     .select("*")
+    .eq("projectid", projectID)
     .eq("activity_id", activityId)
     .order("created_at", { ascending: false })
     .limit(50)
@@ -27,10 +34,11 @@ export async function GET(_request: Request, { params }: Params) {
   return NextResponse.json({ requests: data ?? [] })
 }
 
-export async function POST(request: Request, { params }: Params) {
+export async function POST(request: NextRequest, context: RouteContext) {
+  const { projectID: rawProjectID, activityId: rawActivityId } = await context.params
   const body = await request.json().catch(() => null)
-  const projectID = Number(body?.projectID ?? body?.projectId ?? params.projectID)
-  const activityId = Number(body?.activityId ?? body?.activityID ?? body?.zoneID ?? params.activityId)
+  const projectID = Number(body?.projectID ?? body?.projectId ?? rawProjectID)
+  const activityId = Number(body?.activityId ?? body?.activityID ?? body?.zoneID ?? rawActivityId)
 
   if (Number.isNaN(projectID) || Number.isNaN(activityId)) {
     return NextResponse.json({ error: "Invalid project or activity id" }, { status: 400 })
@@ -69,7 +77,7 @@ export async function POST(request: Request, { params }: Params) {
         projectid: projectID,
         activity_id: activityId,
         details,
-        quantity: Number.isFinite(quantity) ? Math.floor(quantity) : null,
+        quantity: typeof quantity === "number" && Number.isFinite(quantity) ? Math.floor(quantity) : null,
       },
     ])
     .select()
