@@ -158,23 +158,23 @@ export default function MaterialForecastPage() {
     <div className="flex flex-col gap-6 pb-10">
       {/* TABS SWITCHER */}
       <div className="w-full">
-        <div className="px-6 border-b border-zinc-800/60 mb-6 mt-2">
+        <div className="px-6 border-b border-border mb-6 mt-2">
           <div className="flex gap-6">
             <button 
               onClick={() => setActiveTab("ops")} 
-              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "ops" ? "text-cyan-400 border-cyan-400" : "text-zinc-500 border-transparent hover:text-zinc-300"}`}
+              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "ops" ? "text-cyan-500 border-cyan-500" : "text-muted-foreground border-transparent hover:text-foreground"}`}
             >
               Alerts & Incidents
             </button>
             <button 
               onClick={() => setActiveTab("inventory")} 
-              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "inventory" ? "text-cyan-400 border-cyan-400" : "text-zinc-500 border-transparent hover:text-zinc-300"}`}
+              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "inventory" ? "text-cyan-500 border-cyan-500" : "text-muted-foreground border-transparent hover:text-foreground"}`}
             >
               Inventory Management
             </button>
             <button 
               onClick={() => setActiveTab("analytics")} 
-              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "analytics" ? "text-cyan-400 border-cyan-400" : "text-zinc-500 border-transparent hover:text-zinc-300"}`}
+              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "analytics" ? "text-cyan-500 border-cyan-500" : "text-muted-foreground border-transparent hover:text-foreground"}`}
             >
               Forecast Analytics
             </button>
@@ -189,8 +189,8 @@ export default function MaterialForecastPage() {
             </div>
             <div className="lg:col-span-3 space-y-6">
               {/* RISK SUMMARY */}
-              <div className="bg-[#11141D] border border-zinc-800/60 rounded-xl overflow-hidden shadow-lg p-5">
-                <h3 className="text-[11px] font-bold text-white uppercase tracking-wider mb-6">Risk Summary</h3>
+              <div className="bg-card border border-border rounded-xl overflow-hidden shadow-lg p-5">
+                <h3 className="text-[11px] font-bold text-foreground uppercase tracking-wider mb-6">Risk Summary</h3>
                 <div className="flex items-center gap-6">
                   {/* Donut Chart placeholder */}
                   <div className="relative h-28 w-28 shrink-0 flex items-center justify-center">
@@ -209,8 +209,8 @@ export default function MaterialForecastPage() {
                       ))}
                     </svg>
                     <div className="absolute flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold text-white leading-none">{liveAlerts.length}</span>
-                      <span className="text-[8px] text-zinc-500 uppercase mt-0.5">Total Alerts</span>
+                      <span className="text-2xl font-bold text-foreground leading-none">{liveAlerts.length}</span>
+                      <span className="text-[8px] text-muted-foreground uppercase mt-0.5">Total Alerts</span>
                     </div>
                   </div>
                   {/* Legend */}
@@ -219,11 +219,11 @@ export default function MaterialForecastPage() {
                       <div key={stat.label} className="flex items-center justify-between text-[10px]">
                         <div className="flex items-center gap-2">
                           <div className={`w-1.5 h-1.5 rounded-full ${stat.color}`}></div>
-                          <span className="text-zinc-300">{stat.label}</span>
+                          <span className="text-foreground">{stat.label}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-zinc-400">{stat.count}</span>
-                          <span className="text-zinc-600 w-8 text-right">({stat.pct})</span>
+                          <span className="text-muted-foreground">{stat.count}</span>
+                          <span className="text-muted-foreground w-8 text-right">({stat.pct})</span>
                         </div>
                       </div>
                     ))}
@@ -235,8 +235,8 @@ export default function MaterialForecastPage() {
               </div>
 
               {/* ALERTS BY ZONE */}
-              <div className="bg-[#11141D] border border-zinc-800/60 rounded-xl overflow-hidden shadow-lg p-5">
-                <h3 className="text-[11px] font-bold text-white uppercase tracking-wider mb-6">Alerts by Zone</h3>
+              <div className="bg-card border border-border rounded-xl overflow-hidden shadow-lg p-5">
+                <h3 className="text-[11px] font-bold text-foreground uppercase tracking-wider mb-6">Alerts by Zone</h3>
                 <div className="flex items-center gap-6">
                   {/* Donut Chart */}
                   <div className="relative h-28 w-28 shrink-0 flex items-center justify-center">
@@ -255,8 +255,8 @@ export default function MaterialForecastPage() {
                       ))}
                     </svg>
                     <div className="absolute flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold text-white leading-none">{liveAlerts.length}</span>
-                      <span className="text-[8px] text-zinc-500 uppercase mt-0.5">Total Alerts</span>
+                      <span className="text-2xl font-bold text-foreground leading-none">{liveAlerts.length}</span>
+                      <span className="text-[8px] text-muted-foreground uppercase mt-0.5">Total Alerts</span>
                     </div>
                   </div>
                   {/* Legend */}
@@ -265,11 +265,11 @@ export default function MaterialForecastPage() {
                       <div key={stat.label} className="flex items-center justify-between text-[10px]">
                         <div className="flex items-center gap-2">
                           <div className={`w-1.5 h-1.5 rounded-full ${stat.color}`}></div>
-                          <span className="text-zinc-300">{stat.label}</span>
+                          <span className="text-foreground">{stat.label}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-zinc-400">{stat.count}</span>
-                          <span className="text-zinc-600 w-8 text-right">({stat.pct})</span>
+                          <span className="text-muted-foreground">{stat.count}</span>
+                          <span className="text-muted-foreground w-8 text-right">({stat.pct})</span>
                         </div>
                       </div>
                     ))}
@@ -281,16 +281,16 @@ export default function MaterialForecastPage() {
               </div>
 
               {/* TOP ALERT TYPES */}
-              <div className="bg-[#11141D] border border-zinc-800/60 rounded-xl overflow-hidden shadow-lg p-5">
-                <h3 className="text-[11px] font-bold text-white uppercase tracking-wider mb-6">Top Alert Types</h3>
+              <div className="bg-card border border-border rounded-xl overflow-hidden shadow-lg p-5">
+                <h3 className="text-[11px] font-bold text-foreground uppercase tracking-wider mb-6">Top Alert Types</h3>
                 <div className="flex flex-col gap-4">
                   {dynamicAlertTypes.map(stat => (
                     <div key={stat.label} className="flex items-center justify-between gap-4">
-                      <span className="text-[10px] text-zinc-300 w-24 shrink-0">{stat.label}</span>
+                      <span className="text-[10px] text-foreground w-24 shrink-0">{stat.label}</span>
                       <div className="flex-1 h-1 bg-zinc-900 rounded-full overflow-hidden">
                         <div className={cn("h-full rounded-full", stat.color)} style={{ width: `${stat.pct}%` }}></div>
                       </div>
-                      <span className="text-[10px] font-bold text-white w-4 text-right">{stat.count}</span>
+                      <span className="text-[10px] font-bold text-foreground w-4 text-right">{stat.count}</span>
                     </div>
                   ))}
                 </div>

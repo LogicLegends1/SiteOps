@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import dynamic from "next/dynamic"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import { ActivityDetailsPanel } from "@/components/site-progress/activity-details-panel"
 import { LinearActivitiesBoard } from "@/components/site-progress/linear-activities-board"
 import { AddActivityModal } from "@/components/site-progress/add-activity-modal"
@@ -52,7 +52,12 @@ function normalizeSubtasksByActivity(
 
 export default function ActivityProgressPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const projectId = Number(params.id) || 1
+  const focusedView = searchParams.get("focus")
+  const isActivityFocus = focusedView === "activity-tracker"
+  const isUpdatesFocus = focusedView === "updates"
+  const hasFocusedView = isActivityFocus || isUpdatesFocus
 
   const [activities, setActivities] = useState<Activity[]>([])
   const [project, setProject] = useState<Project | null>(null)
@@ -79,6 +84,21 @@ export default function ActivityProgressPage() {
   }, [activityWorkersDetail])
   const [detailsTab, setDetailsTab] = useState<string | undefined>(undefined)
   const canSeeAdvancedTabs = userRoleLoaded && userRole !== "SITE_ENGINEER"
+
+  useEffect(() => {
+    const requestedTab = searchParams.get("tab")
+    if (requestedTab === "activity-tracker" || requestedTab === "updates") {
+      setActiveTab(requestedTab)
+    }
+
+    if (focusedView === "activity-tracker") {
+      setActiveTab("activity-tracker")
+    }
+
+    if (focusedView === "updates") {
+      setActiveTab("updates")
+    }
+  }, [focusedView, searchParams])
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -296,7 +316,7 @@ export default function ActivityProgressPage() {
 
 
   return (
-    <div className="flex flex-col gap-4 w-full pb-8 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+    <div className="flex flex-col gap-4 w-full pb-4 md:pb-8 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
       <style jsx global>{`
         .scrollbar-thin::-webkit-scrollbar {
           width: 6px;
@@ -314,37 +334,40 @@ export default function ActivityProgressPage() {
         }
       `}</style>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="border-b border-border">
-          <div className="flex gap-6">
-            <button
-              onClick={() => setActiveTab("map-view")}
-              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "map-view" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-            >
-              Map View
-            </button>
-            <button
-              onClick={() => setActiveTab("activity-tracker")}
-              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "activity-tracker" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-            >
-              Activity Tracker
-            </button>
-            <button
-              onClick={() => setActiveTab("updates")}
-              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "updates" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-            >
-              Updates & Evidence
-            </button>
-            <button
-              onClick={() => setActiveTab("issues")}
-              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "issues" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-            >
-              Issues & Risks
-            </button>
+        {!hasFocusedView && (
+          <div className="border-b border-border">
+            <div className="flex gap-6">
+              <button
+                onClick={() => setActiveTab("map-view")}
+                className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "map-view" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+              >
+                Map View
+              </button>
+              <button
+                onClick={() => setActiveTab("activity-tracker")}
+                className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "activity-tracker" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+              >
+                Activity Tracker
+              </button>
+              <button
+                onClick={() => setActiveTab("updates")}
+                className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "updates" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+              >
+                Updates & Evidence
+              </button>
+              <button
+                onClick={() => setActiveTab("issues")}
+                className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "issues" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+              >
+                Issues & Risks
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Map View */}
-        <TabsContent value="map-view" className="mt-0">
+        {!hasFocusedView && (
+          <TabsContent value="map-view" className="mt-0">
           <div className="h-[calc(100vh-120px)] rounded-xl border border-border overflow-hidden scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
             <LeafletMap
               activities={activities}
@@ -372,11 +395,13 @@ export default function ActivityProgressPage() {
               className="h-full rounded-none border-0"
             />
           </div>
-        </TabsContent>
+          </TabsContent>
+        )}
 
         {/* Activity Tracker */}
-        <TabsContent value="activity-tracker" className="mt-4">
-          <div className="h-[calc(100vh-220px)] min-h-[500px] rounded-xl border border-border overflow-hidden scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+        {(!hasFocusedView || isActivityFocus) && (
+          <TabsContent value="activity-tracker" className={hasFocusedView ? "mt-0" : "mt-4"}>
+          <div className={`rounded-xl border border-border overflow-hidden scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${hasFocusedView ? "h-[calc(100dvh-8.5rem)] min-h-104" : "h-[calc(100dvh-14rem)] min-h-104 md:h-[calc(100vh-220px)] md:min-h-125"}`}>
             <LinearActivitiesBoard
               activities={activities}
               subtasksByActivity={subtasksByActivity}
@@ -395,19 +420,24 @@ export default function ActivityProgressPage() {
               }
             />
           </div>
-        </TabsContent>
+          </TabsContent>
+        )}
 
         {/* Updates & Evidence */}
-        <TabsContent value="updates" className="mt-4">
+        {(!hasFocusedView || isUpdatesFocus) && (
+          <TabsContent value="updates" className={hasFocusedView ? "mt-0" : "mt-4"}>
           <div className="scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
             <UpdatesEvidenceTab activities={activities} subtasksByActivity={subtasksByActivity} />
           </div>
-        </TabsContent>
+          </TabsContent>
+        )}
 
         {/* Issues & Risks */}
-        <TabsContent value="issues" className="mt-4">
+        {!hasFocusedView && (
+          <TabsContent value="issues" className="mt-4">
           <IssuesRisksTab activities={activities} />
-        </TabsContent>
+          </TabsContent>
+        )}
 
       </Tabs>
 

@@ -138,7 +138,7 @@ export default function ProjectLayout({
   const visibleNavItems = !userRoleLoaded
     ? []
     : userRole === "SITE_ENGINEER"
-      ? navItems.filter((item) => item.segment === "" || item.segment === "site-progress")
+      ? []
       : navItems
 
   useEffect(() => {
@@ -232,11 +232,11 @@ export default function ProjectLayout({
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )) : (
+              )) : !userRoleLoaded ? (
                 <SidebarMenuItem>
                   <div className="px-2 py-3 text-xs text-muted-foreground">Loading navigation…</div>
                 </SidebarMenuItem>
-              )}
+              ) : null}
             </SidebarMenu>
             <div className="mt-3 hidden flex-1 bg-linear-to-b from-transparent from-75% to-primary/30 opacity-5 group-data-[state=expanded]:block group-data-[state=expanded]:animate-[fadeIn_0.5s_ease-in-out_forwards]" />
           </div>
