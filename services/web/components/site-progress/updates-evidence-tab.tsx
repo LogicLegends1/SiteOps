@@ -401,6 +401,10 @@ function buildRequestEntries(requests: ActivityRequestSummary[]): UpdateEntry[] 
   return entries
 }
 
+function isSameUserName(a: string | null | undefined, b: string | null | undefined) {
+  return !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
 function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEntry; isLatest?: boolean; onImageClick?: (src: string) => void }) {
   const avatarColor = ACTIVITY_COLORS[entry.activityId % ACTIVITY_COLORS.length]
   const maxVisibleImages = 5
@@ -573,7 +577,7 @@ export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }
   const { userName, userRole } = useProjectContext()
 
   useEffect(() => {
-    if (userRole === "SITE_ENGINEER" || activities.length === 0) {
+    if (activities.length === 0) {
       setRequestSummaries([])
       return
     }
@@ -582,7 +586,7 @@ export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }
     const loadRequests = async () => {
       try {
         setRequestSummariesLoading(true)
-        const summaries = await Promise.all(
+        const summaries: ActivityRequestSummary[] = await Promise.all(
           activities.map(async (activity) => {
             const [crewRes, equipmentRes] = await Promise.all([
               fetch(`/api/project/${projectId}/activity/${activity.zoneID}/worker-requirements`, { cache: "no-store" }),
@@ -597,15 +601,32 @@ export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }
               activityId: activity.zoneID,
               activityName: activity.name,
               crew: crewData?.requirements ?? null,
-              equipment: Array.isArray(equipmentData?.requests) ? equipmentData.requests : [],
+              equipment: Array.isArray(equipmentData?.requests)
+                ? (equipmentData.requests as EquipmentRequestSummary[])
+                : [],
             }
           })
         )
 
         if (!active) return
-        setRequestSummaries(
-          summaries.filter((summary) => getCrewRequestTotal(summary.crew) > 0 || summary.equipment.length > 0)
-        )
+        const visibleSummaries = summaries
+          .map((summary) => {
+            if (userRole !== "SITE_ENGINEER") return summary
+
+            const crewBelongsToUser = isSameUserName(summary.crew?.requestedByName, userName)
+            const equipmentForUser = summary.equipment.filter((request) =>
+              isSameUserName(request.requestedByName, userName)
+            )
+
+            return {
+              ...summary,
+              crew: crewBelongsToUser ? summary.crew : null,
+              equipment: equipmentForUser,
+            }
+          })
+          .filter((summary) => getCrewRequestTotal(summary.crew) > 0 || summary.equipment.length > 0)
+
+        setRequestSummaries(visibleSummaries)
       } catch (error) {
         if (!active) return
         console.error("Failed to load activity requests", error)
@@ -620,13 +641,17 @@ export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }
     return () => {
       active = false
     }
-  }, [activities, projectId, userRole])
+  }, [activities, projectId, userName, userRole])
 
   const entries = useMemo(() => {
+    const requestEntries = buildRequestEntries(requestSummaries)
     if (userRole === "SITE_ENGINEER" && userName) {
-      return allEntries.filter((e) => e.author === userName)
+      return [
+        ...allEntries.filter((e) => e.author === userName),
+        ...requestEntries,
+      ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
     }
-    return [...allEntries, ...buildRequestEntries(requestSummaries)].sort(
+    return [...allEntries, ...requestEntries].sort(
       (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
     )
   }, [allEntries, requestSummaries, userName, userRole])
