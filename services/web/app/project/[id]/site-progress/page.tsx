@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import dynamic from "next/dynamic"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import { ActivityDetailsPanel } from "@/components/site-progress/activity-details-panel"
 import { LinearActivitiesBoard } from "@/components/site-progress/linear-activities-board"
 import { AddActivityModal } from "@/components/site-progress/add-activity-modal"
@@ -14,6 +14,7 @@ import type { OnSiteMember } from "@/lib/site-team-types"
 import type { ActivityWorkersSummary } from "@/components/site-progress/leaflet-map"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { MapPin, LayoutList, FileText, AlertTriangle, X } from "lucide-react"
 import { createClient } from "@/lib/superbase"
 
@@ -50,9 +51,33 @@ function normalizeSubtasksByActivity(
   return result
 }
 
+function getInitialTab(focusedView: string | null, requestedTab: string | null) {
+  if (focusedView === "activity-tracker" || focusedView === "updates") {
+    return focusedView
+  }
+
+  if (
+    requestedTab === "map-view" ||
+    requestedTab === "activity-tracker" ||
+    requestedTab === "updates" ||
+    requestedTab === "issues"
+  ) {
+    return requestedTab
+  }
+
+  return "map-view"
+}
+
 export default function ActivityProgressPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const projectId = Number(params.id) || 1
+  const focusedView = searchParams.get("focus")
+  const requestedTab = searchParams.get("tab")
+  const isActivityFocus = focusedView === "activity-tracker"
+  const isUpdatesFocus = focusedView === "updates"
+  const hasFocusedView = isActivityFocus || isUpdatesFocus
+  const initialTab = getInitialTab(focusedView, requestedTab)
 
   const [activities, setActivities] = useState<Activity[]>([])
   const [project, setProject] = useState<Project | null>(null)
@@ -63,7 +88,7 @@ export default function ActivityProgressPage() {
   const [teamLoading, setTeamLoading] = useState(true)
   const [teamError, setTeamError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("map-view")
+  const [activeTab, setActiveTab] = useState(initialTab)
   const [showAddModal, setShowAddModal] = useState(false)
   const [activityWorkersCache, setActivityWorkersCache] = useState<Record<number, ActivityWorkersSummary>>({})
   const [activityWorkersDetail, setActivityWorkersDetail] = useState<Record<number, ActivityWorkerDetail[]>>({})
@@ -294,9 +319,20 @@ export default function ActivityProgressPage() {
     ? subtasksByActivity[selectedActivity.zoneID] ?? []
     : []
 
+  if (loading && !project) {
+    return (
+      <div className="flex min-h-[calc(100dvh-9rem)] w-full items-center justify-center">
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-sm">
+          <Spinner className="h-5 w-5" />
+          <span className="text-sm text-muted-foreground">Loading site progress...</span>
+        </div>
+      </div>
+    )
+  }
+
 
   return (
-    <div className="flex flex-col gap-4 w-full pb-8 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+    <div className="flex flex-col gap-4 w-full pb-4 md:pb-8 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
       <style jsx global>{`
         .scrollbar-thin::-webkit-scrollbar {
           width: 6px;
@@ -314,37 +350,40 @@ export default function ActivityProgressPage() {
         }
       `}</style>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="border-b border-border">
-          <div className="flex gap-6">
-            <button
-              onClick={() => setActiveTab("map-view")}
-              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "map-view" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-            >
-              Map View
-            </button>
-            <button
-              onClick={() => setActiveTab("activity-tracker")}
-              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "activity-tracker" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-            >
-              Activity Tracker
-            </button>
-            <button
-              onClick={() => setActiveTab("updates")}
-              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "updates" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-            >
-              Updates & Evidence
-            </button>
-            <button
-              onClick={() => setActiveTab("issues")}
-              className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "issues" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-            >
-              Issues & Risks
-            </button>
+        {!hasFocusedView && (
+          <div className="border-b border-border">
+            <div className="flex gap-6">
+              <button
+                onClick={() => setActiveTab("map-view")}
+                className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "map-view" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+              >
+                Map View
+              </button>
+              <button
+                onClick={() => setActiveTab("activity-tracker")}
+                className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "activity-tracker" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+              >
+                Activity Tracker
+              </button>
+              <button
+                onClick={() => setActiveTab("updates")}
+                className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "updates" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+              >
+                {canSeeAdvancedTabs ? "Updates" : "Updates & Evidence"}
+              </button>
+              <button
+                onClick={() => setActiveTab("issues")}
+                className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "issues" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+              >
+                Issues & Risks
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Map View */}
-        <TabsContent value="map-view" className="mt-0">
+        {!hasFocusedView && (
+          <TabsContent value="map-view" className="mt-0">
           <div className="h-[calc(100vh-120px)] rounded-xl border border-border overflow-hidden scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
             <LeafletMap
               activities={activities}
@@ -372,11 +411,13 @@ export default function ActivityProgressPage() {
               className="h-full rounded-none border-0"
             />
           </div>
-        </TabsContent>
+          </TabsContent>
+        )}
 
         {/* Activity Tracker */}
-        <TabsContent value="activity-tracker" className="mt-4">
-          <div className="h-[calc(100vh-220px)] min-h-[500px] rounded-xl border border-border overflow-hidden scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+        {(!hasFocusedView || isActivityFocus) && (
+          <TabsContent value="activity-tracker" className={hasFocusedView ? "mt-0" : "mt-4"}>
+          <div className={`rounded-xl border border-border overflow-hidden scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${hasFocusedView ? "h-[calc(100dvh-8.5rem)] min-h-104" : "h-[calc(100dvh-14rem)] min-h-104 md:h-[calc(100vh-220px)] md:min-h-125"}`}>
             <LinearActivitiesBoard
               activities={activities}
               subtasksByActivity={subtasksByActivity}
@@ -395,19 +436,24 @@ export default function ActivityProgressPage() {
               }
             />
           </div>
-        </TabsContent>
+          </TabsContent>
+        )}
 
         {/* Updates & Evidence */}
-        <TabsContent value="updates" className="mt-4">
+        {(!hasFocusedView || isUpdatesFocus) && (
+          <TabsContent value="updates" className={hasFocusedView ? "mt-0" : "mt-4"}>
           <div className="scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-            <UpdatesEvidenceTab activities={activities} subtasksByActivity={subtasksByActivity} />
+            <UpdatesEvidenceTab projectId={projectId} activities={activities} subtasksByActivity={subtasksByActivity} />
           </div>
-        </TabsContent>
+          </TabsContent>
+        )}
 
         {/* Issues & Risks */}
-        <TabsContent value="issues" className="mt-4">
+        {!hasFocusedView && (
+          <TabsContent value="issues" className="mt-4">
           <IssuesRisksTab activities={activities} />
-        </TabsContent>
+          </TabsContent>
+        )}
 
       </Tabs>
 

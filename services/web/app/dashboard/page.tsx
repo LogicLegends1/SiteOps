@@ -1,10 +1,12 @@
 "use client"
 
 import { useCallback, useMemo, useState, useEffect } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
+import { LayoutList, Camera } from "lucide-react"
 import {
   Item,
   ItemContent,
@@ -17,6 +19,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/u
 import dynamic from "next/dynamic"
 import type { LeafletMapItem } from "@/components/ui/leaflet-map"
 import { CreateProjectDialog } from "@/components/dashboard/create-project-dialog"
+import { createClient } from "@/lib/superbase"
 
 const LeafletMap = dynamic(
   () => import("@/components/ui/leaflet-map").then((mod) => ({ default: mod.LeafletMap })),
@@ -77,6 +80,50 @@ const mapProjectsToMapItems = (projects: ProjectFromApi[]): LeafletMapItem[] =>
 
 export default function DashboardPage() {
   const router = useRouter()
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [userRoleLoaded, setUserRoleLoaded] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const fetchRole = async () => {
+      try {
+        const supabase = createClient()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+
+        if (!user?.email || !isMounted) {
+          setUserRole(null)
+          return
+        }
+
+        const { data: dbUser } = await supabase
+          .from("user")
+          .select("role")
+          .eq("email", user.email)
+          .maybeSingle()
+
+        if (isMounted) {
+          setUserRole(dbUser?.role ?? null)
+        }
+      } catch {
+        if (isMounted) {
+          setUserRole(null)
+        }
+      } finally {
+        if (isMounted) {
+          setUserRoleLoaded(true)
+        }
+      }
+    }
+
+    fetchRole()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const createProjectTooltip = useCallback((item: LeafletMapItem) => {
     const status = item.description ?? "Unknown"
@@ -148,10 +195,76 @@ export default function DashboardPage() {
   }, [])
 
   const mapItems = useMemo(() => mapProjectsToMapItems(projects), [projects])
+  const singleAssignedProjectId = projects.length === 1 ? projects[0]?.projectid : null
 
   useEffect(() => {
     void loadProjects()
   }, [loadProjects])
+
+  if (!userRoleLoaded) {
+    return (
+      <div className="min-h-[calc(100dvh-8rem)]">
+        <Card className="border-border bg-card">
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            Loading dashboard...
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (userRole === "SITE_ENGINEER") {
+    return (
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 pb-8">
+        <div>
+          <h2 className="text-2xl font-semibold text-foreground">Site Engineer Dashboard</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Choose a workspace to continue with focused execution tasks.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Link
+            href={
+              singleAssignedProjectId
+                ? `/project/${singleAssignedProjectId}/site-progress?tab=activity-tracker&focus=activity-tracker`
+                : "/dashboard/site-engineer/activity-tracker"
+            }
+            className="group rounded-3xl bg-linear-to-br from-indigo-600 via-blue-600 to-cyan-500 p-px"
+          >
+            <div className="h-full rounded-[calc(1.5rem-1px)] bg-linear-to-br from-indigo-500 via-blue-500 to-cyan-400 p-6 text-white shadow-lg transition-transform duration-200 group-hover:-translate-y-1">
+              <div className="mb-10 flex items-center justify-between">
+                <Badge className="bg-white/20 text-white hover:bg-white/20">Execution</Badge>
+                <LayoutList className="h-5 w-5" />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">Primary Action</p>
+              <h3 className="mt-2 text-2xl font-bold leading-tight">Activity Tracker</h3>
+              <p className="mt-3 text-sm text-white/90">Open progress boards and update task flow by project.</p>
+            </div>
+          </Link>
+
+          <Link
+            href={
+              singleAssignedProjectId
+                ? `/project/${singleAssignedProjectId}/site-progress?tab=updates&focus=updates`
+                : "/dashboard/site-engineer/updates-evidence"
+            }
+            className="group rounded-3xl bg-linear-to-br from-rose-500 via-orange-500 to-amber-400 p-px"
+          >
+            <div className="h-full rounded-[calc(1.5rem-1px)] bg-linear-to-br from-rose-500 via-orange-500 to-amber-400 p-6 text-white shadow-lg transition-transform duration-200 group-hover:-translate-y-1">
+              <div className="mb-10 flex items-center justify-between">
+                <Badge className="bg-white/20 text-white hover:bg-white/20">History</Badge>
+                <Camera className="h-5 w-5" />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">Primary Action</p>
+              <h3 className="mt-2 text-2xl font-bold leading-tight">History</h3>
+              <p className="mt-3 text-sm text-white/90">History of daily updates and uploaded on-site proof photos.</p>
+            </div>
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-[calc(100dvh-8rem)] overflow-hidden">

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import { useProjectContext } from "@/app/contexts/project-context"
 import { type Activity } from "@/lib/site-data"
 import { type Subtask } from "@/lib/subtasks-data"
 import { issues } from "@/lib/issues-data"
@@ -19,6 +20,7 @@ import {
 } from "lucide-react"
 
 interface UpdatesEvidenceTabProps {
+  projectId: number
   activities: Activity[]
   subtasksByActivity: Record<number, Subtask[]>
 }
@@ -46,6 +48,71 @@ interface UpdateEntry {
   commentCount: number
   attachmentCount: number
 }
+
+type CrewRequirementSummary = {
+  id?: number
+  activityId?: number
+  tower_crane_operators?: number
+  excavator_operators?: number
+  crawler_crane_operators?: number
+  tipper_drivers?: number
+  surveyors?: number
+  masons?: number
+  carpenters?: number
+  steel_fixers?: number
+  electricians?: number
+  general_labors?: number
+  site_engineers?: number
+  requestNotes?: string | null
+  requestedBy?: number | null
+  requestedByName?: string | null
+  createdAt?: string | null
+}
+
+type CrewRequirementCountKey =
+  | "tower_crane_operators"
+  | "excavator_operators"
+  | "crawler_crane_operators"
+  | "tipper_drivers"
+  | "surveyors"
+  | "masons"
+  | "carpenters"
+  | "steel_fixers"
+  | "electricians"
+  | "general_labors"
+  | "site_engineers"
+
+type EquipmentRequestSummary = {
+  id?: number
+  activity_id?: number
+  details?: string | null
+  quantity?: number | null
+  created_at?: string | null
+  requested_by?: number | null
+  requestedBy?: number | null
+  requestedByName?: string | null
+}
+
+type ActivityRequestSummary = {
+  activityId: number
+  activityName: string
+  crew: CrewRequirementSummary | null
+  equipment: EquipmentRequestSummary[]
+}
+
+const CREW_REQUEST_FIELDS: Array<{ key: CrewRequirementCountKey; label: string }> = [
+  { key: "site_engineers", label: "Site Engineers" },
+  { key: "surveyors", label: "Surveyors" },
+  { key: "tower_crane_operators", label: "Tower Crane Operators" },
+  { key: "excavator_operators", label: "Excavator Operators" },
+  { key: "crawler_crane_operators", label: "Crawler Crane Operators" },
+  { key: "tipper_drivers", label: "Tipper Drivers" },
+  { key: "masons", label: "Masons" },
+  { key: "carpenters", label: "Carpenters" },
+  { key: "steel_fixers", label: "Steel Fixers" },
+  { key: "electricians", label: "Electricians" },
+  { key: "general_labors", label: "General Labors" },
+]
 
 const ACTIVITY_COLORS: string[] = [
   "#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#06b6d4", "#84cc16", "#ec4899", "#6366f1"
@@ -259,6 +326,85 @@ function getTagStyles(type: Tag["type"]): string {
   }
 }
 
+function getCrewRequestTotal(crew: CrewRequirementSummary | null) {
+  if (!crew) return 0
+  return CREW_REQUEST_FIELDS.reduce((total, field) => total + Math.max(0, Number(crew[field.key] ?? 0)), 0)
+}
+
+function getCrewRequestLabel(crew: CrewRequirementSummary | null) {
+  if (!crew) return "No crew request"
+  const parts = CREW_REQUEST_FIELDS
+    .map((field) => {
+      const value = Number(crew[field.key] ?? 0)
+      return value > 0 ? `${field.label}: ${value}` : null
+    })
+    .filter(Boolean)
+
+  return parts.length > 0 ? parts.join(", ") : "No crew request"
+}
+
+function buildRequestEntries(requests: ActivityRequestSummary[]): UpdateEntry[] {
+  const now = new Date().toISOString()
+  const entries: UpdateEntry[] = []
+
+  for (const summary of requests) {
+    const crewTotal = getCrewRequestTotal(summary.crew)
+    if (crewTotal > 0) {
+      const time = summary.crew?.createdAt || now
+      entries.push({
+        id: `crew-request-${summary.activityId}`,
+        time,
+        timeLabel: formatTime(time),
+        author: summary.crew?.requestedByName || "Resource Request",
+        role: "Crew Request",
+        activityId: summary.activityId,
+        activityName: summary.activityName,
+        zone: "Activity Request",
+        category: "Crew",
+        status: "on-track",
+        progressDelta: null,
+        description: summary.crew?.requestNotes?.trim()
+          ? `${summary.crew.requestNotes.trim()}\n${getCrewRequestLabel(summary.crew)}`
+          : getCrewRequestLabel(summary.crew),
+        images: [],
+        tags: [{ label: `${crewTotal} workers requested`, type: "info" }],
+        commentCount: 0,
+        attachmentCount: 0,
+      })
+    }
+
+    for (const request of summary.equipment) {
+      const time = request.created_at || now
+      entries.push({
+        id: `equipment-request-${summary.activityId}-${request.id ?? time}`,
+        time,
+        timeLabel: formatTime(time),
+        author: request.requestedByName || "Resource Request",
+        role: "Equipment Request",
+        activityId: summary.activityId,
+        activityName: summary.activityName,
+        zone: "Activity Request",
+        category: "Equipment",
+        status: "on-track",
+        progressDelta: null,
+        description: request.details || "Equipment request",
+        images: [],
+        tags: request.quantity
+          ? [{ label: `${request.quantity} equipment requested`, type: "info" }]
+          : [{ label: "Equipment requested", type: "info" }],
+        commentCount: 0,
+        attachmentCount: 0,
+      })
+    }
+  }
+
+  return entries
+}
+
+function isSameUserName(a: string | null | undefined, b: string | null | undefined) {
+  return !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
 function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEntry; isLatest?: boolean; onImageClick?: (src: string) => void }) {
   const avatarColor = ACTIVITY_COLORS[entry.activityId % ACTIVITY_COLORS.length]
   const maxVisibleImages = 5
@@ -267,25 +413,25 @@ function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEn
   return (
     <div className="relative flex gap-0 mb-3">
       {/* Left gutter: timeline node + time */}
-      <div className="w-[72px] shrink-0 flex flex-col items-center relative">
+      <div className="w-12 sm:w-18 shrink-0 flex flex-col items-center relative">
         {/* Vertical line behind everything */}
         <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-white/20" />
         {/* Node */}
         {isLatest ? (
-          <div className="relative z-10 mt-5 w-[14px] h-[14px] rounded-full border-[2px] border-[#0EA5E9] bg-[#060b14] flex items-center justify-center">
-            <div className="w-[6px] h-[6px] rounded-full bg-[#0EA5E9]" />
+          <div className="relative z-10 mt-4 sm:mt-5 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border-2 border-[#0EA5E9] bg-[#060b14] flex items-center justify-center">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#0EA5E9]" />
           </div>
         ) : (
-          <div className="relative z-10 mt-5 w-[12px] h-[12px] rounded-full border-[2px] border-white/40 bg-[#060b14] flex items-center justify-center">
-            <div className="w-[4px] h-[4px] rounded-full bg-white/40" />
+          <div className="relative z-10 mt-4 sm:mt-5 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border-2 border-white/40 bg-[#060b14] flex items-center justify-center">
+            <div className="w-1 h-1 rounded-full bg-white/40" />
           </div>
         )}
         {/* Time label below node */}
-        <span className="text-[10px] font-medium text-white/40 mt-1.5 tabular-nums whitespace-nowrap">{entry.timeLabel}</span>
+        <span className="text-[9px] sm:text-[10px] font-medium text-white/40 mt-1.5 tabular-nums whitespace-nowrap">{entry.timeLabel}</span>
       </div>
 
       {/* Card */}
-      <div className="flex-1 min-w-0 rounded-[16px] border border-white/[0.04] bg-[rgba(6,11,20,0.85)] hover:bg-[rgba(8,14,26,0.92)] hover:border-white/[0.07] transition-all duration-200 p-5 group">
+      <div className="flex-1 min-w-0 rounded-[16px] border border-white/[0.04] bg-[rgba(6,11,20,0.85)] hover:bg-[rgba(8,14,26,0.92)] hover:border-white/[0.07] transition-all duration-200 p-4 sm:p-5 group">
         {/* Card header row */}
         <div className="flex items-start justify-between gap-3 mb-3">
           {/* Left: avatar + name */}
@@ -333,12 +479,12 @@ function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEn
 
         {/* Activity title + zone/category */}
         <div className="mb-2.5">
-          <div className="text-[17px] font-bold text-white leading-tight">{entry.activityName}</div>
+          <div className="text-[15px] sm:text-[17px] font-bold text-white leading-tight">{entry.activityName}</div>
           <div className="text-[13px] text-white/40 mt-0.5">{entry.zone} • {entry.category}</div>
         </div>
 
         {/* Description */}
-        <p className="text-[14px] leading-[1.7] text-white/[0.78] max-w-[580px] mb-3">{entry.description}</p>
+        <p className="whitespace-pre-line text-[13px] sm:text-[14px] leading-[1.7] text-white/78 sm:max-w-145 mb-3">{entry.description}</p>
 
         {/* Metadata chips */}
         {entry.tags.length > 0 && (
@@ -365,7 +511,7 @@ function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEn
               <div
                 key={idx}
                 onClick={() => onImageClick?.(src)}
-                className="relative shrink-0 w-[100px] h-[68px] rounded-[10px] overflow-hidden border border-white/[0.06] cursor-pointer group/img"
+                className="relative shrink-0 w-21 h-14 sm:w-25 sm:h-17 rounded-[10px] overflow-hidden border border-white/6 cursor-pointer group/img"
               >
                 <img src={src} alt={`Evidence ${idx + 1}`} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-200" />
                 {idx === maxVisibleImages - 1 && extraImages > 0 && (
@@ -397,13 +543,15 @@ function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEn
   )
 }
 
-export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEvidenceTabProps) {
-  const [viewMode, setViewMode] = useState<"day" | "activity">("day")
+export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }: UpdatesEvidenceTabProps) {
+  const viewMode: "day" = "day"
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [activitySearch, setActivitySearch] = useState("")
   const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(0)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
+  const [requestSummaries, setRequestSummaries] = useState<ActivityRequestSummary[]>([])
+  const [requestSummariesLoading, setRequestSummariesLoading] = useState(false)
   const DAYS_PER_PAGE = 5
 
   useEffect(() => {
@@ -426,11 +574,93 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
     [activities, subtasksByActivity]
   )
 
-  const groupedByDate = useMemo(() => groupByDate(allEntries), [allEntries])
+  const { userName, userRole } = useProjectContext()
+
+  useEffect(() => {
+    if (activities.length === 0) {
+      setRequestSummaries([])
+      return
+    }
+
+    let active = true
+    const loadRequests = async () => {
+      try {
+        setRequestSummariesLoading(true)
+        const summaries: ActivityRequestSummary[] = await Promise.all(
+          activities.map(async (activity) => {
+            const [crewRes, equipmentRes] = await Promise.all([
+              fetch(`/api/project/${projectId}/activity/${activity.zoneID}/worker-requirements`, { cache: "no-store" }),
+              fetch(`/api/project/${projectId}/activity/${activity.zoneID}/equipment-requests`, { cache: "no-store" }),
+            ])
+            const [crewData, equipmentData] = await Promise.all([
+              crewRes.json().catch(() => null),
+              equipmentRes.json().catch(() => null),
+            ])
+
+            return {
+              activityId: activity.zoneID,
+              activityName: activity.name,
+              crew: crewData?.requirements ?? null,
+              equipment: Array.isArray(equipmentData?.requests)
+                ? (equipmentData.requests as EquipmentRequestSummary[])
+                : [],
+            }
+          })
+        )
+
+        if (!active) return
+        const visibleSummaries = summaries
+          .map((summary) => {
+            if (userRole !== "SITE_ENGINEER") return summary
+
+            const crewBelongsToUser = isSameUserName(summary.crew?.requestedByName, userName)
+            const equipmentForUser = summary.equipment.filter((request) =>
+              isSameUserName(request.requestedByName, userName)
+            )
+
+            return {
+              ...summary,
+              crew: crewBelongsToUser ? summary.crew : null,
+              equipment: equipmentForUser,
+            }
+          })
+          .filter((summary) => getCrewRequestTotal(summary.crew) > 0 || summary.equipment.length > 0)
+
+        setRequestSummaries(visibleSummaries)
+      } catch (error) {
+        if (!active) return
+        console.error("Failed to load activity requests", error)
+        setRequestSummaries([])
+      } finally {
+        if (active) setRequestSummariesLoading(false)
+      }
+    }
+
+    void loadRequests()
+
+    return () => {
+      active = false
+    }
+  }, [activities, projectId, userName, userRole])
+
+  const entries = useMemo(() => {
+    const requestEntries = buildRequestEntries(requestSummaries)
+    if (userRole === "SITE_ENGINEER" && userName) {
+      return [
+        ...allEntries.filter((e) => e.author === userName),
+        ...requestEntries,
+      ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+    }
+    return [...allEntries, ...requestEntries].sort(
+      (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
+    )
+  }, [allEntries, requestSummaries, userName, userRole])
+
+  const groupedByDate = useMemo(() => groupByDate(entries), [entries])
   const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a))
 
   const visibleEntries = useMemo(() => {
-    let filtered = allEntries
+    let filtered = entries
     if (viewMode === "day" && selectedDate) {
       filtered = groupedByDate[selectedDate] ?? []
     }
@@ -438,9 +668,9 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
       filtered = filtered.filter((e) => e.activityId === selectedActivityId)
     }
     return filtered
-  }, [allEntries, groupedByDate, selectedDate, selectedActivityId, viewMode])
+  }, [entries, groupedByDate, selectedDate, selectedActivityId])
 
-  useEffect(() => { setCurrentPage(0) }, [selectedDate, selectedActivityId, viewMode])
+  useEffect(() => { setCurrentPage(0) }, [selectedDate, selectedActivityId])
 
   const visibleGrouped = useMemo(() => groupByDate(visibleEntries), [visibleEntries])
   const visibleSortedDates = Object.keys(visibleGrouped).sort((a, b) => b.localeCompare(a))
@@ -450,22 +680,26 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
 
   const activityUpdateCounts = useMemo(() => {
     const counts: Record<number, number> = {}
-    for (const e of allEntries) counts[e.activityId] = (counts[e.activityId] ?? 0) + 1
+    for (const e of entries) counts[e.activityId] = (counts[e.activityId] ?? 0) + 1
     return counts
-  }, [allEntries])
+  }, [entries])
 
-  const filteredActivities = activities.filter(
-    (a) =>
-      activitySearch.trim() === "" ||
-      a.name.toLowerCase().includes(activitySearch.toLowerCase())
-  )
+  const filteredActivities = useMemo(() => {
+    const base = userRole === "SITE_ENGINEER"
+      ? activities.filter((a) => (activityUpdateCounts[a.zoneID] ?? 0) > 0)
+      : activities
 
-  const totalUpdates = allEntries.length
-  const onTrackCount = allEntries.filter((e) => e.status === "on-track").length
-  const delayedCount = allEntries.filter((e) => e.status === "delayed").length
-  const totalPhotos = allEntries.reduce((sum, e) => sum + e.images.length, 0)
+    return base.filter((a) =>
+      activitySearch.trim() === "" || a.name.toLowerCase().includes(activitySearch.toLowerCase())
+    )
+  }, [activities, activitySearch, activityUpdateCounts, userRole])
+
+  const totalUpdates = entries.length
+  const onTrackCount = entries.filter((e) => e.status === "on-track").length
+  const delayedCount = entries.filter((e) => e.status === "delayed").length
+  const totalPhotos = entries.reduce((sum, e) => sum + e.images.length, 0)
   const openIssues = issues.filter((i) => i.status !== "resolved")
-  const activitiesWithUpdates = new Set(allEntries.map((e) => e.activityId))
+  const activitiesWithUpdates = new Set(entries.map((e) => e.activityId))
   const missingActivities = activities.filter((a) => !activitiesWithUpdates.has(a.zoneID))
 
   const onTrackPct = totalUpdates > 0 ? Math.round((onTrackCount / totalUpdates) * 100) : 0
@@ -476,47 +710,19 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
     : ""
 
   return (
-    <div className="grid grid-cols-[220px_minmax(0,1fr)_280px] h-[calc(100vh-200px)] min-h-[600px] rounded-[20px] overflow-hidden bg-gradient-to-br from-[#02050B] via-[#040912] to-[#050B14] border border-white/[0.06]"
+    <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)_280px] h-auto min-h-[calc(100dvh-9rem)] md:h-[calc(100vh-200px)] md:min-h-150 rounded-[20px] overflow-hidden border border-border bg-background dark:bg-linear-to-br dark:from-[#02050B] dark:via-[#040912] dark:to-[#050B14]"
       style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03), 0 0 80px rgba(14,165,233,0.03)" }}
     >
       {/* ===== LEFT SIDEBAR ===== */}
-      <div className="border-r border-white/[0.06] flex flex-col shrink-0 bg-[rgba(5,8,15,0.92)] overflow-hidden">
-        {/* Toggle */}
-        <div className="p-4 pb-3 shrink-0">
-          <div className="flex rounded-[12px] border border-white/[0.08] overflow-hidden bg-black/30">
-            <button
-              type="button"
-              onClick={() => { setViewMode("day"); setSelectedActivityId(null) }}
-              className={cn(
-                "flex-1 text-[12px] py-2.5 font-semibold transition-all duration-200",
-                viewMode === "day"
-                  ? "bg-[#0EA5E9] text-white shadow-[0_0_12px_rgba(14,165,233,0.3)]"
-                  : "text-white/45 hover:text-white/70 hover:bg-white/[0.04]"
-              )}
-            >
-              By Day
-            </button>
-            <button
-              type="button"
-              onClick={() => { setViewMode("activity"); setSelectedDate(null) }}
-              className={cn(
-                "flex-1 text-[12px] py-2.5 font-semibold transition-all duration-200 border-l border-white/[0.08]",
-                viewMode === "activity"
-                  ? "bg-[#0EA5E9] text-white shadow-[0_0_12px_rgba(14,165,233,0.3)]"
-                  : "text-white/45 hover:text-white/70 hover:bg-white/[0.04]"
-              )}
-            >
-              By Activity
-            </button>
-          </div>
-        </div>
+      <div className="border-b md:border-b-0 md:border-r border-border flex flex-col shrink-0 bg-muted/20 dark:bg-[rgba(5,8,15,0.92)] overflow-hidden">
+        <div className="p-4 pb-3 shrink-0" />
 
         <div className="flex-1 overflow-y-auto ue-scroll">
           {/* Date list — shown in By Day mode */}
           {viewMode === "day" && (
             <div className="px-3 pb-2">
               {sortedDates.length === 0 ? (
-                <p className="text-[11px] text-white/35 px-3 py-3">No updates yet</p>
+                <p className="text-[11px] text-muted-foreground px-3 py-3">No updates yet</p>
               ) : (
                 <div className="space-y-0.5">
                   {sortedDates.map((date) => {
@@ -550,18 +756,18 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
           )}
 
           {/* Divider + Activities section */}
-          <div className={cn(viewMode === "day" ? "border-t border-white/[0.06]" : "")}>
+          <div className={cn(viewMode === "day" ? "border-t border-border" : "")}>
             <div className="px-4 pt-3 pb-2">
-              <h5 className="text-[11px] font-bold text-white/50 uppercase tracking-wider">Activities</h5>
+              <h5 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Activities</h5>
             </div>
             <div className="px-3 pb-3">
               <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <input
                   placeholder="Search activities..."
                   value={activitySearch}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setActivitySearch(e.target.value)}
-                  className="w-full pl-9 pr-3 h-9 text-[11px] bg-black/30 border border-white/[0.06] rounded-[10px] text-white placeholder-white/25 focus:outline-none focus:border-[#0EA5E9]/40 focus:ring-1 focus:ring-[#0EA5E9]/15 shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)]"
+                  className="w-full pl-9 pr-3 h-9 text-[11px] bg-background/80 dark:bg-black/30 border border-border rounded-[10px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#0EA5E9]/40 focus:ring-1 focus:ring-[#0EA5E9]/15 shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]"
                 />
               </div>
               <div className="space-y-0.5">
@@ -581,13 +787,8 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
                           : "hover:bg-white/[0.03] border border-transparent"
                       )}
                     >
-                      <span
-                        className="w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
-                        style={{ backgroundColor: color }}
-                      >
-                        {activity.name.charAt(0)}
-                      </span>
-                      <span className={cn("flex-1 text-[12px] truncate font-medium", isSelected ? "text-[#0EA5E9]" : "text-white/85")}>
+                      {/* avatar removed for compact activity list */}
+                      <span className={cn("flex-1 text-[12px] truncate font-medium", isSelected ? "text-[#0EA5E9]" : "text-foreground")}>
                         {activity.name}
                       </span>
                       {count > 0 && (
@@ -605,9 +806,9 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
       </div>
 
       {/* ===== CENTER TIMELINE ===== */}
-      <div className="min-w-0 overflow-y-auto ue-scroll p-5 bg-[rgba(3,6,12,0.5)]">
+      <div className="min-w-0 overflow-y-auto ue-scroll p-3 sm:p-4 md:p-5 bg-muted/10 dark:bg-[rgba(3,6,12,0.5)]">
         {visibleSortedDates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-white/35 gap-3">
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
             <FileText className="h-12 w-12 opacity-15" />
             <p className="text-sm font-medium">No updates found</p>
             <p className="text-[11px] opacity-50">Updates appear here as your team submits progress</p>
@@ -666,52 +867,14 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
       </div>
 
       {/* ===== RIGHT SIDEBAR ===== */}
-      <div className="border-l border-white/[0.06] flex flex-col shrink-0 bg-[rgba(5,8,15,0.92)] overflow-hidden">
+      <div className="border-t md:border-t-0 md:border-l border-white/6 flex flex-col shrink-0 bg-[rgba(5,8,15,0.92)] overflow-hidden">
         <div className="p-4 space-y-4 overflow-y-auto ue-scroll flex-1">
 
-          {/* Card 1 — Update Summary */}
-          <div className="rounded-[16px] border border-white/[0.05] bg-[rgba(6,10,18,0.85)] p-4">
-            <div className="flex items-start justify-between mb-1">
-              <div>
-                <h4 className="text-[13px] font-bold text-white">Update Summary</h4>
-                <p className="text-[10px] text-white/35 mt-0.5">{dateRangeLabel}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2 mt-3">
-              <div className="bg-white/[0.03] rounded-[12px] p-2.5 border border-white/[0.04]">
-                <div className="text-[18px] font-bold text-white leading-tight">{totalUpdates}</div>
-                <div className="text-[9px] text-white/45 font-medium mt-0.5">Total Updates</div>
-              </div>
-              <div className="bg-emerald-500/8 rounded-[12px] p-2.5 border border-emerald-500/15">
-                <div className="text-[18px] font-bold text-emerald-400 leading-tight">{onTrackCount} <span className="text-[11px] font-semibold text-emerald-400/60">({onTrackPct}%)</span></div>
-                <div className="text-[9px] text-emerald-400/60 font-medium mt-0.5">On Track</div>
-              </div>
-              <div className="bg-red-500/8 rounded-[12px] p-2.5 border border-red-500/15">
-                <div className="text-[18px] font-bold text-red-400 leading-tight">{delayedCount} <span className="text-[11px] font-semibold text-red-400/60">({delayedPct}%)</span></div>
-                <div className="text-[9px] text-red-400/60 font-medium mt-0.5">Delayed</div>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              <div className="bg-amber-500/8 rounded-[12px] p-2.5 border border-amber-500/15">
-                <div className="text-[18px] font-bold text-amber-400 leading-tight">{openIssues.length}</div>
-                <div className="text-[9px] text-amber-400/60 font-medium mt-0.5">Issues Raised</div>
-              </div>
-              <div className="bg-white/[0.03] rounded-[12px] p-2.5 border border-white/[0.04]">
-                <div className="text-[18px] font-bold text-white leading-tight">{totalPhotos}</div>
-                <div className="text-[9px] text-white/45 font-medium mt-0.5">Photos</div>
-              </div>
-              <div className="bg-white/[0.03] rounded-[12px] p-2.5 border border-white/[0.04]">
-                <div className="text-[18px] font-bold text-white leading-tight">18</div>
-                <div className="text-[9px] text-white/45 font-medium mt-0.5">Documents</div>
-              </div>
-            </div>
-            <button type="button" className="mt-3 text-[11px] text-[#0EA5E9] hover:text-[#0EA5E9]/70 flex items-center gap-1 transition-colors font-medium">
-              View Full Summary <ArrowRight className="h-3 w-3" />
-            </button>
-          </div>
+          {/* Update Summary removed for Site Engineer view */}
 
           {/* Card 2 — Pending Approvals */}
-          <div className="rounded-[16px] border border-white/[0.05] bg-[rgba(6,10,18,0.85)] p-4">
+          {userRole !== "SITE_ENGINEER" && (
+            <div className="rounded-[16px] border border-white/[0.05] bg-[rgba(6,10,18,0.85)] p-4">
             <div className="flex items-center justify-between mb-1">
               <h4 className="text-[13px] font-bold text-white">Pending Approvals</h4>
               <button type="button" className="text-[11px] text-[#0EA5E9] hover:text-[#0EA5E9]/70 transition-colors font-medium">
@@ -744,10 +907,76 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
                 </div>
               ))}
             </div>
-          </div>
+            </div>
+          )}
+
+          {userRole !== "SITE_ENGINEER" && (
+            <div className="rounded-[16px] border border-white/[0.05] bg-[rgba(6,10,18,0.85)] p-4">
+              <div className="mb-1 flex items-center justify-between">
+                <h4 className="text-[13px] font-bold text-white">Crew & Equipment Requests</h4>
+                <span className="text-[10px] font-semibold text-[#0EA5E9]">{requestSummaries.length}</span>
+              </div>
+              <p className="mb-3 text-[10px] text-white/35">
+                Latest saved activity resource requests
+              </p>
+              {requestSummariesLoading ? (
+                <p className="text-[11px] text-white/45">Loading requests...</p>
+              ) : requestSummaries.length === 0 ? (
+                <p className="text-[11px] text-white/45">No crew or equipment requests yet</p>
+              ) : (
+                <div className="max-h-72 space-y-2 overflow-y-auto pr-1 ue-scroll">
+                  {requestSummaries.map((summary, idx) => {
+                    const color = getActivityColor(idx + 5)
+                    const crewTotal = getCrewRequestTotal(summary.crew)
+                    const latestEquipment = summary.equipment[0]
+                    return (
+                      <div key={summary.activityId} className="rounded-[12px] border border-white/[0.04] bg-white/[0.025] px-3 py-2.5">
+                        <div className="flex items-start gap-2">
+                          <div
+                            className="mt-1 h-2 w-2 shrink-0 rounded-full"
+                            style={{ background: color, boxShadow: `0 0 6px ${color}55` }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[11px] font-semibold text-white/90">{summary.activityName}</p>
+                            {summary.crew?.requestedByName || latestEquipment?.requestedByName ? (
+                              <p className="mt-0.5 text-[9px] text-white/30">
+                                Requested by {summary.crew?.requestedByName || latestEquipment?.requestedByName}
+                              </p>
+                            ) : null}
+                            {summary.crew?.requestNotes ? (
+                              <p className="mt-1 text-[10px] leading-relaxed text-white/55">
+                                {summary.crew.requestNotes}
+                              </p>
+                            ) : null}
+                            {crewTotal > 0 ? (
+                              <p className="mt-1 text-[10px] leading-relaxed text-white/45">
+                                Crew: {getCrewRequestLabel(summary.crew)}
+                              </p>
+                            ) : null}
+                            {latestEquipment ? (
+                              <p className="mt-1 text-[10px] leading-relaxed text-white/45">
+                                Equipment: {latestEquipment.details || "Equipment request"}
+                                {latestEquipment.quantity ? ` (${latestEquipment.quantity})` : ""}
+                              </p>
+                            ) : null}
+                            {summary.equipment.length > 1 ? (
+                              <p className="mt-1 text-[9px] font-semibold text-[#0EA5E9]/80">
+                                +{summary.equipment.length - 1} more equipment request{summary.equipment.length > 2 ? "s" : ""}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Card 3 — Missing Updates */}
-          <div className="rounded-[16px] border border-white/[0.05] bg-[rgba(6,10,18,0.85)] p-4">
+          {userRole !== "SITE_ENGINEER" && (
+            <div className="rounded-[16px] border border-white/[0.05] bg-[rgba(6,10,18,0.85)] p-4">
             <div className="flex items-center justify-between mb-1">
               <h4 className="text-[13px] font-bold text-white">Missing Updates</h4>
               <button type="button" className="text-[11px] text-[#0EA5E9] hover:text-[#0EA5E9]/70 transition-colors font-medium">
@@ -764,12 +993,7 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
                 const days = daysArr[idx % daysArr.length]
                 return (
                   <div key={activity.zoneID} className="flex items-center gap-2.5 py-2 px-2.5 rounded-[10px] hover:bg-white/[0.03] transition-colors group cursor-pointer">
-                    <div
-                      className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[9px] font-bold text-white"
-                      style={{ backgroundColor: color }}
-                    >
-                      {activity.name.charAt(0)}
-                    </div>
+                    {/* avatar removed from missing updates list */}
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] text-white/90 font-medium truncate">{activity.name} – {activity.markerLabel || "Zone"}</p>
                       <p className="text-[9px] text-white/30 mt-0.5">No update in {days} day{days !== 1 ? "s" : ""}</p>
@@ -788,7 +1012,8 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
             >
               Explore Activity Tracker <ArrowRight className="h-3 w-3" />
             </button>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
