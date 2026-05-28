@@ -253,12 +253,12 @@ export default function DashboardPage() {
           >
             <div className="h-full rounded-[calc(1.5rem-1px)] bg-linear-to-br from-rose-500 via-orange-500 to-amber-400 p-6 text-white shadow-lg transition-transform duration-200 group-hover:-translate-y-1">
               <div className="mb-10 flex items-center justify-between">
-                <Badge className="bg-white/20 text-white hover:bg-white/20">Reporting</Badge>
+                <Badge className="bg-white/20 text-white hover:bg-white/20">History</Badge>
                 <Camera className="h-5 w-5" />
               </div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">Primary Action</p>
-              <h3 className="mt-2 text-2xl font-bold leading-tight">Updates &amp; Evidence</h3>
-              <p className="mt-3 text-sm text-white/90">Post daily updates and upload on-site proof photos.</p>
+              <h3 className="mt-2 text-2xl font-bold leading-tight">History</h3>
+              <p className="mt-3 text-sm text-white/90">History of daily updates and uploaded on-site proof photos.</p>
             </div>
           </Link>
         </div>
