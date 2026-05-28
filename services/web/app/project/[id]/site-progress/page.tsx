@@ -369,7 +369,7 @@ export default function ActivityProgressPage() {
                 onClick={() => setActiveTab("updates")}
                 className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "updates" ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground"}`}
               >
-                Updates & Evidence
+                {canSeeAdvancedTabs ? "Updates" : "Updates & Evidence"}
               </button>
               <button
                 onClick={() => setActiveTab("issues")}
@@ -443,7 +443,7 @@ export default function ActivityProgressPage() {
         {(!hasFocusedView || isUpdatesFocus) && (
           <TabsContent value="updates" className={hasFocusedView ? "mt-0" : "mt-4"}>
           <div className="scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-            <UpdatesEvidenceTab activities={activities} subtasksByActivity={subtasksByActivity} />
+            <UpdatesEvidenceTab projectId={projectId} activities={activities} subtasksByActivity={subtasksByActivity} />
           </div>
           </TabsContent>
         )}

@@ -114,6 +114,7 @@ export function CrewMachineRequestDialog({
   const [crewLoading, setCrewLoading] = useState(false)
   const [crewSubmitting, setCrewSubmitting] = useState(false)
   const [crewError, setCrewError] = useState<string | null>(null)
+  const [crewNotes, setCrewNotes] = useState("")
   const [machineDetails, setMachineDetails] = useState("")
   const [equipmentQuantities, setEquipmentQuantities] = useState<Record<string, number>>(() =>
     EQUIPMENT_TYPES.reduce((acc, type) => {
@@ -151,10 +152,12 @@ export function CrewMachineRequestDialog({
         const data = await res.json()
         if (!active) return
         setCrewRequest(normalizeCrewRequest(data?.requirements))
+        setCrewNotes(typeof data?.requirements?.requestNotes === "string" ? data.requirements.requestNotes : "")
       } catch (error: any) {
         if (!active) return
         setCrewError(error?.message ?? "Failed to load crew request")
         setCrewRequest(createEmptyCrewRequest())
+        setCrewNotes("")
       } finally {
         if (active) setCrewLoading(false)
       }
@@ -186,7 +189,7 @@ export function CrewMachineRequestDialog({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workerRequirements: crewRequest }),
+          body: JSON.stringify({ workerRequirements: crewRequest, requestNotes: crewNotes.trim() }),
         }
       )
 
@@ -291,6 +294,17 @@ export function CrewMachineRequestDialog({
                   />
                 </div>
               ))}
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <Label htmlFor="crew-notes">Crew request notes</Label>
+              <Textarea
+                id="crew-notes"
+                value={crewNotes}
+                onChange={(event) => setCrewNotes(event.target.value)}
+                placeholder="Add shift, timing, priority, or special skill requirements"
+                rows={4}
+              />
             </div>
             <Separator />
             <div className="flex items-center justify-between text-sm text-muted-foreground">

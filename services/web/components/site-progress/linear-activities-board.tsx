@@ -53,7 +53,23 @@ type CrewRequirementSummary = {
   electricians?: number
   general_labors?: number
   site_engineers?: number
+  requestNotes?: string | null
+  requestedByName?: string | null
+  createdAt?: string | null
 }
+
+type CrewRequirementCountKey =
+  | "tower_crane_operators"
+  | "excavator_operators"
+  | "crawler_crane_operators"
+  | "tipper_drivers"
+  | "surveyors"
+  | "masons"
+  | "carpenters"
+  | "steel_fixers"
+  | "electricians"
+  | "general_labors"
+  | "site_engineers"
 
 type EquipmentRequestSummary = {
   id?: number
@@ -62,9 +78,10 @@ type EquipmentRequestSummary = {
   details?: string | null
   quantity?: number | null
   created_at?: string | null
+  requestedByName?: string | null
 }
 
-const CREW_REQUEST_FIELDS: Array<{ key: keyof Omit<CrewRequirementSummary, "id" | "activityId">; label: string }> = [
+const CREW_REQUEST_FIELDS: Array<{ key: CrewRequirementCountKey; label: string }> = [
   { key: "site_engineers", label: "Site Engineers" },
   { key: "surveyors", label: "Surveyors" },
   { key: "tower_crane_operators", label: "Tower Crane Operators" },
@@ -744,7 +761,15 @@ function ActivityRow({
                 </div>
               ) : crewRequestSummary ? (
                 <div className="rounded-xl bg-background/80 px-2.5 py-2">
-                  <p className="mb-2 text-xs font-semibold text-foreground">Saved Crew Request</p>
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-foreground">Saved Crew Request</p>
+                    {crewRequestSummary.requestedByName ? (
+                      <span className="text-[10px] text-muted-foreground">By {crewRequestSummary.requestedByName}</span>
+                    ) : null}
+                  </div>
+                  {crewRequestSummary.requestNotes ? (
+                    <p className="mb-2 text-xs leading-relaxed text-muted-foreground">{crewRequestSummary.requestNotes}</p>
+                  ) : null}
                   <div className="space-y-1.5">
                     {CREW_REQUEST_FIELDS.map((field) => {
                       const value = crewRequestSummary[field.key] ?? 0
@@ -778,6 +803,9 @@ function ActivityRow({
                           <p className="min-w-0 text-xs font-medium text-foreground wrap-break-word">{request.details || "Equipment request"}</p>
                           {request.quantity ? <span className="shrink-0 text-xs font-semibold text-foreground">Qty {request.quantity}</span> : null}
                         </div>
+                        {request.requestedByName ? (
+                          <p className="mt-1 text-[10px] text-muted-foreground">By {request.requestedByName}</p>
+                        ) : null}
                         {request.created_at ? (
                           <p className="mt-1 text-[10px] text-muted-foreground">
                             {new Date(request.created_at).toLocaleDateString("en-US", {
@@ -1197,8 +1225,13 @@ function ActivityRow({
             <div className="rounded-md border border-border/60 bg-background/70 px-3 py-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-foreground">Saved Crew Request</p>
-                <span className="text-[10px] text-muted-foreground">activity_worker_requirements</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {crewRequestSummary.requestedByName ? `By ${crewRequestSummary.requestedByName}` : "activity_worker_requirements"}
+                </span>
               </div>
+              {crewRequestSummary.requestNotes ? (
+                <p className="text-xs leading-relaxed text-muted-foreground">{crewRequestSummary.requestNotes}</p>
+              ) : null}
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {CREW_REQUEST_FIELDS.map((field) => {
                   const value = crewRequestSummary[field.key] ?? 0
@@ -1238,6 +1271,9 @@ function ActivityRow({
                       <p className="text-xs font-medium text-foreground wrap-break-word">
                         {request.details || "Equipment request"}
                       </p>
+                      {request.requestedByName ? (
+                        <p className="text-[10px] text-muted-foreground">By {request.requestedByName}</p>
+                      ) : null}
                       {request.created_at ? (
                         <p className="text-[10px] text-muted-foreground">
                           {new Date(request.created_at).toLocaleDateString("en-US", {
