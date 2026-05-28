@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 
 interface UpdatesEvidenceTabProps {
+  projectId: number
   activities: Activity[]
   subtasksByActivity: Record<number, Subtask[]>
 }
@@ -47,6 +48,71 @@ interface UpdateEntry {
   commentCount: number
   attachmentCount: number
 }
+
+type CrewRequirementSummary = {
+  id?: number
+  activityId?: number
+  tower_crane_operators?: number
+  excavator_operators?: number
+  crawler_crane_operators?: number
+  tipper_drivers?: number
+  surveyors?: number
+  masons?: number
+  carpenters?: number
+  steel_fixers?: number
+  electricians?: number
+  general_labors?: number
+  site_engineers?: number
+  requestNotes?: string | null
+  requestedBy?: number | null
+  requestedByName?: string | null
+  createdAt?: string | null
+}
+
+type CrewRequirementCountKey =
+  | "tower_crane_operators"
+  | "excavator_operators"
+  | "crawler_crane_operators"
+  | "tipper_drivers"
+  | "surveyors"
+  | "masons"
+  | "carpenters"
+  | "steel_fixers"
+  | "electricians"
+  | "general_labors"
+  | "site_engineers"
+
+type EquipmentRequestSummary = {
+  id?: number
+  activity_id?: number
+  details?: string | null
+  quantity?: number | null
+  created_at?: string | null
+  requested_by?: number | null
+  requestedBy?: number | null
+  requestedByName?: string | null
+}
+
+type ActivityRequestSummary = {
+  activityId: number
+  activityName: string
+  crew: CrewRequirementSummary | null
+  equipment: EquipmentRequestSummary[]
+}
+
+const CREW_REQUEST_FIELDS: Array<{ key: CrewRequirementCountKey; label: string }> = [
+  { key: "site_engineers", label: "Site Engineers" },
+  { key: "surveyors", label: "Surveyors" },
+  { key: "tower_crane_operators", label: "Tower Crane Operators" },
+  { key: "excavator_operators", label: "Excavator Operators" },
+  { key: "crawler_crane_operators", label: "Crawler Crane Operators" },
+  { key: "tipper_drivers", label: "Tipper Drivers" },
+  { key: "masons", label: "Masons" },
+  { key: "carpenters", label: "Carpenters" },
+  { key: "steel_fixers", label: "Steel Fixers" },
+  { key: "electricians", label: "Electricians" },
+  { key: "general_labors", label: "General Labors" },
+]
 
 const ACTIVITY_COLORS: string[] = [
   "#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#06b6d4", "#84cc16", "#ec4899", "#6366f1"
@@ -260,6 +326,85 @@ function getTagStyles(type: Tag["type"]): string {
   }
 }
 
+function getCrewRequestTotal(crew: CrewRequirementSummary | null) {
+  if (!crew) return 0
+  return CREW_REQUEST_FIELDS.reduce((total, field) => total + Math.max(0, Number(crew[field.key] ?? 0)), 0)
+}
+
+function getCrewRequestLabel(crew: CrewRequirementSummary | null) {
+  if (!crew) return "No crew request"
+  const parts = CREW_REQUEST_FIELDS
+    .map((field) => {
+      const value = Number(crew[field.key] ?? 0)
+      return value > 0 ? `${field.label}: ${value}` : null
+    })
+    .filter(Boolean)
+
+  return parts.length > 0 ? parts.join(", ") : "No crew request"
+}
+
+function buildRequestEntries(requests: ActivityRequestSummary[]): UpdateEntry[] {
+  const now = new Date().toISOString()
+  const entries: UpdateEntry[] = []
+
+  for (const summary of requests) {
+    const crewTotal = getCrewRequestTotal(summary.crew)
+    if (crewTotal > 0) {
+      const time = summary.crew?.createdAt || now
+      entries.push({
+        id: `crew-request-${summary.activityId}`,
+        time,
+        timeLabel: formatTime(time),
+        author: summary.crew?.requestedByName || "Resource Request",
+        role: "Crew Request",
+        activityId: summary.activityId,
+        activityName: summary.activityName,
+        zone: "Activity Request",
+        category: "Crew",
+        status: "on-track",
+        progressDelta: null,
+        description: summary.crew?.requestNotes?.trim()
+          ? `${summary.crew.requestNotes.trim()}\n${getCrewRequestLabel(summary.crew)}`
+          : getCrewRequestLabel(summary.crew),
+        images: [],
+        tags: [{ label: `${crewTotal} workers requested`, type: "info" }],
+        commentCount: 0,
+        attachmentCount: 0,
+      })
+    }
+
+    for (const request of summary.equipment) {
+      const time = request.created_at || now
+      entries.push({
+        id: `equipment-request-${summary.activityId}-${request.id ?? time}`,
+        time,
+        timeLabel: formatTime(time),
+        author: request.requestedByName || "Resource Request",
+        role: "Equipment Request",
+        activityId: summary.activityId,
+        activityName: summary.activityName,
+        zone: "Activity Request",
+        category: "Equipment",
+        status: "on-track",
+        progressDelta: null,
+        description: request.details || "Equipment request",
+        images: [],
+        tags: request.quantity
+          ? [{ label: `${request.quantity} equipment requested`, type: "info" }]
+          : [{ label: "Equipment requested", type: "info" }],
+        commentCount: 0,
+        attachmentCount: 0,
+      })
+    }
+  }
+
+  return entries
+}
+
+function isSameUserName(a: string | null | undefined, b: string | null | undefined) {
+  return !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
 function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEntry; isLatest?: boolean; onImageClick?: (src: string) => void }) {
   const avatarColor = ACTIVITY_COLORS[entry.activityId % ACTIVITY_COLORS.length]
   const maxVisibleImages = 5
@@ -339,7 +484,7 @@ function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEn
         </div>
 
         {/* Description */}
-        <p className="text-[13px] sm:text-[14px] leading-[1.7] text-white/78 sm:max-w-145 mb-3">{entry.description}</p>
+        <p className="whitespace-pre-line text-[13px] sm:text-[14px] leading-[1.7] text-white/78 sm:max-w-145 mb-3">{entry.description}</p>
 
         {/* Metadata chips */}
         {entry.tags.length > 0 && (
@@ -398,13 +543,15 @@ function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEn
   )
 }
 
-export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEvidenceTabProps) {
+export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }: UpdatesEvidenceTabProps) {
   const viewMode: "day" = "day"
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [activitySearch, setActivitySearch] = useState("")
   const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(0)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
+  const [requestSummaries, setRequestSummaries] = useState<ActivityRequestSummary[]>([])
+  const [requestSummariesLoading, setRequestSummariesLoading] = useState(false)
   const DAYS_PER_PAGE = 5
 
   useEffect(() => {
@@ -429,12 +576,85 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
 
   const { userName, userRole } = useProjectContext()
 
-  const entries = useMemo(() => {
-    if (userRole === "SITE_ENGINEER" && userName) {
-      return allEntries.filter((e) => e.author === userName)
+  useEffect(() => {
+    if (activities.length === 0) {
+      setRequestSummaries([])
+      return
     }
-    return allEntries
-  }, [allEntries, userName, userRole])
+
+    let active = true
+    const loadRequests = async () => {
+      try {
+        setRequestSummariesLoading(true)
+        const summaries: ActivityRequestSummary[] = await Promise.all(
+          activities.map(async (activity) => {
+            const [crewRes, equipmentRes] = await Promise.all([
+              fetch(`/api/project/${projectId}/activity/${activity.zoneID}/worker-requirements`, { cache: "no-store" }),
+              fetch(`/api/project/${projectId}/activity/${activity.zoneID}/equipment-requests`, { cache: "no-store" }),
+            ])
+            const [crewData, equipmentData] = await Promise.all([
+              crewRes.json().catch(() => null),
+              equipmentRes.json().catch(() => null),
+            ])
+
+            return {
+              activityId: activity.zoneID,
+              activityName: activity.name,
+              crew: crewData?.requirements ?? null,
+              equipment: Array.isArray(equipmentData?.requests)
+                ? (equipmentData.requests as EquipmentRequestSummary[])
+                : [],
+            }
+          })
+        )
+
+        if (!active) return
+        const visibleSummaries = summaries
+          .map((summary) => {
+            if (userRole !== "SITE_ENGINEER") return summary
+
+            const crewBelongsToUser = isSameUserName(summary.crew?.requestedByName, userName)
+            const equipmentForUser = summary.equipment.filter((request) =>
+              isSameUserName(request.requestedByName, userName)
+            )
+
+            return {
+              ...summary,
+              crew: crewBelongsToUser ? summary.crew : null,
+              equipment: equipmentForUser,
+            }
+          })
+          .filter((summary) => getCrewRequestTotal(summary.crew) > 0 || summary.equipment.length > 0)
+
+        setRequestSummaries(visibleSummaries)
+      } catch (error) {
+        if (!active) return
+        console.error("Failed to load activity requests", error)
+        setRequestSummaries([])
+      } finally {
+        if (active) setRequestSummariesLoading(false)
+      }
+    }
+
+    void loadRequests()
+
+    return () => {
+      active = false
+    }
+  }, [activities, projectId, userName, userRole])
+
+  const entries = useMemo(() => {
+    const requestEntries = buildRequestEntries(requestSummaries)
+    if (userRole === "SITE_ENGINEER" && userName) {
+      return [
+        ...allEntries.filter((e) => e.author === userName),
+        ...requestEntries,
+      ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+    }
+    return [...allEntries, ...requestEntries].sort(
+      (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
+    )
+  }, [allEntries, requestSummaries, userName, userRole])
 
   const groupedByDate = useMemo(() => groupByDate(entries), [entries])
   const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a))
@@ -687,6 +907,70 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
                 </div>
               ))}
             </div>
+            </div>
+          )}
+
+          {userRole !== "SITE_ENGINEER" && (
+            <div className="rounded-[16px] border border-white/[0.05] bg-[rgba(6,10,18,0.85)] p-4">
+              <div className="mb-1 flex items-center justify-between">
+                <h4 className="text-[13px] font-bold text-white">Crew & Equipment Requests</h4>
+                <span className="text-[10px] font-semibold text-[#0EA5E9]">{requestSummaries.length}</span>
+              </div>
+              <p className="mb-3 text-[10px] text-white/35">
+                Latest saved activity resource requests
+              </p>
+              {requestSummariesLoading ? (
+                <p className="text-[11px] text-white/45">Loading requests...</p>
+              ) : requestSummaries.length === 0 ? (
+                <p className="text-[11px] text-white/45">No crew or equipment requests yet</p>
+              ) : (
+                <div className="max-h-72 space-y-2 overflow-y-auto pr-1 ue-scroll">
+                  {requestSummaries.map((summary, idx) => {
+                    const color = getActivityColor(idx + 5)
+                    const crewTotal = getCrewRequestTotal(summary.crew)
+                    const latestEquipment = summary.equipment[0]
+                    return (
+                      <div key={summary.activityId} className="rounded-[12px] border border-white/[0.04] bg-white/[0.025] px-3 py-2.5">
+                        <div className="flex items-start gap-2">
+                          <div
+                            className="mt-1 h-2 w-2 shrink-0 rounded-full"
+                            style={{ background: color, boxShadow: `0 0 6px ${color}55` }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[11px] font-semibold text-white/90">{summary.activityName}</p>
+                            {summary.crew?.requestedByName || latestEquipment?.requestedByName ? (
+                              <p className="mt-0.5 text-[9px] text-white/30">
+                                Requested by {summary.crew?.requestedByName || latestEquipment?.requestedByName}
+                              </p>
+                            ) : null}
+                            {summary.crew?.requestNotes ? (
+                              <p className="mt-1 text-[10px] leading-relaxed text-white/55">
+                                {summary.crew.requestNotes}
+                              </p>
+                            ) : null}
+                            {crewTotal > 0 ? (
+                              <p className="mt-1 text-[10px] leading-relaxed text-white/45">
+                                Crew: {getCrewRequestLabel(summary.crew)}
+                              </p>
+                            ) : null}
+                            {latestEquipment ? (
+                              <p className="mt-1 text-[10px] leading-relaxed text-white/45">
+                                Equipment: {latestEquipment.details || "Equipment request"}
+                                {latestEquipment.quantity ? ` (${latestEquipment.quantity})` : ""}
+                              </p>
+                            ) : null}
+                            {summary.equipment.length > 1 ? (
+                              <p className="mt-1 text-[9px] font-semibold text-[#0EA5E9]/80">
+                                +{summary.equipment.length - 1} more equipment request{summary.equipment.length > 2 ? "s" : ""}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
 
