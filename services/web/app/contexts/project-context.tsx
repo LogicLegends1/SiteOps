@@ -26,6 +26,7 @@ export type Project = {
 export const ProjectContext = createContext<{ 
   project: Project | null
   userName: string
+  userRole: string | null
 } | undefined>(undefined)
 
 export function useProjectContext() {

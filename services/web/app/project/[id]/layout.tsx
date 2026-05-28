@@ -357,7 +357,7 @@ export default function ProjectLayout({
           <ThemeToggle />
         </header>
         <main className="flex-1 overflow-auto p-3 md:p-6">
-          <ProjectContext.Provider value={{ project, userName }}>
+          <ProjectContext.Provider value={{ project, userName, userRole }}>
             {children}
           </ProjectContext.Provider>
         </main>

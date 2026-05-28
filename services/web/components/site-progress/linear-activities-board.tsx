@@ -132,7 +132,7 @@ function TableHeader() {
   return (
     <div
       className={cn(
-        "grid items-center gap-3 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border bg-secondary/20 shrink-0 min-w-240",
+        "hidden md:grid items-center gap-3 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border bg-secondary/20 shrink-0 min-w-240",
         COL_GRID
       )}
     >
@@ -196,13 +196,152 @@ function ActivityRow({
     <div
       id={`activity-row-${activity.zoneID}`}
       className={cn(
-        "group/row border-b border-border/50 last:border-0 min-w-240",
+        "group/row border-b border-border/50 last:border-0 w-full min-w-0 md:min-w-240",
         isSelected && "bg-primary/5 border-l-2 border-primary"
       )}
     >
+      <div className="md:hidden px-3 py-3">
+        <div className="w-full rounded-2xl border border-border/70 bg-card shadow-sm overflow-hidden">
+          <div
+            className={cn(
+              "px-3 py-3 border-l-4",
+              isSelected ? "border-l-primary bg-primary/5" : "border-l-border"
+            )}
+          >
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleExpand()
+              }}
+              className="flex w-full min-w-0 items-start gap-2 text-left"
+            >
+              <span className="mt-0.5 shrink-0">{getStatusIcon(activity.status)}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold leading-tight text-foreground wrap-break-word">
+                  {activity.name}
+                </span>
+                <span className="mt-0.5 block text-[10px] font-mono text-muted-foreground/60 wrap-break-word">
+                  {getActivityId(activity)}
+                </span>
+              </span>
+            </button>
+
+            <div className="mt-3 flex w-full items-center gap-2">
+              <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-secondary/60">
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full transition-all"
+                  style={{
+                    width: `${progress}%`,
+                    background: progress === 100 ? "#10b981" : isDelayed ? "#f59e0b" : "#3b82f6",
+                  }}
+                />
+              </div>
+              <span
+                className="w-11 shrink-0 text-right text-xs font-semibold"
+                style={{ color: progress === 100 ? "#10b981" : isDelayed ? "#f59e0b" : undefined }}
+              >
+                {progress}%
+              </span>
+            </div>
+
+            <div className="mt-3 space-y-1 text-[11px] text-muted-foreground">
+              <div className="flex min-w-0 items-center justify-between gap-3">
+                <span>Finish</span>
+                <span className="min-w-0 text-right wrap-break-word">
+                  {deadline ? formatDateShort(deadline) : "–"}
+                </span>
+              </div>
+              <div className="flex min-w-0 items-center justify-between gap-3">
+                <span>Engineer</span>
+                <span className="min-w-0 text-right wrap-break-word">{engineerName ?? "–"}</span>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              size="sm"
+              className="mt-3 h-9 w-full rounded-xl text-xs"
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleExpand()
+              }}
+            >
+              {isExpanded ? "Hide updates" : "Update activity"}
+            </Button>
+
+            {track === "Behind" && (
+              <div className="mt-3">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] h-5 px-2 bg-amber-500/10 text-amber-500 border-amber-500/30"
+                >
+                  Delayed
+                </Badge>
+              </div>
+            )}
+          </div>
+
+          {isExpanded && (
+            <div className="border-t border-border/60 px-3 py-3 bg-secondary/10 space-y-2">
+              {subtasks.length > 0 ? (
+                subtasks.map((subtask) => (
+                  <div
+                    key={subtask.id}
+                    className="flex w-full flex-col gap-2 rounded-xl bg-background/80 px-2.5 py-2"
+                  >
+                    <div className="flex items-start gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onToggleSubtask?.(activity.zoneID, subtask.id)
+                        }}
+                        className={cn(
+                          "mt-0.5 h-4 w-4 rounded-full border-2 shrink-0 transition-all",
+                          subtask.completed
+                            ? "bg-emerald-400 border-emerald-400"
+                            : "border-muted-foreground/40"
+                        )}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className={cn(
+                          "text-xs font-medium wrap-break-word",
+                          subtask.completed ? "text-muted-foreground line-through" : "text-foreground"
+                        )}>
+                          {subtask.title}
+                        </p>
+                        {subtask.dueDate && (
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">
+                            Due {new Date(subtask.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {onSubtaskUpdate && (
+                      <SubtaskProgressModal
+                        subtask={subtask}
+                        onSubmit={(desc, urls) => onSubtaskUpdate(activity.zoneID, subtask.id, desc, urls)}
+                      />
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="w-full rounded-xl border border-dashed border-border/60 bg-background/70 px-3 py-3">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <ListTodo className="h-3.5 w-3.5" />
+                    No subtasks yet
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div
         className={cn(
-          "grid items-center gap-3 px-3 py-2.5 transition-colors hover:bg-secondary/20",
+          "hidden md:grid items-center gap-3 px-3 py-2.5 transition-colors hover:bg-secondary/20",
           COL_GRID
         )}
       >
@@ -521,8 +660,8 @@ export function LinearActivitiesBoard({
   return (
     <div className="flex flex-col h-full bg-card rounded-none overflow-hidden">
       {/* Toolbar */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col gap-3 px-4 py-3 border-b border-border shrink-0 md:flex-row md:items-center">
+        <div className="relative w-full md:flex-1 md:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder="Search activities..."
@@ -531,14 +670,14 @@ export function LinearActivitiesBoard({
             className="pl-9 h-8 text-sm bg-secondary/20"
           />
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex w-full flex-wrap items-center gap-1.5 md:w-auto">
           {(["all", "on-track", "behind", "completed"] as FilterType[]).map((f) => (
             <Button
               key={f}
               variant={filter === f ? "secondary" : "ghost"}
               size="sm"
               className={cn(
-                "h-7 text-xs px-2.5",
+                "h-7 text-xs px-2.5 shrink-0 max-w-full",
                 filter === f && "bg-secondary text-foreground"
               )}
               onClick={() => setFilter(f)}
@@ -553,9 +692,9 @@ export function LinearActivitiesBoard({
             </Button>
           ))}
         </div>
-        <div className="flex-1" />
+        <div className="hidden md:flex-1 md:block" />
         {onAddActivity && (
-          <Button size="sm" className="h-8 gap-1.5 text-xs shrink-0" onClick={onAddActivity}>
+          <Button size="sm" className="h-8 gap-1.5 text-xs shrink-0 w-full md:w-auto" onClick={onAddActivity}>
             <Plus className="h-3.5 w-3.5" />
             New Activity
           </Button>
@@ -595,9 +734,9 @@ export function LinearActivitiesBoard({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-t border-border text-[11px] text-muted-foreground shrink-0">
-        <span>{filteredActivities.length} of {activities.length} activities</span>
-        <span>{filteredActivities.length} shown</span>
+      <div className="flex flex-col gap-1 px-4 py-2.5 border-t border-border text-[11px] text-muted-foreground shrink-0 sm:flex-row sm:items-center sm:justify-between">
+        <span className="truncate">{filteredActivities.length} of {activities.length} activities</span>
+        <span className="truncate">{filteredActivities.length} shown</span>
       </div>
     </div>
   )
