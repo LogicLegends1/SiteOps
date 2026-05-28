@@ -267,25 +267,25 @@ function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEn
   return (
     <div className="relative flex gap-0 mb-3">
       {/* Left gutter: timeline node + time */}
-      <div className="w-[72px] shrink-0 flex flex-col items-center relative">
+      <div className="w-12 sm:w-18 shrink-0 flex flex-col items-center relative">
         {/* Vertical line behind everything */}
         <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-white/20" />
         {/* Node */}
         {isLatest ? (
-          <div className="relative z-10 mt-5 w-[14px] h-[14px] rounded-full border-[2px] border-[#0EA5E9] bg-[#060b14] flex items-center justify-center">
-            <div className="w-[6px] h-[6px] rounded-full bg-[#0EA5E9]" />
+          <div className="relative z-10 mt-4 sm:mt-5 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border-2 border-[#0EA5E9] bg-[#060b14] flex items-center justify-center">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#0EA5E9]" />
           </div>
         ) : (
-          <div className="relative z-10 mt-5 w-[12px] h-[12px] rounded-full border-[2px] border-white/40 bg-[#060b14] flex items-center justify-center">
-            <div className="w-[4px] h-[4px] rounded-full bg-white/40" />
+          <div className="relative z-10 mt-4 sm:mt-5 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border-2 border-white/40 bg-[#060b14] flex items-center justify-center">
+            <div className="w-1 h-1 rounded-full bg-white/40" />
           </div>
         )}
         {/* Time label below node */}
-        <span className="text-[10px] font-medium text-white/40 mt-1.5 tabular-nums whitespace-nowrap">{entry.timeLabel}</span>
+        <span className="text-[9px] sm:text-[10px] font-medium text-white/40 mt-1.5 tabular-nums whitespace-nowrap">{entry.timeLabel}</span>
       </div>
 
       {/* Card */}
-      <div className="flex-1 min-w-0 rounded-[16px] border border-white/[0.04] bg-[rgba(6,11,20,0.85)] hover:bg-[rgba(8,14,26,0.92)] hover:border-white/[0.07] transition-all duration-200 p-5 group">
+      <div className="flex-1 min-w-0 rounded-[16px] border border-white/[0.04] bg-[rgba(6,11,20,0.85)] hover:bg-[rgba(8,14,26,0.92)] hover:border-white/[0.07] transition-all duration-200 p-4 sm:p-5 group">
         {/* Card header row */}
         <div className="flex items-start justify-between gap-3 mb-3">
           {/* Left: avatar + name */}
@@ -333,12 +333,12 @@ function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEn
 
         {/* Activity title + zone/category */}
         <div className="mb-2.5">
-          <div className="text-[17px] font-bold text-white leading-tight">{entry.activityName}</div>
+          <div className="text-[15px] sm:text-[17px] font-bold text-white leading-tight">{entry.activityName}</div>
           <div className="text-[13px] text-white/40 mt-0.5">{entry.zone} • {entry.category}</div>
         </div>
 
         {/* Description */}
-        <p className="text-[14px] leading-[1.7] text-white/[0.78] max-w-[580px] mb-3">{entry.description}</p>
+        <p className="text-[13px] sm:text-[14px] leading-[1.7] text-white/78 sm:max-w-145 mb-3">{entry.description}</p>
 
         {/* Metadata chips */}
         {entry.tags.length > 0 && (
@@ -365,7 +365,7 @@ function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEn
               <div
                 key={idx}
                 onClick={() => onImageClick?.(src)}
-                className="relative shrink-0 w-[100px] h-[68px] rounded-[10px] overflow-hidden border border-white/[0.06] cursor-pointer group/img"
+                className="relative shrink-0 w-21 h-14 sm:w-25 sm:h-17 rounded-[10px] overflow-hidden border border-white/6 cursor-pointer group/img"
               >
                 <img src={src} alt={`Evidence ${idx + 1}`} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-200" />
                 {idx === maxVisibleImages - 1 && extraImages > 0 && (
@@ -476,11 +476,11 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
     : ""
 
   return (
-    <div className="grid grid-cols-[220px_minmax(0,1fr)_280px] h-[calc(100vh-200px)] min-h-[600px] rounded-[20px] overflow-hidden bg-gradient-to-br from-[#02050B] via-[#040912] to-[#050B14] border border-white/[0.06]"
+    <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)_280px] h-auto min-h-[calc(100dvh-9rem)] md:h-[calc(100vh-200px)] md:min-h-150 rounded-[20px] overflow-hidden bg-linear-to-br from-[#02050B] via-[#040912] to-[#050B14] border border-white/6"
       style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03), 0 0 80px rgba(14,165,233,0.03)" }}
     >
       {/* ===== LEFT SIDEBAR ===== */}
-      <div className="border-r border-white/[0.06] flex flex-col shrink-0 bg-[rgba(5,8,15,0.92)] overflow-hidden">
+      <div className="border-b md:border-b-0 md:border-r border-white/6 flex flex-col shrink-0 bg-[rgba(5,8,15,0.92)] overflow-hidden">
         {/* Toggle */}
         <div className="p-4 pb-3 shrink-0">
           <div className="flex rounded-[12px] border border-white/[0.08] overflow-hidden bg-black/30">
@@ -605,7 +605,7 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
       </div>
 
       {/* ===== CENTER TIMELINE ===== */}
-      <div className="min-w-0 overflow-y-auto ue-scroll p-5 bg-[rgba(3,6,12,0.5)]">
+      <div className="min-w-0 overflow-y-auto ue-scroll p-3 sm:p-4 md:p-5 bg-[rgba(3,6,12,0.5)]">
         {visibleSortedDates.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-white/35 gap-3">
             <FileText className="h-12 w-12 opacity-15" />
@@ -666,7 +666,7 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
       </div>
 
       {/* ===== RIGHT SIDEBAR ===== */}
-      <div className="border-l border-white/[0.06] flex flex-col shrink-0 bg-[rgba(5,8,15,0.92)] overflow-hidden">
+      <div className="border-t md:border-t-0 md:border-l border-white/6 flex flex-col shrink-0 bg-[rgba(5,8,15,0.92)] overflow-hidden">
         <div className="p-4 space-y-4 overflow-y-auto ue-scroll flex-1">
 
           {/* Card 1 — Update Summary */}
