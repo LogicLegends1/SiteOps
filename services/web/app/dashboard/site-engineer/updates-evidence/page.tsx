@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Spinner } from "@/components/ui/spinner"
 
 type ProjectFromApi = {
   projectid: number
@@ -62,7 +63,10 @@ export default function SiteEngineerUpdatesEvidencePage() {
 
       {loading ? (
         <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">Loading assigned projects...</CardContent>
+          <CardContent className="flex items-center gap-3 p-6 text-sm text-muted-foreground">
+            <Spinner className="h-4 w-4" />
+            <span>Loading assigned projects...</span>
+          </CardContent>
         </Card>
       ) : error ? (
         <Card>

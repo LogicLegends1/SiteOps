@@ -14,6 +14,7 @@ import type { OnSiteMember } from "@/lib/site-team-types"
 import type { ActivityWorkersSummary } from "@/components/site-progress/leaflet-map"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { MapPin, LayoutList, FileText, AlertTriangle, X } from "lucide-react"
 import { createClient } from "@/lib/superbase"
 
@@ -50,14 +51,33 @@ function normalizeSubtasksByActivity(
   return result
 }
 
+function getInitialTab(focusedView: string | null, requestedTab: string | null) {
+  if (focusedView === "activity-tracker" || focusedView === "updates") {
+    return focusedView
+  }
+
+  if (
+    requestedTab === "map-view" ||
+    requestedTab === "activity-tracker" ||
+    requestedTab === "updates" ||
+    requestedTab === "issues"
+  ) {
+    return requestedTab
+  }
+
+  return "map-view"
+}
+
 export default function ActivityProgressPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const projectId = Number(params.id) || 1
   const focusedView = searchParams.get("focus")
+  const requestedTab = searchParams.get("tab")
   const isActivityFocus = focusedView === "activity-tracker"
   const isUpdatesFocus = focusedView === "updates"
   const hasFocusedView = isActivityFocus || isUpdatesFocus
+  const initialTab = getInitialTab(focusedView, requestedTab)
 
   const [activities, setActivities] = useState<Activity[]>([])
   const [project, setProject] = useState<Project | null>(null)
@@ -68,7 +88,7 @@ export default function ActivityProgressPage() {
   const [teamLoading, setTeamLoading] = useState(true)
   const [teamError, setTeamError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("map-view")
+  const [activeTab, setActiveTab] = useState(initialTab)
   const [showAddModal, setShowAddModal] = useState(false)
   const [activityWorkersCache, setActivityWorkersCache] = useState<Record<number, ActivityWorkersSummary>>({})
   const [activityWorkersDetail, setActivityWorkersDetail] = useState<Record<number, ActivityWorkerDetail[]>>({})
@@ -84,21 +104,6 @@ export default function ActivityProgressPage() {
   }, [activityWorkersDetail])
   const [detailsTab, setDetailsTab] = useState<string | undefined>(undefined)
   const canSeeAdvancedTabs = userRoleLoaded && userRole !== "SITE_ENGINEER"
-
-  useEffect(() => {
-    const requestedTab = searchParams.get("tab")
-    if (requestedTab === "activity-tracker" || requestedTab === "updates") {
-      setActiveTab(requestedTab)
-    }
-
-    if (focusedView === "activity-tracker") {
-      setActiveTab("activity-tracker")
-    }
-
-    if (focusedView === "updates") {
-      setActiveTab("updates")
-    }
-  }, [focusedView, searchParams])
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -313,6 +318,17 @@ export default function ActivityProgressPage() {
   const selectedSubtasks = selectedActivity
     ? subtasksByActivity[selectedActivity.zoneID] ?? []
     : []
+
+  if (loading && !project) {
+    return (
+      <div className="flex min-h-[calc(100dvh-9rem)] w-full items-center justify-center">
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-sm">
+          <Spinner className="h-5 w-5" />
+          <span className="text-sm text-muted-foreground">Loading site progress...</span>
+        </div>
+      </div>
+    )
+  }
 
 
   return (
