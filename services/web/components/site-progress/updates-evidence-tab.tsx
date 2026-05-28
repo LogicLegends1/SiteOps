@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import { useProjectContext } from "@/app/contexts/project-context"
 import { type Activity } from "@/lib/site-data"
 import { type Subtask } from "@/lib/subtasks-data"
 import { issues } from "@/lib/issues-data"
@@ -398,7 +399,7 @@ function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEn
 }
 
 export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEvidenceTabProps) {
-  const [viewMode, setViewMode] = useState<"day" | "activity">("day")
+  const viewMode: "day" = "day"
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [activitySearch, setActivitySearch] = useState("")
   const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null)
@@ -426,11 +427,20 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
     [activities, subtasksByActivity]
   )
 
-  const groupedByDate = useMemo(() => groupByDate(allEntries), [allEntries])
+  const { userName, userRole } = useProjectContext()
+
+  const entries = useMemo(() => {
+    if (userRole === "SITE_ENGINEER" && userName) {
+      return allEntries.filter((e) => e.author === userName)
+    }
+    return allEntries
+  }, [allEntries, userName, userRole])
+
+  const groupedByDate = useMemo(() => groupByDate(entries), [entries])
   const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a))
 
   const visibleEntries = useMemo(() => {
-    let filtered = allEntries
+    let filtered = entries
     if (viewMode === "day" && selectedDate) {
       filtered = groupedByDate[selectedDate] ?? []
     }
@@ -438,9 +448,9 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
       filtered = filtered.filter((e) => e.activityId === selectedActivityId)
     }
     return filtered
-  }, [allEntries, groupedByDate, selectedDate, selectedActivityId, viewMode])
+  }, [entries, groupedByDate, selectedDate, selectedActivityId])
 
-  useEffect(() => { setCurrentPage(0) }, [selectedDate, selectedActivityId, viewMode])
+  useEffect(() => { setCurrentPage(0) }, [selectedDate, selectedActivityId])
 
   const visibleGrouped = useMemo(() => groupByDate(visibleEntries), [visibleEntries])
   const visibleSortedDates = Object.keys(visibleGrouped).sort((a, b) => b.localeCompare(a))
@@ -450,22 +460,26 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
 
   const activityUpdateCounts = useMemo(() => {
     const counts: Record<number, number> = {}
-    for (const e of allEntries) counts[e.activityId] = (counts[e.activityId] ?? 0) + 1
+    for (const e of entries) counts[e.activityId] = (counts[e.activityId] ?? 0) + 1
     return counts
-  }, [allEntries])
+  }, [entries])
 
-  const filteredActivities = activities.filter(
-    (a) =>
-      activitySearch.trim() === "" ||
-      a.name.toLowerCase().includes(activitySearch.toLowerCase())
-  )
+  const filteredActivities = useMemo(() => {
+    const base = userRole === "SITE_ENGINEER"
+      ? activities.filter((a) => (activityUpdateCounts[a.zoneID] ?? 0) > 0)
+      : activities
 
-  const totalUpdates = allEntries.length
-  const onTrackCount = allEntries.filter((e) => e.status === "on-track").length
-  const delayedCount = allEntries.filter((e) => e.status === "delayed").length
-  const totalPhotos = allEntries.reduce((sum, e) => sum + e.images.length, 0)
+    return base.filter((a) =>
+      activitySearch.trim() === "" || a.name.toLowerCase().includes(activitySearch.toLowerCase())
+    )
+  }, [activities, activitySearch, activityUpdateCounts, userRole])
+
+  const totalUpdates = entries.length
+  const onTrackCount = entries.filter((e) => e.status === "on-track").length
+  const delayedCount = entries.filter((e) => e.status === "delayed").length
+  const totalPhotos = entries.reduce((sum, e) => sum + e.images.length, 0)
   const openIssues = issues.filter((i) => i.status !== "resolved")
-  const activitiesWithUpdates = new Set(allEntries.map((e) => e.activityId))
+  const activitiesWithUpdates = new Set(entries.map((e) => e.activityId))
   const missingActivities = activities.filter((a) => !activitiesWithUpdates.has(a.zoneID))
 
   const onTrackPct = totalUpdates > 0 ? Math.round((onTrackCount / totalUpdates) * 100) : 0
@@ -481,35 +495,7 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
     >
       {/* ===== LEFT SIDEBAR ===== */}
       <div className="border-b md:border-b-0 md:border-r border-border flex flex-col shrink-0 bg-muted/20 dark:bg-[rgba(5,8,15,0.92)] overflow-hidden">
-        {/* Toggle */}
-        <div className="p-4 pb-3 shrink-0">
-          <div className="flex rounded-[12px] border border-border overflow-hidden bg-muted/40 dark:bg-black/30">
-            <button
-              type="button"
-              onClick={() => { setViewMode("day"); setSelectedActivityId(null) }}
-              className={cn(
-                "flex-1 text-[12px] py-2.5 font-semibold transition-all duration-200",
-                viewMode === "day"
-                  ? "bg-[#0EA5E9] text-white shadow-[0_0_12px_rgba(14,165,233,0.3)]"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:text-white/45 dark:hover:text-white/70 dark:hover:bg-white/[0.04]"
-              )}
-            >
-              By Day
-            </button>
-            <button
-              type="button"
-              onClick={() => { setViewMode("activity"); setSelectedDate(null) }}
-              className={cn(
-                "flex-1 text-[12px] py-2.5 font-semibold transition-all duration-200 border-l border-border",
-                viewMode === "activity"
-                  ? "bg-[#0EA5E9] text-white shadow-[0_0_12px_rgba(14,165,233,0.3)]"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:text-white/45 dark:hover:text-white/70 dark:hover:bg-white/[0.04]"
-              )}
-            >
-              By Activity
-            </button>
-          </div>
-        </div>
+        <div className="p-4 pb-3 shrink-0" />
 
         <div className="flex-1 overflow-y-auto ue-scroll">
           {/* Date list — shown in By Day mode */}
@@ -581,12 +567,7 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
                           : "hover:bg-white/[0.03] border border-transparent"
                       )}
                     >
-                      <span
-                        className="w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
-                        style={{ backgroundColor: color }}
-                      >
-                        {activity.name.charAt(0)}
-                      </span>
+                      {/* avatar removed for compact activity list */}
                       <span className={cn("flex-1 text-[12px] truncate font-medium", isSelected ? "text-[#0EA5E9]" : "text-foreground")}>
                         {activity.name}
                       </span>
@@ -669,49 +650,11 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
       <div className="border-t md:border-t-0 md:border-l border-white/6 flex flex-col shrink-0 bg-[rgba(5,8,15,0.92)] overflow-hidden">
         <div className="p-4 space-y-4 overflow-y-auto ue-scroll flex-1">
 
-          {/* Card 1 — Update Summary */}
-          <div className="rounded-[16px] border border-white/[0.05] bg-[rgba(6,10,18,0.85)] p-4">
-            <div className="flex items-start justify-between mb-1">
-              <div>
-                <h4 className="text-[13px] font-bold text-white">Update Summary</h4>
-                <p className="text-[10px] text-white/35 mt-0.5">{dateRangeLabel}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2 mt-3">
-              <div className="bg-white/[0.03] rounded-[12px] p-2.5 border border-white/[0.04]">
-                <div className="text-[18px] font-bold text-white leading-tight">{totalUpdates}</div>
-                <div className="text-[9px] text-white/45 font-medium mt-0.5">Total Updates</div>
-              </div>
-              <div className="bg-emerald-500/8 rounded-[12px] p-2.5 border border-emerald-500/15">
-                <div className="text-[18px] font-bold text-emerald-400 leading-tight">{onTrackCount} <span className="text-[11px] font-semibold text-emerald-400/60">({onTrackPct}%)</span></div>
-                <div className="text-[9px] text-emerald-400/60 font-medium mt-0.5">On Track</div>
-              </div>
-              <div className="bg-red-500/8 rounded-[12px] p-2.5 border border-red-500/15">
-                <div className="text-[18px] font-bold text-red-400 leading-tight">{delayedCount} <span className="text-[11px] font-semibold text-red-400/60">({delayedPct}%)</span></div>
-                <div className="text-[9px] text-red-400/60 font-medium mt-0.5">Delayed</div>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              <div className="bg-amber-500/8 rounded-[12px] p-2.5 border border-amber-500/15">
-                <div className="text-[18px] font-bold text-amber-400 leading-tight">{openIssues.length}</div>
-                <div className="text-[9px] text-amber-400/60 font-medium mt-0.5">Issues Raised</div>
-              </div>
-              <div className="bg-white/[0.03] rounded-[12px] p-2.5 border border-white/[0.04]">
-                <div className="text-[18px] font-bold text-white leading-tight">{totalPhotos}</div>
-                <div className="text-[9px] text-white/45 font-medium mt-0.5">Photos</div>
-              </div>
-              <div className="bg-white/[0.03] rounded-[12px] p-2.5 border border-white/[0.04]">
-                <div className="text-[18px] font-bold text-white leading-tight">18</div>
-                <div className="text-[9px] text-white/45 font-medium mt-0.5">Documents</div>
-              </div>
-            </div>
-            <button type="button" className="mt-3 text-[11px] text-[#0EA5E9] hover:text-[#0EA5E9]/70 flex items-center gap-1 transition-colors font-medium">
-              View Full Summary <ArrowRight className="h-3 w-3" />
-            </button>
-          </div>
+          {/* Update Summary removed for Site Engineer view */}
 
           {/* Card 2 — Pending Approvals */}
-          <div className="rounded-[16px] border border-white/[0.05] bg-[rgba(6,10,18,0.85)] p-4">
+          {userRole !== "SITE_ENGINEER" && (
+            <div className="rounded-[16px] border border-white/[0.05] bg-[rgba(6,10,18,0.85)] p-4">
             <div className="flex items-center justify-between mb-1">
               <h4 className="text-[13px] font-bold text-white">Pending Approvals</h4>
               <button type="button" className="text-[11px] text-[#0EA5E9] hover:text-[#0EA5E9]/70 transition-colors font-medium">
@@ -744,10 +687,12 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
                 </div>
               ))}
             </div>
-          </div>
+            </div>
+          )}
 
           {/* Card 3 — Missing Updates */}
-          <div className="rounded-[16px] border border-white/[0.05] bg-[rgba(6,10,18,0.85)] p-4">
+          {userRole !== "SITE_ENGINEER" && (
+            <div className="rounded-[16px] border border-white/[0.05] bg-[rgba(6,10,18,0.85)] p-4">
             <div className="flex items-center justify-between mb-1">
               <h4 className="text-[13px] font-bold text-white">Missing Updates</h4>
               <button type="button" className="text-[11px] text-[#0EA5E9] hover:text-[#0EA5E9]/70 transition-colors font-medium">
@@ -764,12 +709,7 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
                 const days = daysArr[idx % daysArr.length]
                 return (
                   <div key={activity.zoneID} className="flex items-center gap-2.5 py-2 px-2.5 rounded-[10px] hover:bg-white/[0.03] transition-colors group cursor-pointer">
-                    <div
-                      className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[9px] font-bold text-white"
-                      style={{ backgroundColor: color }}
-                    >
-                      {activity.name.charAt(0)}
-                    </div>
+                    {/* avatar removed from missing updates list */}
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] text-white/90 font-medium truncate">{activity.name} – {activity.markerLabel || "Zone"}</p>
                       <p className="text-[9px] text-white/30 mt-0.5">No update in {days} day{days !== 1 ? "s" : ""}</p>
@@ -788,7 +728,8 @@ export function UpdatesEvidenceTab({ activities, subtasksByActivity }: UpdatesEv
             >
               Explore Activity Tracker <ArrowRight className="h-3 w-3" />
             </button>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
