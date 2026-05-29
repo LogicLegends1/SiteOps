@@ -236,55 +236,220 @@ function WeatherOverlay({ activityName }: { activityName: string }) {
   const forecast = useMemo(() => getWeatherForecast(), [])
 
   return (
-    <div className="absolute top-3 right-3 z-[500] pointer-events-none animate-in fade-in slide-in-from-top-2 duration-300">
-      <div className="bg-[rgba(15,23,42,0.92)] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-3 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-        <div className="flex items-center gap-2 mb-2.5 px-1">
-          <svg className="w-3.5 h-3.5 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <div className="absolute top-14 left-4 z-[400] pointer-events-none animate-in fade-in slide-in-from-left-2 duration-300">
+      <div className="bg-[rgba(15,23,42,0.92)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] min-w-[170px]">
+        <div className="flex items-center gap-1.5 mb-2 px-0.5">
+          <svg className="w-3 h-3 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
           </svg>
-          <span className="text-[11px] font-bold text-white/50 uppercase tracking-wider">Site Weather</span>
+          <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Site Weather</span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-1">
           {forecast.map((day, i) => (
             <div
               key={i}
               className={cn(
-                "flex flex-col items-center rounded-xl px-3.5 py-2.5 min-w-[82px] border transition-all",
+                "flex items-center gap-2 rounded-lg px-2 py-1.5 border transition-all",
                 i === 0
-                  ? "bg-gradient-to-b from-sky-500/15 to-sky-500/5 border-sky-500/20"
+                  ? "bg-gradient-to-r from-sky-500/15 to-sky-500/5 border-sky-500/20"
                   : "bg-white/[0.03] border-white/[0.06]"
               )}
             >
-              <span
-                className={cn(
-                  "text-[10px] font-bold uppercase tracking-wide mb-1",
-                  i === 0 ? "text-sky-400" : "text-white/40"
-                )}
-              >
-                {day.label}
-              </span>
-              <span className="text-[22px] leading-none mb-1">{day.icon}</span>
-              <span className="text-[15px] font-extrabold text-white leading-none mb-0.5">
-                {day.temp}
-              </span>
-              <span className="text-[10px] text-white/35 font-medium mb-1.5">
-                {day.high} / {day.low}
-              </span>
-              <span
-                className={cn(
-                  "text-[10px] font-semibold leading-tight",
-                  i === 0 ? "text-sky-300/80" : "text-white/45"
-                )}
-              >
-                {day.condition}
-              </span>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[9px] text-white/30">💨 {day.wind}</span>
+              <span className="text-[16px] leading-none">{day.icon}</span>
+              <div className="flex flex-col flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span
+                    className={cn(
+                      "text-[9px] font-bold uppercase tracking-wide",
+                      i === 0 ? "text-sky-400" : "text-white/40"
+                    )}
+                  >
+                    {day.label}
+                  </span>
+                  <span className="text-[11px] font-extrabold text-white leading-none">
+                    {day.temp}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span
+                    className={cn(
+                      "text-[9px] font-semibold",
+                      i === 0 ? "text-sky-300/80" : "text-white/45"
+                    )}
+                  >
+                    {day.condition}
+                  </span>
+                  <span className="text-[8px] text-white/30">💨{day.wind}</span>
+                </div>
               </div>
-              <span className="text-[9px] text-white/30">💧 {day.humidity}</span>
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Crew Breakdown Overlay ────────────────────────────────────────────────────
+
+function getCrewBreakdown(activity: Activity, activityWorkersCache?: Record<number, ActivityWorkersSummary>): { role: string; count: number }[] {
+  const workers = activityWorkersCache?.[activity.zoneID]
+  if (workers && Object.keys(workers.roleCounts).length > 0) {
+    return Object.entries(workers.roleCounts)
+      .filter(([, count]) => count > 0)
+      .map(([role, count]) => ({ role: capitalizeRole(role), count }))
+      .sort((a, b) => b.count - a.count)
+  }
+  // Fallback deterministic crew based on activity
+  const n = (activity.name || "").toLowerCase()
+  if (n.includes("excavat") || n.includes("earthwork") || n.includes("bulk earth")) {
+    return [{ role: "Excavator Operators", count: 2 }, { role: "General Laborers", count: 6 }, { role: "Site Engineers", count: 1 }, { role: "Tipper Drivers", count: 3 }]
+  } else if (n.includes("concrete") || n.includes("pcc") || n.includes("pour") || n.includes("footing")) {
+    return [{ role: "Masons", count: 4 }, { role: "General Laborers", count: 5 }, { role: "Site Engineers", count: 1 }, { role: "Steel Fixers", count: 2 }]
+  } else if (n.includes("rebar") || n.includes("reinforc")) {
+    return [{ role: "Steel Fixers", count: 4 }, { role: "Crane Operators", count: 1 }, { role: "General Laborers", count: 3 }, { role: "Site Engineers", count: 1 }]
+  } else if (n.includes("drain") || n.includes("pipe") || n.includes("utility")) {
+    return [{ role: "General Laborers", count: 4 }, { role: "Excavator Operators", count: 1 }, { role: "Site Engineers", count: 1 }]
+  } else if (n.includes("compact") || n.includes("sub-base") || n.includes("road")) {
+    return [{ role: "General Laborers", count: 5 }, { role: "Surveyors", count: 1 }, { role: "Site Engineers", count: 1 }]
+  }
+  return [{ role: "Site Engineers", count: 1 }, { role: "General Laborers", count: 4 }, { role: "Masons", count: 2 }]
+}
+
+function CrewBreakdownOverlay({ activity, activityWorkersCache }: { activity: Activity; activityWorkersCache?: Record<number, ActivityWorkersSummary> }) {
+  const crew = useMemo(() => getCrewBreakdown(activity, activityWorkersCache), [activity, activityWorkersCache])
+  const total = crew.reduce((sum, c) => sum + c.count, 0)
+
+  return (
+    <div className="absolute top-14 right-4 z-[400] pointer-events-none animate-in fade-in slide-in-from-right-2 duration-300">
+      <div className="bg-[rgba(15,23,42,0.92)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] min-w-[180px]">
+        <div className="flex items-center gap-1.5 mb-2 px-0.5">
+          <svg className="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Crew</span>
+          <span className="ml-auto text-[10px] font-bold text-emerald-400">{total}</span>
+        </div>
+        <div className="flex flex-col gap-1">
+          {crew.map((item, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]"
+            >
+              <span className="text-[10px] text-white/70 font-medium">{item.role}</span>
+              <span className="text-[11px] font-bold text-emerald-300 ml-3">{item.count}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Machinery & Assets Breakdown Overlay ──────────────────────────────────────
+
+function getMachineryBreakdown(activity: Activity): { name: string; count: number; type: "machinery" | "asset" }[] {
+  const n = (activity.name || "").toLowerCase()
+  if (n.includes("excavat") || n.includes("earthwork") || n.includes("bulk earth")) {
+    return [
+      { name: "Excavators", count: 2, type: "machinery" },
+      { name: "Tippers", count: 3, type: "machinery" },
+      { name: "Safety Barriers", count: 8, type: "asset" },
+    ]
+  } else if (n.includes("haul")) {
+    return [
+      { name: "Tippers", count: 4, type: "machinery" },
+      { name: "Loader", count: 1, type: "machinery" },
+      { name: "Fuel Bowser", count: 1, type: "asset" },
+    ]
+  } else if (n.includes("concrete") || n.includes("pcc") || n.includes("pour") || n.includes("footing")) {
+    return [
+      { name: "Concrete Mixer", count: 1, type: "machinery" },
+      { name: "Vibrators", count: 2, type: "machinery" },
+      { name: "Formwork Sets", count: 4, type: "asset" },
+    ]
+  } else if (n.includes("rebar") || n.includes("reinforc")) {
+    return [
+      { name: "Rebar Bender", count: 1, type: "machinery" },
+      { name: "Crawler Crane", count: 1, type: "machinery" },
+      { name: "Rebar Stock (tons)", count: 12, type: "asset" },
+    ]
+  } else if (n.includes("drain") || n.includes("pipe") || n.includes("utility")) {
+    return [
+      { name: "Excavator", count: 1, type: "machinery" },
+      { name: "Pipe Layer", count: 1, type: "machinery" },
+      { name: "Pipe Sections", count: 20, type: "asset" },
+    ]
+  } else if (n.includes("compact") || n.includes("sub-base") || n.includes("road")) {
+    return [
+      { name: "Roller", count: 1, type: "machinery" },
+      { name: "Graders", count: 2, type: "machinery" },
+      { name: "Water Bowser", count: 1, type: "asset" },
+    ]
+  } else if (n.includes("formation") || n.includes("grading") || n.includes("leveling")) {
+    return [
+      { name: "Grader", count: 1, type: "machinery" },
+      { name: "Roller", count: 1, type: "machinery" },
+      { name: "Survey Equipment", count: 2, type: "asset" },
+    ]
+  }
+  return [
+    { name: "General Equipment", count: 2, type: "machinery" },
+    { name: "Tool Kits", count: 3, type: "asset" },
+    { name: "Safety Gear Sets", count: 6, type: "asset" },
+  ]
+}
+
+function MachineryAssetsOverlay({ activity }: { activity: Activity }) {
+  const items = useMemo(() => getMachineryBreakdown(activity), [activity])
+  const machinery = items.filter((i) => i.type === "machinery")
+  const assets = items.filter((i) => i.type === "asset")
+
+  return (
+    <div className="absolute bottom-14 right-4 z-[400] pointer-events-none animate-in fade-in slide-in-from-right-2 duration-300">
+      <div className="bg-[rgba(15,23,42,0.92)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] min-w-[190px]">
+        <div className="flex items-center gap-1.5 mb-2 px-0.5">
+          <svg className="w-3 h-3 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+          </svg>
+          <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Machinery & Assets</span>
+        </div>
+        {machinery.length > 0 && (
+          <div className="mb-1.5">
+            <span className="text-[9px] font-semibold text-amber-400/70 uppercase tracking-wider px-2">Machinery</span>
+            <div className="flex flex-col gap-1 mt-1">
+              {machinery.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]"
+                >
+                  <span className="text-[10px] text-white/70 font-medium">{item.name}</span>
+                  <span className="text-[11px] font-bold text-amber-300 ml-3">{item.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {assets.length > 0 && (
+          <div>
+            <span className="text-[9px] font-semibold text-orange-400/70 uppercase tracking-wider px-2">Assets</span>
+            <div className="flex flex-col gap-1 mt-1">
+              {assets.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]"
+                >
+                  <span className="text-[10px] text-white/70 font-medium">{item.name}</span>
+                  <span className="text-[11px] font-bold text-orange-300 ml-3">{item.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -385,6 +550,22 @@ export function LeafletMap({
             clearTimeout(closeTimeoutRef.current)
             closeTimeoutRef.current = null
           }
+          // Pan map so popup appears dead center on screen
+          const map = mapRef.current!
+          const latlng = marker.getLatLng()
+          const mapSize = map.getSize()
+          // Popup extends ~200px above marker; offset marker below center by that amount
+          const popupHeight = 200
+          const targetContainerPoint = L.point(mapSize.x / 2, mapSize.y / 2 + popupHeight / 2)
+          const targetLatLng = map.containerPointToLatLng(targetContainerPoint)
+          const currentMarkerPoint = map.latLngToContainerPoint(latlng)
+          const dx = currentMarkerPoint.x - mapSize.x / 2
+          const dy = currentMarkerPoint.y - (mapSize.y / 2 + popupHeight / 2)
+          const currentCenter = map.getCenter()
+          const currentCenterPoint = map.latLngToContainerPoint(currentCenter)
+          const newCenterPoint = L.point(currentCenterPoint.x + dx, currentCenterPoint.y + dy)
+          const newCenter = map.containerPointToLatLng(newCenterPoint)
+          map.panTo(newCenter, { animate: true, duration: 0.3 })
           marker.openPopup()
           setHoveredActivityId(activity.zoneID)
         })
@@ -530,6 +711,7 @@ export function LeafletMap({
       .site-progress-gmap-marker { background: transparent !important; border: none !important; }
       .site-progress-gmap-marker svg { cursor: pointer; }
       .site-rich-popup {
+        z-index: 600 !important;
         background: rgba(15,23,42,0.96) !important;
         border: 1px solid rgba(51,65,85,0.8) !important;
         border-radius: 10px !important;
@@ -581,6 +763,12 @@ export function LeafletMap({
 
       {/* Weather forecast overlay */}
       {hoveredActivity && <WeatherOverlay activityName={hoveredActivity.name} />}
+
+      {/* Crew breakdown overlay */}
+      {hoveredActivity && <CrewBreakdownOverlay activity={hoveredActivity} activityWorkersCache={activityWorkersCache} />}
+
+      {/* Machinery & Assets breakdown overlay */}
+      {hoveredActivity && <MachineryAssetsOverlay activity={hoveredActivity} />}
 
       <div className="absolute bottom-3 left-3 text-[10px] text-muted-foreground bg-background/90 backdrop-blur-sm px-2.5 py-1.5 rounded-md z-[400] pointer-events-none border border-border/50">
         © OpenStreetMap
