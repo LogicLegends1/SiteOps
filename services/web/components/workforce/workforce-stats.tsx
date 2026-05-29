@@ -19,7 +19,7 @@ export function WorkforceStats({ summary, loading = false }: WorkforceStatsProps
       bg: "bg-blue-50/60 dark:bg-blue-950/20",
     },
     {
-      title: "Assigned",
+      title: "Active",
       value: summary?.assigned ?? 0,
       icon: UserCheck,
       color: "text-green-600 dark:text-green-400",

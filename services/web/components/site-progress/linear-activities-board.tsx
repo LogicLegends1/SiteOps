@@ -658,7 +658,7 @@ function ActivityRow({
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <span className={cn("text-[10px] font-semibold", w.isAvailable ? "text-emerald-500" : "text-amber-500")}>
-                        {w.isAvailable ? "Available" : "Unavailable"}
+                        {w.isAvailable ? "Active" : "Idle"}
                       </span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -679,7 +679,7 @@ function ActivityRow({
                               void updateWorkerAvailability(w.id, true)
                             }}
                           >
-                            Mark Available
+                            Mark Active
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={(e) => {
@@ -687,7 +687,7 @@ function ActivityRow({
                               void updateWorkerAvailability(w.id, false)
                             }}
                           >
-                            Mark Unavailable
+                            Mark Idle
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -1068,7 +1068,7 @@ function ActivityRow({
                     "text-[10px] font-semibold",
                     w.isAvailable ? "text-emerald-500" : "text-amber-500"
                   )}>
-                    {w.isAvailable ? "Available" : "Unavailable"}
+                    {w.isAvailable ? "Active" : "Idle"}
                   </span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -1089,7 +1089,7 @@ function ActivityRow({
                           void updateWorkerAvailability(w.id, true)
                         }}
                       >
-                        Mark Available
+                        Mark Active
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={(e) => {
@@ -1097,7 +1097,7 @@ function ActivityRow({
                           void updateWorkerAvailability(w.id, false)
                         }}
                       >
-                        Mark Unavailable
+                        Mark Idle
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

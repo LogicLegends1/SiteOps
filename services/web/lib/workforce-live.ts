@@ -10,7 +10,7 @@ export type WorkerRole =
   | "developer"
   | "system-admin"
 
-export type WorkerStatus = "assigned" | "idle" | "unavailable"
+export type WorkerStatus = "active" | "idle" | "unavailable"
 
 export type ExperienceLevel = "junior" | "mid-level" | "senior" | "expert"
 

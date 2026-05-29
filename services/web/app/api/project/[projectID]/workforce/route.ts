@@ -132,7 +132,7 @@ function normalizeStatus(
     return "unavailable"
   }
 
-  return assignedTeamId ? "assigned" : "idle"
+  return assignedTeamId ? "active" : "idle"
 }
 
 async function loadWorkers(supabase: Awaited<ReturnType<typeof createClient>>, projectId: number) {
@@ -255,7 +255,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
       }
     })
 
-    const assignedCount = workers.filter((worker) => worker.status === "assigned").length
+    const assignedCount = workers.filter((worker) => worker.status === "active").length
     const idleCount = workers.filter((worker) => worker.status === "idle").length
     const unavailableCount = workers.filter((worker) => worker.status === "unavailable").length
 

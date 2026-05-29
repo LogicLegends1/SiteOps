@@ -52,13 +52,13 @@ export function WorkerClassification({
 
   const getStatusPresentation = (status: WorkforceWorker["status"]) => {
     switch (status) {
-      case "assigned":
+      case "active":
         return { label: "ACTIVE", className: "bg-success/15 text-success border-success/30" }
       case "idle":
-        return { label: "available", className: "bg-primary/10 text-primary border-primary/20" }
+        return { label: "IDLE", className: "bg-primary/10 text-primary border-primary/20" }
       case "unavailable":
       default:
-        return { label: "unavailable", className: "bg-muted text-muted-foreground border-border" }
+        return { label: "UNAVAILABLE", className: "bg-muted text-muted-foreground border-border" }
     }
   }
 
@@ -148,7 +148,7 @@ export function WorkerClassification({
         {Icon ? <Icon className="h-4 w-4 text-primary" /> : null}
         <h4 className="text-sm font-semibold text-foreground">{title}</h4>
         <Badge variant="outline" className="ml-auto bg-primary/10 text-primary border-primary/20">
-          {available} available
+          {available} active
         </Badge>
       </div>
     )
