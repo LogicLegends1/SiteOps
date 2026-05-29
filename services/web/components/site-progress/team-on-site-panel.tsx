@@ -47,7 +47,7 @@ export function TeamOnSitePanel({ members, loading, error }: TeamOnSitePanelProp
         <p className="text-[10px] text-muted-foreground mt-1">
           {loading
             ? "Loading roster..."
-            : `${online} on assignment · ${away} unavailable`}
+            : `${online} on assignment · ${away} idle`}
         </p>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1.5">

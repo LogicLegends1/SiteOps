@@ -2,7 +2,7 @@ export type WorkerDiscipline = "civil" | "electrical" | "mechanical" | "qa" | "s
 
 export type WorkerRole = "engineer" | "supervisor" | "technician" | "operator" | "skilled-labour" | "general-labour" | "developer" | "system-admin"
 
-export type WorkerStatus = "assigned" | "idle" | "unavailable"
+export type WorkerStatus = "active" | "idle" | "unavailable"
 
 export type ExperienceLevel = "junior" | "mid-level" | "senior" | "expert"
 
@@ -61,7 +61,7 @@ export const workers: Worker[] = [
     role: "engineer",
     experienceYears: 12,
     experienceLevel: "expert",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-alpha",
     assignedActivityId: "ACT-001",
     contactNumber: "+94-77-123-4567",
@@ -76,7 +76,7 @@ export const workers: Worker[] = [
     role: "engineer",
     experienceYears: 5,
     experienceLevel: "mid-level",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-beta",
     assignedActivityId: "ACT-002",
     contactNumber: "+94-77-234-5678",
@@ -107,7 +107,7 @@ export const workers: Worker[] = [
     role: "engineer",
     experienceYears: 8,
     experienceLevel: "senior",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-gamma",
     assignedActivityId: "ACT-003",
     contactNumber: "+94-77-456-7890",
@@ -122,7 +122,7 @@ export const workers: Worker[] = [
     role: "technician",
     experienceYears: 6,
     experienceLevel: "mid-level",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-gamma",
     assignedActivityId: "ACT-003",
     contactNumber: "+94-77-567-8901",
@@ -153,7 +153,7 @@ export const workers: Worker[] = [
     role: "operator",
     experienceYears: 15,
     experienceLevel: "expert",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-beta",
     assignedActivityId: "ACT-002",
     contactNumber: "+94-77-789-0123",
@@ -169,7 +169,7 @@ export const workers: Worker[] = [
     role: "supervisor",
     experienceYears: 18,
     experienceLevel: "expert",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-alpha",
     assignedActivityId: "ACT-001",
     contactNumber: "+94-77-890-1234",
@@ -184,7 +184,7 @@ export const workers: Worker[] = [
     role: "supervisor",
     experienceYears: 14,
     experienceLevel: "expert",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-beta",
     assignedActivityId: "ACT-002",
     contactNumber: "+94-77-901-2345",
@@ -199,7 +199,7 @@ export const workers: Worker[] = [
     role: "supervisor",
     experienceYears: 11,
     experienceLevel: "senior",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-gamma",
     assignedActivityId: "ACT-003",
     contactNumber: "+94-77-012-3456",
@@ -215,7 +215,7 @@ export const workers: Worker[] = [
     role: "skilled-labour",
     experienceYears: 7,
     experienceLevel: "mid-level",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-alpha",
     assignedActivityId: "ACT-001",
     contactNumber: "+94-77-111-2222",
@@ -230,7 +230,7 @@ export const workers: Worker[] = [
     role: "skilled-labour",
     experienceYears: 9,
     experienceLevel: "senior",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-alpha",
     assignedActivityId: "ACT-001",
     contactNumber: "+94-77-222-3333",
@@ -245,7 +245,7 @@ export const workers: Worker[] = [
     role: "skilled-labour",
     experienceYears: 4,
     experienceLevel: "mid-level",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-beta",
     assignedActivityId: "ACT-002",
     contactNumber: "+94-77-333-4444",
@@ -276,7 +276,7 @@ export const workers: Worker[] = [
     role: "general-labour",
     experienceYears: 2,
     experienceLevel: "junior",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-alpha",
     assignedActivityId: "ACT-001",
     contactNumber: "+94-77-555-6666",
@@ -291,7 +291,7 @@ export const workers: Worker[] = [
     role: "general-labour",
     experienceYears: 1,
     experienceLevel: "junior",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-beta",
     assignedActivityId: "ACT-002",
     contactNumber: "+94-77-666-7777",
@@ -322,7 +322,7 @@ export const workers: Worker[] = [
     role: "engineer",
     experienceYears: 6,
     experienceLevel: "mid-level",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-alpha",
     assignedActivityId: "ACT-001",
     contactNumber: "+94-77-888-9999",
@@ -337,7 +337,7 @@ export const workers: Worker[] = [
     role: "engineer",
     experienceYears: 8,
     experienceLevel: "senior",
-    status: "assigned",
+    status: "active",
     assignedTeamId: "team-beta",
     assignedActivityId: "ACT-002",
     contactNumber: "+94-77-999-0000",
@@ -523,7 +523,7 @@ export function getRoleLabel(role: WorkerRole): string {
 
 export function getStatusColor(status: WorkerStatus): string {
   switch (status) {
-    case "assigned":
+    case "active":
       return "bg-primary text-primary-foreground"
     case "idle":
       return "bg-success text-success-foreground"
@@ -588,7 +588,7 @@ export function getIdleWorkers(): Worker[] {
 
 export function getWorkforceSummary() {
   const total = workers.length
-  const assigned = workers.filter((w) => w.status === "assigned").length
+  const assigned = workers.filter((w) => w.status === "active").length
   const idle = workers.filter((w) => w.status === "idle").length
   const unavailable = workers.filter((w) => w.status === "unavailable").length
 

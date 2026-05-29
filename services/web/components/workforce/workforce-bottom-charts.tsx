@@ -12,10 +12,10 @@ const allocationByDiscipline: DonutChartSegment[] = [
 ]
 
 const teamStatus = [
-  { name: "Flash A", available: 82, unavailable: 18 },
-  { name: "Thunder", available: 76, unavailable: 24 },
-  { name: "Electrical", available: 88, unavailable: 12 },
-  { name: "HSE", available: 96, unavailable: 4 },
+  { name: "Flash A", active: 82, idle: 18 },
+  { name: "Thunder", active: 76, idle: 24 },
+  { name: "Electrical", active: 88, idle: 12 },
+  { name: "HSE", active: 96, idle: 4 },
 ]
 
 export function WorkforceBottomCharts() {
@@ -42,13 +42,13 @@ export function WorkforceBottomCharts() {
                 <div className="flex h-full w-full">
                   <div
                     className={cn("h-full bg-emerald-500/80")}
-                    style={{ width: `${team.available}%` }}
-                    aria-label="available"
+                    style={{ width: `${team.active}%` }}
+                    aria-label="active"
                   />
                   <div
                     className={cn("h-full bg-destructive/70")}
-                    style={{ width: `${team.unavailable}%` }}
-                    aria-label="unavailable"
+                    style={{ width: `${team.idle}%` }}
+                    aria-label="idle"
                   />
                 </div>
               </div>
@@ -58,11 +58,11 @@ export function WorkforceBottomCharts() {
           <div className="flex items-center gap-4 pt-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-emerald-500/80" />
-              Available
+              Active
             </span>
             <span className="inline-flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-destructive/70" />
-              Unavailable
+              Idle
             </span>
           </div>
         </CardContent>
