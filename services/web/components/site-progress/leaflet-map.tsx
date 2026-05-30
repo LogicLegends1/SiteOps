@@ -172,284 +172,236 @@ function buildTooltipHtml(
   </div>`
 }
 
-// ── Weather Overlay (dummy data) ──────────────────────────────────────────────
+// ── Weather Overlay ───────────────────────────────────────────────────────────
 
-interface WeatherDay {
-  label: string
-  icon: string
-  temp: string
-  high: string
-  low: string
-  condition: string
-  wind: string
-  humidity: string
-}
-
-function getWeatherForecast(): WeatherDay[] {
+function getWeatherForecast(): {
+  current: { temp: string; condition: string; wind: string; humidity: string }
+  days: { label: string; high: string; low: string }[]
+} {
   const today = new Date()
-  const days: WeatherDay[] = [
+  const days = [
     {
-      label: "Today",
-      icon: "☀️",
-      temp: "32°C",
-      high: "33°",
-      low: "26°",
-      condition: "Sunny",
-      wind: "12 km/h",
-      humidity: "62%",
-    },
-    {
-      label: new Date(today.getTime() + 86400000).toLocaleDateString("en-US", { weekday: "short" }),
-      icon: "⛅",
-      temp: "30°C",
-      high: "31°",
-      low: "25°",
-      condition: "Partly Cloudy",
-      wind: "15 km/h",
-      humidity: "68%",
-    },
-    {
-      label: new Date(today.getTime() + 86400000 * 2).toLocaleDateString("en-US", { weekday: "short" }),
-      icon: "🌧️",
-      temp: "28°C",
-      high: "29°",
-      low: "24°",
-      condition: "Light Rain",
-      wind: "20 km/h",
-      humidity: "78%",
-    },
-    {
-      label: new Date(today.getTime() + 86400000 * 3).toLocaleDateString("en-US", { weekday: "short" }),
-      icon: "🌤️",
-      temp: "31°C",
+      label: new Date(today.getTime() + 86400000).toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
       high: "32°",
-      low: "25°",
-      condition: "Mostly Sunny",
-      wind: "10 km/h",
-      humidity: "60%",
+      low: "22°",
+    },
+    {
+      label: new Date(today.getTime() + 86400000 * 2).toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
+      high: "30°",
+      low: "23°",
+    },
+    {
+      label: new Date(today.getTime() + 86400000 * 3).toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
+      high: "31°",
+      low: "22°",
+    },
+    {
+      label: new Date(today.getTime() + 86400000 * 4).toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
+      high: "29°",
+      low: "22°",
     },
   ]
-  return days
+  return {
+    current: { temp: "32°C", condition: "Sunny", wind: "18 km/h", humidity: "61%" },
+    days,
+  }
 }
 
 function WeatherOverlay({ activityName }: { activityName: string }) {
-  const forecast = useMemo(() => getWeatherForecast(), [])
+  const { current, days } = useMemo(() => getWeatherForecast(), [])
+  const sunIcon = (
+    <svg className="w-3.5 h-3.5 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5" />
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+    </svg>
+  )
 
   return (
-    <div className="absolute top-14 left-4 z-[400] pointer-events-none animate-in fade-in slide-in-from-left-2 duration-300">
-      <div className="bg-[rgba(15,23,42,0.92)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] min-w-[170px]">
-        <div className="flex items-center gap-1.5 mb-2 px-0.5">
-          <svg className="w-3 h-3 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
-          </svg>
-          <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Site Weather</span>
-        </div>
-        <div className="flex flex-col gap-1">
-          {forecast.map((day, i) => (
-            <div
-              key={i}
-              className={cn(
-                "flex items-center gap-2 rounded-lg px-2 py-1.5 border transition-all",
-                i === 0
-                  ? "bg-gradient-to-r from-sky-500/15 to-sky-500/5 border-sky-500/20"
-                  : "bg-white/[0.03] border-white/[0.06]"
-              )}
-            >
-              <span className="text-[16px] leading-none">{day.icon}</span>
-              <div className="flex flex-col flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <span
-                    className={cn(
-                      "text-[9px] font-bold uppercase tracking-wide",
-                      i === 0 ? "text-sky-400" : "text-white/40"
-                    )}
-                  >
-                    {day.label}
-                  </span>
-                  <span className="text-[11px] font-extrabold text-white leading-none">
-                    {day.temp}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span
-                    className={cn(
-                      "text-[9px] font-semibold",
-                      i === 0 ? "text-sky-300/80" : "text-white/45"
-                    )}
-                  >
-                    {day.condition}
-                  </span>
-                  <span className="text-[8px] text-white/30">💨{day.wind}</span>
-                </div>
+    <div className="bg-[rgba(15,23,42,0.92)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-3 shadow-[0_8px_32px_rgba(0,0,0,0.5)] min-w-[240px]">
+        <div className="text-[11px] font-semibold text-white/70 mb-2">Weather</div>
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-2.5">
+            <svg className="w-8 h-8 text-yellow-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="5" />
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+            </svg>
+            <div>
+              <div className="text-xl font-bold text-white leading-none">{current.temp}</div>
+              <div className="text-xs text-white/70 mt-0">{current.condition}</div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {days.map((day, i) => (
+              <div key={i} className="flex flex-col items-center gap-0.5">
+                <span className="text-[9px] font-semibold text-white/50 uppercase">{day.label}</span>
+                {sunIcon}
+                <span className="text-[9px] font-bold text-white">{day.high}</span>
+                <span className="text-[8px] text-white/40">{day.low}</span>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-4 mt-2 pt-2 border-t border-white/[0.08] text-[10px] text-white/50">
+          <span>Wind: {current.wind}</span>
+          <span>Humidity: {current.humidity}</span>
         </div>
       </div>
-    </div>
   )
 }
 
-// ── Crew Breakdown Overlay ────────────────────────────────────────────────────
+// ── Crew & Machinery Combined Overlay ─────────────────────────────────────────
 
-function getCrewBreakdown(activity: Activity, activityWorkersCache?: Record<number, ActivityWorkersSummary>): { role: string; count: number }[] {
+function CrewAndMachineryOverlay({
+  activity,
+  activityWorkersCache,
+}: {
+  activity: Activity
+  activityWorkersCache?: Record<number, ActivityWorkersSummary>
+}) {
   const workers = activityWorkersCache?.[activity.zoneID]
-  if (workers && Object.keys(workers.roleCounts).length > 0) {
-    return Object.entries(workers.roleCounts)
-      .filter(([, count]) => count > 0)
-      .map(([role, count]) => ({ role: capitalizeRole(role), count }))
-      .sort((a, b) => b.count - a.count)
-  }
-  // Fallback deterministic crew based on activity
-  const n = (activity.name || "").toLowerCase()
-  if (n.includes("excavat") || n.includes("earthwork") || n.includes("bulk earth")) {
-    return [{ role: "Excavator Operators", count: 2 }, { role: "General Laborers", count: 6 }, { role: "Site Engineers", count: 1 }, { role: "Tipper Drivers", count: 3 }]
-  } else if (n.includes("concrete") || n.includes("pcc") || n.includes("pour") || n.includes("footing")) {
-    return [{ role: "Masons", count: 4 }, { role: "General Laborers", count: 5 }, { role: "Site Engineers", count: 1 }, { role: "Steel Fixers", count: 2 }]
-  } else if (n.includes("rebar") || n.includes("reinforc")) {
-    return [{ role: "Steel Fixers", count: 4 }, { role: "Crane Operators", count: 1 }, { role: "General Laborers", count: 3 }, { role: "Site Engineers", count: 1 }]
-  } else if (n.includes("drain") || n.includes("pipe") || n.includes("utility")) {
-    return [{ role: "General Laborers", count: 4 }, { role: "Excavator Operators", count: 1 }, { role: "Site Engineers", count: 1 }]
-  } else if (n.includes("compact") || n.includes("sub-base") || n.includes("road")) {
-    return [{ role: "General Laborers", count: 5 }, { role: "Surveyors", count: 1 }, { role: "Site Engineers", count: 1 }]
-  }
-  return [{ role: "Site Engineers", count: 1 }, { role: "General Laborers", count: 4 }, { role: "Masons", count: 2 }]
-}
+  const roleCounts = workers?.roleCounts ?? {}
+  const totalCrew = workers?.total ?? 0
 
-function CrewBreakdownOverlay({ activity, activityWorkersCache }: { activity: Activity; activityWorkersCache?: Record<number, ActivityWorkersSummary> }) {
-  const crew = useMemo(() => getCrewBreakdown(activity, activityWorkersCache), [activity, activityWorkersCache])
-  const total = crew.reduce((sum, c) => sum + c.count, 0)
+  const roleColors = ["bg-emerald-400", "bg-sky-400", "bg-amber-400", "bg-violet-400", "bg-rose-400"]
+
+  const crewCategories = Object.entries(roleCounts).map(([role, count], i) => ({
+    label: capitalizeRole(role),
+    count,
+    color: roleColors[i % roleColors.length],
+  }))
+
+  const fallbackCrew = [
+    { label: "Active", count: 8, color: "bg-emerald-400" },
+    { label: "Idle", count: 1, color: "bg-yellow-400" },
+    { label: "Unavailable / Off Site", count: 2, color: "bg-red-400" },
+  ]
+
+  const machineryStatuses = [
+    { label: "Active", count: 6, color: "bg-emerald-400" },
+    { label: "Idle", count: 2, color: "bg-yellow-400" },
+    { label: "Under Maintenance", count: 2, color: "bg-orange-400" },
+    { label: "Breakdown / Broken", count: 1, color: "bg-red-400" },
+  ]
+
+  const crewRows = crewCategories.length > 0 ? crewCategories : fallbackCrew
+  const [showAllCrew, setShowAllCrew] = useState(false)
+  const visibleCrewRows = showAllCrew ? crewRows : crewRows.slice(0, 3)
 
   return (
-    <div className="absolute top-14 right-4 z-[400] pointer-events-none animate-in fade-in slide-in-from-right-2 duration-300">
-      <div className="bg-[rgba(15,23,42,0.92)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] min-w-[180px]">
-        <div className="flex items-center gap-1.5 mb-2 px-0.5">
-          <svg className="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-          <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Crew</span>
-          <span className="ml-auto text-[10px] font-bold text-emerald-400">{total}</span>
+    <div className="bg-[rgba(15,23,42,0.92)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5)] min-w-[220px]">
+      {/* Crew */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
+            <svg className="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <span className="text-sm font-semibold text-white/90">Crew</span>
         </div>
-        <div className="flex flex-col gap-1">
-          {crew.map((item, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]"
-            >
-              <span className="text-[10px] text-white/70 font-medium">{item.role}</span>
-              <span className="text-[11px] font-bold text-emerald-300 ml-3">{item.count}</span>
-            </div>
-          ))}
+        <div className="text-right">
+          <div className="text-[10px] text-white/50">Total Crew On Site</div>
+          <div className="text-lg font-bold text-white leading-none">{totalCrew || 11}</div>
         </div>
       </div>
-    </div>
-  )
-}
 
-// ── Machinery & Assets Breakdown Overlay ──────────────────────────────────────
+      <div className="flex flex-col gap-2 mb-3">
+        {visibleCrewRows.map((s) => (
+          <div key={s.label} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className={cn("w-2 h-2 rounded-full", s.color)} />
+              <span className="text-xs text-white/70">{s.label}</span>
+            </div>
+            <span className="text-xs font-bold text-white">{s.count}</span>
+          </div>
+        ))}
+        {crewRows.length > 3 && (
+          <button
+            onClick={() => setShowAllCrew((v) => !v)}
+            className="text-[11px] text-sky-400 hover:text-sky-300 mt-0.5 pointer-events-auto cursor-pointer text-left w-fit"
+          >
+            {showAllCrew ? "See less" : `See more (+${crewRows.length - 3})`}
+          </button>
+        )}
+      </div>
 
-function getMachineryBreakdown(activity: Activity): { name: string; count: number; type: "machinery" | "asset" }[] {
-  const n = (activity.name || "").toLowerCase()
-  if (n.includes("excavat") || n.includes("earthwork") || n.includes("bulk earth")) {
-    return [
-      { name: "Excavators", count: 2, type: "machinery" },
-      { name: "Tippers", count: 3, type: "machinery" },
-      { name: "Safety Barriers", count: 8, type: "asset" },
-    ]
-  } else if (n.includes("haul")) {
-    return [
-      { name: "Tippers", count: 4, type: "machinery" },
-      { name: "Loader", count: 1, type: "machinery" },
-      { name: "Fuel Bowser", count: 1, type: "asset" },
-    ]
-  } else if (n.includes("concrete") || n.includes("pcc") || n.includes("pour") || n.includes("footing")) {
-    return [
-      { name: "Concrete Mixer", count: 1, type: "machinery" },
-      { name: "Vibrators", count: 2, type: "machinery" },
-      { name: "Formwork Sets", count: 4, type: "asset" },
-    ]
-  } else if (n.includes("rebar") || n.includes("reinforc")) {
-    return [
-      { name: "Rebar Bender", count: 1, type: "machinery" },
-      { name: "Crawler Crane", count: 1, type: "machinery" },
-      { name: "Rebar Stock (tons)", count: 12, type: "asset" },
-    ]
-  } else if (n.includes("drain") || n.includes("pipe") || n.includes("utility")) {
-    return [
-      { name: "Excavator", count: 1, type: "machinery" },
-      { name: "Pipe Layer", count: 1, type: "machinery" },
-      { name: "Pipe Sections", count: 20, type: "asset" },
-    ]
-  } else if (n.includes("compact") || n.includes("sub-base") || n.includes("road")) {
-    return [
-      { name: "Roller", count: 1, type: "machinery" },
-      { name: "Graders", count: 2, type: "machinery" },
-      { name: "Water Bowser", count: 1, type: "asset" },
-    ]
-  } else if (n.includes("formation") || n.includes("grading") || n.includes("leveling")) {
-    return [
-      { name: "Grader", count: 1, type: "machinery" },
-      { name: "Roller", count: 1, type: "machinery" },
-      { name: "Survey Equipment", count: 2, type: "asset" },
-    ]
-  }
-  return [
-    { name: "General Equipment", count: 2, type: "machinery" },
-    { name: "Tool Kits", count: 3, type: "asset" },
-    { name: "Safety Gear Sets", count: 6, type: "asset" },
-  ]
-}
-
-function MachineryAssetsOverlay({ activity }: { activity: Activity }) {
-  const items = useMemo(() => getMachineryBreakdown(activity), [activity])
-  const machinery = items.filter((i) => i.type === "machinery")
-  const assets = items.filter((i) => i.type === "asset")
-
-  return (
-    <div className="absolute bottom-14 right-4 z-[400] pointer-events-none animate-in fade-in slide-in-from-right-2 duration-300">
-      <div className="bg-[rgba(15,23,42,0.92)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] min-w-[190px]">
-        <div className="flex items-center gap-1.5 mb-2 px-0.5">
-          <svg className="w-3 h-3 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-          </svg>
-          <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Machinery & Assets</span>
+      <div className="border-t border-white/[0.08] pt-3 mb-3">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span className="text-xs font-semibold text-white/70">Crew Requests</span>
+          </div>
+          <span className="text-[11px] font-semibold text-sky-400">2 Open Requests</span>
         </div>
-        {machinery.length > 0 && (
-          <div className="mb-1.5">
-            <span className="text-[9px] font-semibold text-amber-400/70 uppercase tracking-wider px-2">Machinery</span>
-            <div className="flex flex-col gap-1 mt-1">
-              {machinery.map((item, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]"
-                >
-                  <span className="text-[10px] text-white/70 font-medium">{item.name}</span>
-                  <span className="text-[11px] font-bold text-amber-300 ml-3">{item.count}</span>
-                </div>
-              ))}
-            </div>
+        <div className="flex flex-col gap-1 pl-5">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1 h-1 rounded-full bg-white/30" />
+            <span className="text-[11px] text-white/50">Operator Request</span>
+            <span className="text-[11px] font-bold text-white ml-auto">1</span>
           </div>
-        )}
-        {assets.length > 0 && (
-          <div>
-            <span className="text-[9px] font-semibold text-orange-400/70 uppercase tracking-wider px-2">Assets</span>
-            <div className="flex flex-col gap-1 mt-1">
-              {assets.map((item, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]"
-                >
-                  <span className="text-[10px] text-white/70 font-medium">{item.name}</span>
-                  <span className="text-[11px] font-bold text-orange-300 ml-3">{item.count}</span>
-                </div>
-              ))}
-            </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1 h-1 rounded-full bg-white/30" />
+            <span className="text-[11px] text-white/50">Labour Request</span>
+            <span className="text-[11px] font-bold text-white ml-auto">1</span>
           </div>
-        )}
+        </div>
+      </div>
+
+      <div className="border-t border-white/[0.08] my-3" />
+
+      {/* Machinery */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center">
+            <svg className="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </div>
+          <span className="text-sm font-semibold text-white/90">Machinery</span>
+        </div>
+        <div className="text-right">
+          <div className="text-[10px] text-white/50">Total Active</div>
+          <div className="text-lg font-bold text-white leading-none">11</div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 mb-3">
+        {machineryStatuses.map((s) => (
+          <div key={s.label} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className={cn("w-2 h-2 rounded-full", s.color)} />
+              <span className="text-xs text-white/70">{s.label}</span>
+            </div>
+            <span className="text-xs font-bold text-white">{s.count}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="border-t border-white/[0.08] pt-3">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span className="text-xs font-semibold text-white/70">Machinery Requests</span>
+          </div>
+          <span className="text-[11px] font-semibold text-sky-400">1 Open Request</span>
+        </div>
+        <div className="flex items-center gap-1.5 pl-5">
+          <span className="w-1 h-1 rounded-full bg-white/30" />
+          <span className="text-[11px] text-white/50">Excavator or Dump Truck</span>
+          <span className="text-[11px] font-bold text-white ml-auto">1</span>
+        </div>
       </div>
     </div>
   )
@@ -475,6 +427,12 @@ export function LeafletMap({
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const [hoveredActivityId, setHoveredActivityId] = useState<number | null>(null)
+  const [overlaysOnRight, setOverlaysOnRight] = useState(false)
+  const onActivitySelectRef = useRef(onActivitySelect)
+
+  useEffect(() => {
+    onActivitySelectRef.current = onActivitySelect
+  }, [onActivitySelect])
 
   const hoveredActivity = useMemo(
     () => activities.find((a) => a.zoneID === hoveredActivityId) ?? null,
@@ -493,7 +451,7 @@ export function LeafletMap({
         : defaultCenter
 
     const map = L.map(mapContainerRef.current, {
-      zoomControl: true,
+      zoomControl: false,
       attributionControl: false,
     }).setView(mapCenter, 16)
 
@@ -508,7 +466,7 @@ export function LeafletMap({
     })
 
     return () => {
-      // kept for strict-mode; invalidateSize handles resize
+      // cleanup if needed
     }
   }, [project])
 
@@ -543,29 +501,19 @@ export function LeafletMap({
           autoPanPadding: L.point(40, 40),
         })
         .on("click", () => {
-          onActivitySelect(activity)
+          onActivitySelectRef.current(activity)
         })
         .on("mouseover", () => {
           if (closeTimeoutRef.current) {
             clearTimeout(closeTimeoutRef.current)
             closeTimeoutRef.current = null
           }
-          // Pan map so popup appears dead center on screen
           const map = mapRef.current!
-          const latlng = marker.getLatLng()
+          const markerPoint = map.latLngToContainerPoint(marker.getLatLng())
           const mapSize = map.getSize()
-          // Popup extends ~200px above marker; offset marker below center by that amount
-          const popupHeight = 200
-          const targetContainerPoint = L.point(mapSize.x / 2, mapSize.y / 2 + popupHeight / 2)
-          const targetLatLng = map.containerPointToLatLng(targetContainerPoint)
-          const currentMarkerPoint = map.latLngToContainerPoint(latlng)
-          const dx = currentMarkerPoint.x - mapSize.x / 2
-          const dy = currentMarkerPoint.y - (mapSize.y / 2 + popupHeight / 2)
-          const currentCenter = map.getCenter()
-          const currentCenterPoint = map.latLngToContainerPoint(currentCenter)
-          const newCenterPoint = L.point(currentCenterPoint.x + dx, currentCenterPoint.y + dy)
-          const newCenter = map.containerPointToLatLng(newCenterPoint)
-          map.panTo(newCenter, { animate: true, duration: 0.3 })
+          const isLeftSide = markerPoint.x < mapSize.x * 0.55
+          setOverlaysOnRight(isLeftSide)
+
           marker.openPopup()
           setHoveredActivityId(activity.zoneID)
         })
@@ -579,7 +527,18 @@ export function LeafletMap({
 
       markersRef.current.set(activity.zoneID, marker)
     })
-  }, [activities, selectedActivityId, onActivitySelect, subtasksByActivity, activityWorkersCache])
+  }, [activities, subtasksByActivity, activityWorkersCache])
+
+  // Update marker styles (color/size) when selection changes — without destroying markers/popups
+  useEffect(() => {
+    if (!mapRef.current) return
+    markersRef.current.forEach((marker, zoneID) => {
+      const isSelected = selectedActivityId === zoneID
+      const color = isSelected ? SELECTED_MARKER_COLOR : DEFAULT_MARKER_COLOR
+      marker.setIcon(createPinIcon(color, isSelected))
+      marker.setZIndexOffset(isSelected ? 1000 : 0)
+    })
+  }, [selectedActivityId])
 
   useEffect(() => {
     if (!mapRef.current || markersRef.current.size === 0) return
@@ -761,34 +720,33 @@ export function LeafletMap({
 
       <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
 
-      {/* Weather forecast overlay */}
-      {hoveredActivity && <WeatherOverlay activityName={hoveredActivity.name} />}
+      {/* Weather + Crew & Machinery overlays */}
+      {hoveredActivity && (
+        <div className={cn("absolute top-0 z-[400] pointer-events-none flex flex-col gap-3 animate-in fade-in duration-300", overlaysOnRight ? "right-4 slide-in-from-right-2" : "left-4 slide-in-from-left-2")}>
+          <WeatherOverlay activityName={hoveredActivity.name} />
+          <CrewAndMachineryOverlay activity={hoveredActivity} activityWorkersCache={activityWorkersCache} />
+        </div>
+      )}
 
-      {/* Crew breakdown overlay */}
-      {hoveredActivity && <CrewBreakdownOverlay activity={hoveredActivity} activityWorkersCache={activityWorkersCache} />}
-
-      {/* Machinery & Assets breakdown overlay */}
-      {hoveredActivity && <MachineryAssetsOverlay activity={hoveredActivity} />}
-
-      <div className="absolute bottom-3 left-3 text-[10px] text-muted-foreground bg-background/90 backdrop-blur-sm px-2.5 py-1.5 rounded-md z-[400] pointer-events-none border border-border/50">
-        © OpenStreetMap
-      </div>
-      <div className="absolute bottom-3 right-3 flex items-center gap-3 text-[10px] text-muted-foreground bg-background/90 backdrop-blur-sm px-2.5 py-1.5 rounded-md z-[400] pointer-events-none border border-border/50">
-        <span className="flex items-center gap-1.5">
-          <svg width="12" height="12" viewBox="0 0 24 24">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill={DEFAULT_MARKER_COLOR} stroke="#fff" strokeWidth="1"/>
-            <circle cx="12" cy="9" r="2.5" fill="#fff"/>
-          </svg>
-          Activity
-        </span>
-        <span className="flex items-center gap-1.5">
-          <svg width="14" height="14" viewBox="0 0 24 24">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill={SELECTED_MARKER_COLOR} stroke="#fff" strokeWidth="1"/>
-            <circle cx="12" cy="9" r="2.5" fill="#fff"/>
-          </svg>
-          Selected
-        </span>
-      </div>
+      {/* Custom zoom controls */}
+      {!(hoveredActivity && overlaysOnRight) && (
+        <div className="absolute bottom-3 right-3 z-[400] flex flex-col gap-1">
+          <button
+            onClick={() => mapRef.current?.zoomIn()}
+            className="w-7 h-7 flex items-center justify-center bg-background/90 backdrop-blur-sm rounded-md border border-border/50 text-foreground hover:bg-background text-sm font-medium transition-colors"
+            aria-label="Zoom in"
+          >
+            +
+          </button>
+          <button
+            onClick={() => mapRef.current?.zoomOut()}
+            className="w-7 h-7 flex items-center justify-center bg-background/90 backdrop-blur-sm rounded-md border border-border/50 text-foreground hover:bg-background text-sm font-medium transition-colors"
+            aria-label="Zoom out"
+          >
+            −
+          </button>
+        </div>
+      )}
 
       {zoomedImage && (
         <div
