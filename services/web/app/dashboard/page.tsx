@@ -84,7 +84,7 @@ const siteEngineerActions = [
     title: "Log Daily Execution",
     description: "Update site progress, report crew/machinery status, and submit field labor requests.",
     icon: ClipboardEdit,
-    buttonText: "Update execution",
+    buttonText: "Update progress",
     href: (projectId: number | null) =>
       projectId
         ? `/project/${projectId}/site-progress?tab=activity-tracker&focus=activity-tracker`
