@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { LayoutList, Camera, ArrowRight } from "lucide-react"
+import { ArrowRight, ClipboardEdit, History } from "lucide-react"
 import {
   Item,
   ItemContent,
@@ -79,30 +79,28 @@ const mapProjectsToMapItems = (projects: ProjectFromApi[]): LeafletMapItem[] =>
 
 const siteEngineerActions = [
   {
-    key: "activity-tracker",
-    label: "Execution",
-    title: "Activity Tracker",
-    description: "Open progress boards and update task flow by project.",
-    icon: LayoutList,
+    key: "log-progress",
+    label: "Action Required",
+    title: "Log Daily Execution",
+    description: "Update site progress, report crew/machinery status, and submit field labor requests.",
+    icon: ClipboardEdit,
+    buttonText: "Update progress",
     href: (projectId: number | null) =>
       projectId
         ? `/project/${projectId}/site-progress?tab=activity-tracker&focus=activity-tracker`
         : "/dashboard/site-engineer/activity-tracker",
-    gradient: "from-slate-950 via-indigo-950 to-cyan-950",
-    accent: "from-cyan-400 to-sky-300",
   },
   {
-    key: "updates-evidence",
+    key: "submission-history",
     label: "History",
-    title: "Updates & Evidence",
-    description: "Review daily updates and upload proof photos from site work.",
-    icon: Camera,
+    title: "Submission History",
+    description: "Review past field updates, submitted issues, and uploaded photo evidence.",
+    icon: History,
+    buttonText: "View history",
     href: (projectId: number | null) =>
       projectId
         ? `/project/${projectId}/site-progress?tab=updates&focus=updates`
         : "/dashboard/site-engineer/updates-evidence",
-    gradient: "from-slate-950 via-orange-950 to-amber-900",
-    accent: "from-amber-300 to-rose-200",
   },
 ] as const
 
@@ -110,6 +108,7 @@ const siteEngineerActions = [
 export default function DashboardPage() {
   const router = useRouter()
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [userName, setUserName] = useState<string | null>(null)
   const [userRoleLoaded, setUserRoleLoaded] = useState(false)
 
   useEffect(() => {
@@ -129,12 +128,13 @@ export default function DashboardPage() {
 
         const { data: dbUser } = await supabase
           .from("user")
-          .select("role")
+          .select("role, username")
           .eq("email", user.email)
           .maybeSingle()
 
         if (isMounted) {
           setUserRole(dbUser?.role ?? null)
+          setUserName(dbUser?.username || user.email.split("@")[0] || null)
         }
       } catch {
         if (isMounted) {
@@ -243,16 +243,20 @@ export default function DashboardPage() {
   }
 
   if (userRole === "SITE_ENGINEER") {
+    const greetingName = userName 
+      ? userName.charAt(0).toUpperCase() + userName.slice(1) 
+      : "Engineer"
+
     return (
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 pb-8">
-        <div>
-          <h2 className="text-2xl font-semibold text-foreground">Site Engineer Dashboard</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Choose a workspace to continue with focused execution tasks.
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 pb-8">
+        <div className="border-b border-neutral-900 pb-4">
+          <h2 className="text-3xl font-extrabold tracking-tight text-white">Hello, {greetingName}</h2>
+          <p className="mt-1 text-sm text-neutral-400">
+            Select a workspace to start logging daily execution.
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3.5 md:grid-cols-2">
           {siteEngineerActions.map((action) => {
             const Icon = action.icon
 
@@ -260,42 +264,33 @@ export default function DashboardPage() {
               <Link
                 key={action.key}
                 href={action.href(singleAssignedProjectId)}
-                className="group relative overflow-hidden rounded-3xl border border-border/60 bg-card p-0 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-border hover:shadow-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-xl bg-white p-4 shadow-sm border border-gray-200 transition-all duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
               >
-                <div className={`relative flex h-full min-h-60 flex-col justify-between overflow-hidden rounded-3xl bg-linear-to-br ${action.gradient} p-6 text-white`}>
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.22),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_32%)]" />
-                  <div className={`absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br ${action.accent} opacity-20 blur-3xl transition-transform duration-300 group-hover:scale-110`} />
-
-                  <div className="relative flex items-start justify-between gap-4">
-                    <Badge className="border border-white/20 bg-white/15 text-white shadow-sm backdrop-blur-sm hover:bg-white/15">
+                <div>
+                  <div className="flex items-start justify-between">
+                    <div className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
                       {action.label}
-                    </Badge>
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-lg backdrop-blur-sm">
-                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-50 text-black">
+                      <Icon className="h-3.5 w-3.5" />
                     </div>
                   </div>
 
-                  <div className="relative space-y-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">Primary Action</p>
-                      <h3 className="mt-3 text-2xl font-semibold leading-tight tracking-tight">
-                        {action.title}
-                      </h3>
-                      <p className="mt-3 max-w-sm text-sm leading-6 text-white/85">
-                        {action.description}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3 border-t border-white/15 pt-4">
-                      <span className="text-xs font-medium uppercase tracking-[0.18em] text-white/70">
-                        Open workspace
-                      </span>
-                      <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-sm font-medium text-white/95 backdrop-blur-sm transition-transform duration-200 group-hover:translate-x-1">
-                        Continue
-                        <ArrowRight className="h-4 w-4" />
-                      </span>
-                    </div>
+                  <div className="mt-4 space-y-1">
+                    <h3 className="text-lg font-bold tracking-tight text-neutral-950">
+                      {action.title}
+                    </h3>
+                    <p className="text-xs font-medium leading-relaxed text-neutral-500">
+                      {action.description}
+                    </p>
                   </div>
+                </div>
+
+                <div className="mt-5 flex w-full items-center justify-between rounded-lg bg-black px-4 py-2.5 text-white transition-colors hover:bg-neutral-800">
+                  <span className="text-[13px] font-semibold">
+                    {action.buttonText}
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                 </div>
               </Link>
             )

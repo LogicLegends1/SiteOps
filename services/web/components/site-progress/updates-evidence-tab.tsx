@@ -18,6 +18,9 @@ import {
   Cloud,
   MoreHorizontal,
   ArrowRight,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 
 interface UpdatesEvidenceTabProps {
@@ -568,7 +571,28 @@ export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const [requestSummaries, setRequestSummaries] = useState<ActivityRequestSummary[]>([])
   const [requestSummariesLoading, setRequestSummariesLoading] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date())
+  const [showCalendar, setShowCalendar] = useState(false)
+  const [hasInitializedCalendar, setHasInitializedCalendar] = useState(false)
   const DAYS_PER_PAGE = 5
+
+  const getDaysInMonth = useMemo(() => {
+    return (date: Date) => {
+      const year = date.getFullYear()
+      const month = date.getMonth()
+      const firstDay = new Date(year, month, 1).getDay()
+      const daysInMonth = new Date(year, month + 1, 0).getDate()
+      
+      const cells: (Date | null)[] = []
+      for (let i = 0; i < firstDay; i++) {
+        cells.push(null)
+      }
+      for (let d = 1; d <= daysInMonth; d++) {
+        cells.push(new Date(year, month, d))
+      }
+      return cells
+    }
+  }, [])
 
   useEffect(() => {
     setIsClientReady(true)
@@ -677,7 +701,14 @@ export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }
   }, [allEntries, requestSummaries, userName, userRole])
 
   const groupedByDate = useMemo(() => groupByDate(entries), [entries])
-  const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a))
+  const sortedDates = useMemo(() => Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a)), [groupedByDate])
+
+  useEffect(() => {
+    if (!hasInitializedCalendar && sortedDates.length > 0) {
+      setCalendarMonth(new Date(sortedDates[0]))
+      setHasInitializedCalendar(true)
+    }
+  }, [sortedDates, hasInitializedCalendar])
 
   const visibleEntries = useMemo(() => {
     let filtered = entries
@@ -739,44 +770,124 @@ export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }
         <div className="p-4 pb-3 shrink-0" />
 
         <div className="flex-1 overflow-y-auto ue-scroll">
-          {/* Date list — shown in By Day mode */}
+          {/* Date list — replaced with elegant space-saving Calendar filter */}
           {viewMode === "day" && (
-            <div className="px-3 pb-2">
-              {isLoadingUpdates ? (
-                <div className="flex items-center gap-2 px-3 py-3 text-[11px] text-muted-foreground">
-                  <Spinner className="h-3.5 w-3.5" />
-                  <span>Loading updates...</span>
-                </div>
-              ) : sortedDates.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground px-3 py-3">No updates yet</p>
-              ) : (
-                <div className="space-y-0.5">
-                  {sortedDates.map((date) => {
-                    const count = groupedByDate[date].length
-                    const isToday = date === new Date().toISOString().split("T")[0]
-                    const isSelected = selectedDate === date
-                    return (
+            <div className="px-3 pb-4">
+              <div className="mb-2 px-1 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Filter By Date</span>
+                {selectedDate && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedDate(null)
+                    }}
+                    className="text-[10px] font-semibold text-[#0EA5E9] hover:text-[#0EA5E9]/80 transition-colors"
+                  >
+                    Clear Filter
+                  </button>
+                )}
+              </div>
+
+              {/* Collapsible Selector Toggle */}
+              <button
+                type="button"
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-white/[0.06] bg-white/[0.02] text-[11px] font-semibold text-white/80 hover:bg-white/5 transition-all mb-2.5"
+              >
+                <span className="flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5 text-[#0EA5E9]" />
+                  {selectedDate ? `Date: ${formatDisplayDate(selectedDate)}` : "Select Date"}
+                </span>
+                {showCalendar ? (
+                  <ChevronUp className="h-3.5 w-3.5 opacity-60" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                )}
+              </button>
+
+              {showCalendar && (
+                isLoadingUpdates ? (
+                  <div className="flex items-center gap-2 px-3 py-3 text-[11px] text-muted-foreground">
+                    <Spinner className="h-3.5 w-3.5" />
+                    <span>Loading calendar...</span>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-2.5">
+                    {/* Calendar Month Header */}
+                    <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-white/[0.03]">
                       <button
-                        key={date}
                         type="button"
-                        onClick={() => setSelectedDate(isSelected ? null : date)}
-                        className={cn(
-                          "w-full text-left px-4 py-[12px] rounded-[14px] transition-all duration-150",
-                          isSelected
-                            ? "bg-[#0EA5E9]/12 border border-[#0EA5E9]/25 shadow-[0_0_16px_rgba(14,165,233,0.12)]"
-                            : "hover:bg-white/[0.03] border border-transparent"
-                        )}
+                        onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                        className="p-1 rounded-md hover:bg-white/5 text-white/60 hover:text-white transition-colors"
                       >
-                        <div className={cn("text-[13px] font-semibold leading-tight", isSelected ? "text-white" : "text-white/90")}>
-                          {isToday ? `Today • ${formatDisplayDate(date)}` : formatDisplayDate(date)}
-                        </div>
-                        <div className={cn("text-[11px] mt-0.5", isSelected ? "text-[#0EA5E9]/80" : "text-white/35")}>
-                          {count} update{count !== 1 ? "s" : ""}
-                        </div>
+                        <ChevronLeft className="h-3 w-3" />
                       </button>
-                    )
-                  })}
-                </div>
+                      <span className="text-[11px] font-bold text-white tracking-wide">
+                        {calendarMonth.toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                        className="p-1 rounded-md hover:bg-white/5 text-white/60 hover:text-white transition-colors"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                      </button>
+                    </div>
+
+                    {/* Day labels */}
+                    <div className="grid grid-cols-7 gap-0.5 text-center text-[9px] font-bold text-white/30 mb-1">
+                      <span>S</span>
+                      <span>M</span>
+                      <span>T</span>
+                      <span>W</span>
+                      <span>T</span>
+                      <span>F</span>
+                      <span>S</span>
+                    </div>
+
+                    {/* Days grid */}
+                    <div className="grid grid-cols-7 gap-0.5">
+                      {getDaysInMonth(calendarMonth).map((day, idx) => {
+                        if (!day) return <div key={`empty-${idx}`} className="aspect-square" />
+
+                        const yyyy = day.getFullYear()
+                        const mm = String(day.getMonth() + 1).padStart(2, "0")
+                        const dd = String(day.getDate()).padStart(2, "0")
+                        const dateKey = `${yyyy}-${mm}-${dd}`
+
+                        const hasUpdates = !!groupedByDate[dateKey]
+                        const isSelected = selectedDate === dateKey
+                        const isToday = dateKey === new Date().toISOString().split("T")[0]
+
+                        return (
+                          <button
+                            key={dateKey}
+                            type="button"
+                            onClick={() => {
+                              setSelectedDate(isSelected ? null : dateKey)
+                              setShowCalendar(false)
+                            }}
+                            className={cn(
+                              "relative aspect-square flex items-center justify-center rounded-md text-[10px] font-semibold transition-all",
+                              isSelected
+                                ? "bg-[#0EA5E9] text-white font-bold"
+                                : hasUpdates
+                                ? "text-[#0EA5E9] hover:bg-white/5"
+                                : "text-white/60 hover:bg-white/5",
+                              isToday && !isSelected && "border border-[#0EA5E9]/40"
+                            )}
+                          >
+                            <span>{day.getDate()}</span>
+                            {/* Dot indicator if has updates */}
+                            {hasUpdates && !isSelected && (
+                              <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[#0EA5E9]" />
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
               )}
             </div>
           )}
