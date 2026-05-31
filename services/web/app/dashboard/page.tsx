@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { LayoutList, Camera } from "lucide-react"
+import { LayoutList, Camera, ArrowRight } from "lucide-react"
 import {
   Item,
   ItemContent,
@@ -76,6 +76,35 @@ const mapProjectsToMapItems = (projects: ProjectFromApi[]): LeafletMapItem[] =>
       description: x.raw.status ?? "Unknown",
       tooltip: `Project ID: ${x.raw.projectid}`,
     }))
+
+const siteEngineerActions = [
+  {
+    key: "activity-tracker",
+    label: "Execution",
+    title: "Activity Tracker",
+    description: "Open progress boards and update task flow by project.",
+    icon: LayoutList,
+    href: (projectId: number | null) =>
+      projectId
+        ? `/project/${projectId}/site-progress?tab=activity-tracker&focus=activity-tracker`
+        : "/dashboard/site-engineer/activity-tracker",
+    gradient: "from-slate-950 via-indigo-950 to-cyan-950",
+    accent: "from-cyan-400 to-sky-300",
+  },
+  {
+    key: "updates-evidence",
+    label: "History",
+    title: "Updates & Evidence",
+    description: "Review daily updates and upload proof photos from site work.",
+    icon: Camera,
+    href: (projectId: number | null) =>
+      projectId
+        ? `/project/${projectId}/site-progress?tab=updates&focus=updates`
+        : "/dashboard/site-engineer/updates-evidence",
+    gradient: "from-slate-950 via-orange-950 to-amber-900",
+    accent: "from-amber-300 to-rose-200",
+  },
+] as const
 
 
 export default function DashboardPage() {
@@ -224,43 +253,53 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <Link
-            href={
-              singleAssignedProjectId
-                ? `/project/${singleAssignedProjectId}/site-progress?tab=activity-tracker&focus=activity-tracker`
-                : "/dashboard/site-engineer/activity-tracker"
-            }
-            className="group rounded-3xl bg-linear-to-br from-indigo-600 via-blue-600 to-cyan-500 p-px"
-          >
-            <div className="h-full rounded-[calc(1.5rem-1px)] bg-linear-to-br from-indigo-500 via-blue-500 to-cyan-400 p-6 text-white shadow-lg transition-transform duration-200 group-hover:-translate-y-1">
-              <div className="mb-10 flex items-center justify-between">
-                <Badge className="bg-white/20 text-white hover:bg-white/20">Execution</Badge>
-                <LayoutList className="h-5 w-5" />
-              </div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">Primary Action</p>
-              <h3 className="mt-2 text-2xl font-bold leading-tight">Activity Tracker</h3>
-              <p className="mt-3 text-sm text-white/90">Open progress boards and update task flow by project.</p>
-            </div>
-          </Link>
+          {siteEngineerActions.map((action) => {
+            const Icon = action.icon
 
-          <Link
-            href={
-              singleAssignedProjectId
-                ? `/project/${singleAssignedProjectId}/site-progress?tab=updates&focus=updates`
-                : "/dashboard/site-engineer/updates-evidence"
-            }
-            className="group rounded-3xl bg-linear-to-br from-rose-500 via-orange-500 to-amber-400 p-px"
-          >
-            <div className="h-full rounded-[calc(1.5rem-1px)] bg-linear-to-br from-rose-500 via-orange-500 to-amber-400 p-6 text-white shadow-lg transition-transform duration-200 group-hover:-translate-y-1">
-              <div className="mb-10 flex items-center justify-between">
-                <Badge className="bg-white/20 text-white hover:bg-white/20">History</Badge>
-                <Camera className="h-5 w-5" />
-              </div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">Primary Action</p>
-              <h3 className="mt-2 text-2xl font-bold leading-tight">History</h3>
-              <p className="mt-3 text-sm text-white/90">History of daily updates and uploaded on-site proof photos.</p>
-            </div>
-          </Link>
+            return (
+              <Link
+                key={action.key}
+                href={action.href(singleAssignedProjectId)}
+                className="group relative overflow-hidden rounded-3xl border border-border/60 bg-card p-0 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-border hover:shadow-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <div className={`relative flex h-full min-h-60 flex-col justify-between overflow-hidden rounded-3xl bg-linear-to-br ${action.gradient} p-6 text-white`}>
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.22),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_32%)]" />
+                  <div className={`absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br ${action.accent} opacity-20 blur-3xl transition-transform duration-300 group-hover:scale-110`} />
+
+                  <div className="relative flex items-start justify-between gap-4">
+                    <Badge className="border border-white/20 bg-white/15 text-white shadow-sm backdrop-blur-sm hover:bg-white/15">
+                      {action.label}
+                    </Badge>
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-lg backdrop-blur-sm">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                  </div>
+
+                  <div className="relative space-y-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">Primary Action</p>
+                      <h3 className="mt-3 text-2xl font-semibold leading-tight tracking-tight">
+                        {action.title}
+                      </h3>
+                      <p className="mt-3 max-w-sm text-sm leading-6 text-white/85">
+                        {action.description}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 border-t border-white/15 pt-4">
+                      <span className="text-xs font-medium uppercase tracking-[0.18em] text-white/70">
+                        Open workspace
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-sm font-medium text-white/95 backdrop-blur-sm transition-transform duration-200 group-hover:translate-x-1">
+                        Continue
+                        <ArrowRight className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            )
+          })}
         </div>
       </div>
     )
