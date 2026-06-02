@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { LayoutList, Camera } from "lucide-react"
+import { ArrowRight, ClipboardEdit, History } from "lucide-react"
 import {
   Item,
   ItemContent,
@@ -77,10 +77,38 @@ const mapProjectsToMapItems = (projects: ProjectFromApi[]): LeafletMapItem[] =>
       tooltip: `Project ID: ${x.raw.projectid}`,
     }))
 
+const siteEngineerActions = [
+  {
+    key: "log-progress",
+    label: "Action Required",
+    title: "Log Daily Execution",
+    description: "Update site progress, report crew/machinery status, and submit field labor requests.",
+    icon: ClipboardEdit,
+    buttonText: "Update progress",
+    href: (projectId: number | null) =>
+      projectId
+        ? `/project/${projectId}/site-progress?tab=activity-tracker&focus=activity-tracker`
+        : "/dashboard/site-engineer/activity-tracker",
+  },
+  {
+    key: "submission-history",
+    label: "History",
+    title: "Submission History",
+    description: "Review past field updates, submitted issues, and uploaded photo evidence.",
+    icon: History,
+    buttonText: "View history",
+    href: (projectId: number | null) =>
+      projectId
+        ? `/project/${projectId}/site-progress?tab=updates&focus=updates`
+        : "/dashboard/site-engineer/updates-evidence",
+  },
+] as const
+
 
 export default function DashboardPage() {
   const router = useRouter()
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [userName, setUserName] = useState<string | null>(null)
   const [userRoleLoaded, setUserRoleLoaded] = useState(false)
 
   useEffect(() => {
@@ -100,12 +128,13 @@ export default function DashboardPage() {
 
         const { data: dbUser } = await supabase
           .from("user")
-          .select("role")
+          .select("role, username")
           .eq("email", user.email)
           .maybeSingle()
 
         if (isMounted) {
           setUserRole(dbUser?.role ?? null)
+          setUserName(dbUser?.username || user.email.split("@")[0] || null)
         }
       } catch {
         if (isMounted) {
@@ -214,53 +243,58 @@ export default function DashboardPage() {
   }
 
   if (userRole === "SITE_ENGINEER") {
+    const greetingName = userName 
+      ? userName.charAt(0).toUpperCase() + userName.slice(1) 
+      : "Engineer"
+
     return (
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 pb-8">
-        <div>
-          <h2 className="text-2xl font-semibold text-foreground">Site Engineer Dashboard</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Choose a workspace to continue with focused execution tasks.
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 pb-8">
+        <div className="border-b border-neutral-900 pb-4">
+          <h2 className="text-3xl font-extrabold tracking-tight text-white">Hello, {greetingName}</h2>
+          <p className="mt-1 text-sm text-neutral-400">
+            Select a workspace to start logging daily execution.
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Link
-            href={
-              singleAssignedProjectId
-                ? `/project/${singleAssignedProjectId}/site-progress?tab=activity-tracker&focus=activity-tracker`
-                : "/dashboard/site-engineer/activity-tracker"
-            }
-            className="group rounded-3xl bg-linear-to-br from-indigo-600 via-blue-600 to-cyan-500 p-px"
-          >
-            <div className="h-full rounded-[calc(1.5rem-1px)] bg-linear-to-br from-indigo-500 via-blue-500 to-cyan-400 p-6 text-white shadow-lg transition-transform duration-200 group-hover:-translate-y-1">
-              <div className="mb-10 flex items-center justify-between">
-                <Badge className="bg-white/20 text-white hover:bg-white/20">Execution</Badge>
-                <LayoutList className="h-5 w-5" />
-              </div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">Primary Action</p>
-              <h3 className="mt-2 text-2xl font-bold leading-tight">Activity Tracker</h3>
-              <p className="mt-3 text-sm text-white/90">Open progress boards and update task flow by project.</p>
-            </div>
-          </Link>
+        <div className="grid gap-3.5 md:grid-cols-2">
+          {siteEngineerActions.map((action) => {
+            const Icon = action.icon
 
-          <Link
-            href={
-              singleAssignedProjectId
-                ? `/project/${singleAssignedProjectId}/site-progress?tab=updates&focus=updates`
-                : "/dashboard/site-engineer/updates-evidence"
-            }
-            className="group rounded-3xl bg-linear-to-br from-rose-500 via-orange-500 to-amber-400 p-px"
-          >
-            <div className="h-full rounded-[calc(1.5rem-1px)] bg-linear-to-br from-rose-500 via-orange-500 to-amber-400 p-6 text-white shadow-lg transition-transform duration-200 group-hover:-translate-y-1">
-              <div className="mb-10 flex items-center justify-between">
-                <Badge className="bg-white/20 text-white hover:bg-white/20">History</Badge>
-                <Camera className="h-5 w-5" />
-              </div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">Primary Action</p>
-              <h3 className="mt-2 text-2xl font-bold leading-tight">History</h3>
-              <p className="mt-3 text-sm text-white/90">History of daily updates and uploaded on-site proof photos.</p>
-            </div>
-          </Link>
+            return (
+              <Link
+                key={action.key}
+                href={action.href(singleAssignedProjectId)}
+                className="group relative flex flex-col justify-between overflow-hidden rounded-xl bg-white p-4 shadow-sm border border-gray-200 transition-all duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+              >
+                <div>
+                  <div className="flex items-start justify-between">
+                    <div className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
+                      {action.label}
+                    </div>
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-50 text-black">
+                      <Icon className="h-3.5 w-3.5" />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-1">
+                    <h3 className="text-lg font-bold tracking-tight text-neutral-950">
+                      {action.title}
+                    </h3>
+                    <p className="text-xs font-medium leading-relaxed text-neutral-500">
+                      {action.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex w-full items-center justify-between rounded-lg bg-black px-4 py-2.5 text-white transition-colors hover:bg-neutral-800">
+                  <span className="text-[13px] font-semibold">
+                    {action.buttonText}
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                </div>
+              </Link>
+            )
+          })}
         </div>
       </div>
     )

@@ -6,6 +6,7 @@ import { type Activity } from "@/lib/site-data"
 import { type Subtask } from "@/lib/subtasks-data"
 import { issues } from "@/lib/issues-data"
 import { cn } from "@/lib/utils"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Search,
   MessageSquare,
@@ -17,6 +18,9 @@ import {
   Cloud,
   MoreHorizontal,
   ArrowRight,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 
 interface UpdatesEvidenceTabProps {
@@ -411,140 +415,155 @@ function UpdateCard({ entry, isLatest = false, onImageClick }: { entry: UpdateEn
   const extraImages = entry.images.length > maxVisibleImages ? entry.images.length - maxVisibleImages : 0
 
   return (
-    <div className="relative flex gap-0 mb-3">
-      {/* Left gutter: timeline node + time */}
-      <div className="w-12 sm:w-18 shrink-0 flex flex-col items-center relative">
-        {/* Vertical line behind everything */}
-        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-white/20" />
-        {/* Node */}
+    <div className="mb-3 flex gap-0">
+      {/* Desktop timeline gutter */}
+      <div className="relative hidden w-12 shrink-0 flex-col items-center md:flex sm:w-18">
+        <div className="absolute top-0 bottom-0 left-1/2 w-px -translate-x-1/2 bg-white/20" />
         {isLatest ? (
-          <div className="relative z-10 mt-4 sm:mt-5 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border-2 border-[#0EA5E9] bg-[#060b14] flex items-center justify-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#0EA5E9]" />
+          <div className="relative z-10 mt-4 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-[#0EA5E9] bg-[#060b14] sm:mt-5">
+            <div className="h-1.5 w-1.5 rounded-full bg-[#0EA5E9]" />
           </div>
         ) : (
-          <div className="relative z-10 mt-4 sm:mt-5 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border-2 border-white/40 bg-[#060b14] flex items-center justify-center">
-            <div className="w-1 h-1 rounded-full bg-white/40" />
+          <div className="relative z-10 mt-4 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white/40 bg-[#060b14] sm:mt-5">
+            <div className="h-1 w-1 rounded-full bg-white/40" />
           </div>
         )}
-        {/* Time label below node */}
-        <span className="text-[9px] sm:text-[10px] font-medium text-white/40 mt-1.5 tabular-nums whitespace-nowrap">{entry.timeLabel}</span>
+        <span className="mt-1.5 whitespace-nowrap text-[9px] font-medium tabular-nums text-white/40 sm:text-[10px]">
+          {entry.timeLabel}
+        </span>
       </div>
 
-      {/* Card */}
-      <div className="flex-1 min-w-0 rounded-[16px] border border-white/[0.04] bg-[rgba(6,11,20,0.85)] hover:bg-[rgba(8,14,26,0.92)] hover:border-white/[0.07] transition-all duration-200 p-4 sm:p-5 group">
+      <div className="flex-1 rounded-2xl border border-white/4 bg-[rgba(6,11,20,0.85)] p-4 transition-all duration-200 hover:border-white/[0.07] hover:bg-[rgba(8,14,26,0.92)] sm:p-5 group">
         {/* Card header row */}
-        <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="mb-3 flex items-start justify-between gap-3">
           {/* Left: avatar + name */}
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex min-w-0 items-center gap-3">
             <div
-              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-[12px] font-bold text-white shadow-lg"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white shadow-lg"
               style={{ background: avatarColor }}
             >
               {getInitials(entry.author)}
             </div>
             <div className="min-w-0">
-              <div className="text-[15px] font-semibold text-white leading-tight truncate">{entry.author}</div>
+              <div className="truncate text-[15px] font-semibold leading-tight text-white">{entry.author}</div>
               <div className="text-[12px] text-white/45">{entry.role}</div>
             </div>
           </div>
 
           {/* Right: progress + status + menu */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex shrink-0 items-center gap-3">
             {entry.progressDelta !== null && (
               <div className="text-right">
-                <div className={cn(
-                  "text-[15px] font-bold leading-tight",
-                  entry.progressDelta >= 0 ? "text-emerald-400" : "text-red-400"
-                )}>
-                  {entry.progressDelta >= 0 ? "+" : ""}{entry.progressDelta}%
+                <div
+                  className={cn(
+                    "text-[15px] font-bold leading-tight",
+                    entry.progressDelta >= 0 ? "text-emerald-400" : "text-red-400"
+                  )}
+                >
+                  {entry.progressDelta >= 0 ? "+" : ""}
+                  {entry.progressDelta}%
                 </div>
-                <div className="text-[10px] text-white/40 font-medium">Progress</div>
+                <div className="text-[10px] font-medium text-white/40">Progress</div>
               </div>
             )}
-            <span className={cn(
-              "text-[11px] font-semibold px-2.5 py-1 rounded-lg whitespace-nowrap",
-              entry.status === "on-track"
-                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
-                : entry.status === "delayed"
-                ? "bg-amber-500/15 text-amber-400 border border-amber-500/20"
-                : "bg-slate-500/15 text-slate-400 border border-slate-500/20"
-            )}>
+            <span
+              className={cn(
+                "whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-semibold",
+                entry.status === "on-track"
+                  ? "border border-emerald-500/20 bg-emerald-500/15 text-emerald-400"
+                  : entry.status === "delayed"
+                  ? "border border-amber-500/20 bg-amber-500/15 text-amber-400"
+                  : "border border-slate-500/20 bg-slate-500/15 text-slate-400"
+              )}
+            >
               {entry.status === "on-track" ? "On Track" : entry.status === "delayed" ? "Delayed" : "Completed"}
             </span>
-            <button type="button" className="text-white/30 hover:text-white/70 transition-colors">
+            <button type="button" className="text-white/30 transition-colors hover:text-white/70">
               <MoreHorizontal className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* Activity title + zone/category */}
+        {/* Activity title + mobile time */}
         <div className="mb-2.5">
-          <div className="text-[15px] sm:text-[17px] font-bold text-white leading-tight">{entry.activityName}</div>
-          <div className="text-[13px] text-white/40 mt-0.5">{entry.zone} • {entry.category}</div>
+          <div className="text-[15px] font-bold leading-tight text-white sm:text-[17px]">{entry.activityName}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-white/45 md:hidden">
+            <span className="font-medium tabular-nums text-white/55">{entry.timeLabel}</span>
+            <span className="text-white/25">•</span>
+            <span>{entry.zone}</span>
+            <span className="text-white/25">•</span>
+            <span>{entry.category}</span>
+          </div>
+          <div className="mt-1 hidden flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-white/45 md:flex">
+            <span>{entry.zone}</span>
+            <span className="text-white/25">•</span>
+            <span>{entry.category}</span>
+          </div>
         </div>
 
-        {/* Description */}
-        <p className="whitespace-pre-line text-[13px] sm:text-[14px] leading-[1.7] text-white/78 sm:max-w-145 mb-3">{entry.description}</p>
+      {/* Description */}
+      <p className="whitespace-pre-line text-[13px] sm:text-[14px] leading-[1.7] text-white/78 sm:max-w-145 mb-3">{entry.description}</p>
 
-        {/* Metadata chips */}
-        {entry.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {entry.tags.map((tag, i) => (
-              <span
-                key={i}
-                className={cn(
-                  "inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-[5px] rounded-full border",
-                  getTagStyles(tag.type)
-                )}
-              >
-                {tag.type === "weather" && <Cloud className="h-3 w-3 shrink-0 opacity-70" />}
-                {tag.label}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Image gallery */}
-        {entry.images.length > 0 && (
-          <div className="flex gap-2 mb-3 flex-nowrap overflow-hidden">
-            {entry.images.slice(0, maxVisibleImages).map((src, idx) => (
-              <div
-                key={idx}
-                onClick={() => onImageClick?.(src)}
-                className="relative shrink-0 w-21 h-14 sm:w-25 sm:h-17 rounded-[10px] overflow-hidden border border-white/6 cursor-pointer group/img"
-              >
-                <img src={src} alt={`Evidence ${idx + 1}`} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-200" />
-                {idx === maxVisibleImages - 1 && extraImages > 0 && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
-                    <span className="text-white text-sm font-semibold">+{extraImages}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Action row */}
-        <div className="flex items-center justify-end gap-4 text-white/35 pt-1">
-          <button type="button" className="flex items-center gap-1.5 text-[12px] hover:text-blue-400 transition-colors">
-            <MessageSquare className="h-3.5 w-3.5" />
-            <span>{entry.commentCount}</span>
-          </button>
-          <button type="button" className="flex items-center gap-1.5 text-[12px] hover:text-blue-400 transition-colors">
-            <Paperclip className="h-3.5 w-3.5" />
-            <span>{entry.attachmentCount}</span>
-          </button>
-          <button type="button" className="flex items-center gap-1 text-[12px] hover:text-blue-400 transition-colors">
-            <ExternalLink className="h-3.5 w-3.5" />
-          </button>
+      {/* Metadata chips */}
+      {entry.tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {entry.tags.map((tag, i) => (
+            <span
+              key={i}
+              className={cn(
+                "inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.25 rounded-full border",
+                getTagStyles(tag.type)
+              )}
+            >
+              {tag.type === "weather" && <Cloud className="h-3 w-3 shrink-0 opacity-70" />}
+              {tag.label}
+            </span>
+          ))}
         </div>
+      )}
+
+      {/* Image gallery */}
+      {entry.images.length > 0 && (
+        <div className="flex gap-2 mb-3 flex-nowrap overflow-hidden">
+          {entry.images.slice(0, maxVisibleImages).map((src, idx) => (
+            <div
+              key={idx}
+              onClick={() => onImageClick?.(src)}
+              className="relative shrink-0 w-21 h-14 sm:w-25 sm:h-17 rounded-[10px] overflow-hidden border border-white/6 cursor-pointer group/img"
+            >
+              <img src={src} alt={`Evidence ${idx + 1}`} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-200" />
+              {idx === maxVisibleImages - 1 && extraImages > 0 && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
+                  <span className="text-white text-sm font-semibold">+{extraImages}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Action row */}
+      <div className="flex items-center justify-end gap-4 text-white/35 pt-1">
+        <button type="button" className="flex items-center gap-1.5 text-[12px] hover:text-blue-400 transition-colors">
+          <MessageSquare className="h-3.5 w-3.5" />
+          <span>{entry.commentCount}</span>
+        </button>
+        <button type="button" className="flex items-center gap-1.5 text-[12px] hover:text-blue-400 transition-colors">
+          <Paperclip className="h-3.5 w-3.5" />
+          <span>{entry.attachmentCount}</span>
+        </button>
+        <button type="button" className="flex items-center gap-1 text-[12px] hover:text-blue-400 transition-colors">
+          <ExternalLink className="h-3.5 w-3.5" />
+        </button>
       </div>
+    </div>
     </div>
   )
 }
 
 export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }: UpdatesEvidenceTabProps) {
   const viewMode: "day" = "day"
+  const [isClientReady, setIsClientReady] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [activitySearch, setActivitySearch] = useState("")
   const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null)
@@ -552,7 +571,32 @@ export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const [requestSummaries, setRequestSummaries] = useState<ActivityRequestSummary[]>([])
   const [requestSummariesLoading, setRequestSummariesLoading] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date())
+  const [showCalendar, setShowCalendar] = useState(false)
+  const [hasInitializedCalendar, setHasInitializedCalendar] = useState(false)
   const DAYS_PER_PAGE = 5
+
+  const getDaysInMonth = useMemo(() => {
+    return (date: Date) => {
+      const year = date.getFullYear()
+      const month = date.getMonth()
+      const firstDay = new Date(year, month, 1).getDay()
+      const daysInMonth = new Date(year, month + 1, 0).getDate()
+      
+      const cells: (Date | null)[] = []
+      for (let i = 0; i < firstDay; i++) {
+        cells.push(null)
+      }
+      for (let d = 1; d <= daysInMonth; d++) {
+        cells.push(new Date(year, month, d))
+      }
+      return cells
+    }
+  }, [])
+
+  useEffect(() => {
+    setIsClientReady(true)
+  }, [])
 
   useEffect(() => {
     const styleId = "updates-evidence-scrollbar-styles"
@@ -657,7 +701,14 @@ export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }
   }, [allEntries, requestSummaries, userName, userRole])
 
   const groupedByDate = useMemo(() => groupByDate(entries), [entries])
-  const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a))
+  const sortedDates = useMemo(() => Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a)), [groupedByDate])
+
+  useEffect(() => {
+    if (!hasInitializedCalendar && sortedDates.length > 0) {
+      setCalendarMonth(new Date(sortedDates[0]))
+      setHasInitializedCalendar(true)
+    }
+  }, [sortedDates, hasInitializedCalendar])
 
   const visibleEntries = useMemo(() => {
     let filtered = entries
@@ -708,6 +759,7 @@ export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }
   const dateRangeLabel = sortedDates.length > 0
     ? `${formatDisplayDate(sortedDates[sortedDates.length - 1])} – ${formatDisplayDate(sortedDates[0])}`
     : ""
+  const isLoadingUpdates = !isClientReady || requestSummariesLoading
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)_280px] h-auto min-h-[calc(100dvh-9rem)] md:h-[calc(100vh-200px)] md:min-h-150 rounded-[20px] overflow-hidden border border-border bg-background dark:bg-linear-to-br dark:from-[#02050B] dark:via-[#040912] dark:to-[#050B14]"
@@ -718,39 +770,124 @@ export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }
         <div className="p-4 pb-3 shrink-0" />
 
         <div className="flex-1 overflow-y-auto ue-scroll">
-          {/* Date list — shown in By Day mode */}
+          {/* Date list — replaced with elegant space-saving Calendar filter */}
           {viewMode === "day" && (
-            <div className="px-3 pb-2">
-              {sortedDates.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground px-3 py-3">No updates yet</p>
-              ) : (
-                <div className="space-y-0.5">
-                  {sortedDates.map((date) => {
-                    const count = groupedByDate[date].length
-                    const isToday = date === new Date().toISOString().split("T")[0]
-                    const isSelected = selectedDate === date
-                    return (
+            <div className="px-3 pb-4">
+              <div className="mb-2 px-1 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Filter By Date</span>
+                {selectedDate && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedDate(null)
+                    }}
+                    className="text-[10px] font-semibold text-[#0EA5E9] hover:text-[#0EA5E9]/80 transition-colors"
+                  >
+                    Clear Filter
+                  </button>
+                )}
+              </div>
+
+              {/* Collapsible Selector Toggle */}
+              <button
+                type="button"
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-white/[0.06] bg-white/[0.02] text-[11px] font-semibold text-white/80 hover:bg-white/5 transition-all mb-2.5"
+              >
+                <span className="flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5 text-[#0EA5E9]" />
+                  {selectedDate ? `Date: ${formatDisplayDate(selectedDate)}` : "Select Date"}
+                </span>
+                {showCalendar ? (
+                  <ChevronUp className="h-3.5 w-3.5 opacity-60" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                )}
+              </button>
+
+              {showCalendar && (
+                isLoadingUpdates ? (
+                  <div className="flex items-center gap-2 px-3 py-3 text-[11px] text-muted-foreground">
+                    <Spinner className="h-3.5 w-3.5" />
+                    <span>Loading calendar...</span>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-2.5">
+                    {/* Calendar Month Header */}
+                    <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-white/[0.03]">
                       <button
-                        key={date}
                         type="button"
-                        onClick={() => setSelectedDate(isSelected ? null : date)}
-                        className={cn(
-                          "w-full text-left px-4 py-[12px] rounded-[14px] transition-all duration-150",
-                          isSelected
-                            ? "bg-[#0EA5E9]/12 border border-[#0EA5E9]/25 shadow-[0_0_16px_rgba(14,165,233,0.12)]"
-                            : "hover:bg-white/[0.03] border border-transparent"
-                        )}
+                        onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                        className="p-1 rounded-md hover:bg-white/5 text-white/60 hover:text-white transition-colors"
                       >
-                        <div className={cn("text-[13px] font-semibold leading-tight", isSelected ? "text-white" : "text-white/90")}>
-                          {isToday ? `Today • ${formatDisplayDate(date)}` : formatDisplayDate(date)}
-                        </div>
-                        <div className={cn("text-[11px] mt-0.5", isSelected ? "text-[#0EA5E9]/80" : "text-white/35")}>
-                          {count} update{count !== 1 ? "s" : ""}
-                        </div>
+                        <ChevronLeft className="h-3 w-3" />
                       </button>
-                    )
-                  })}
-                </div>
+                      <span className="text-[11px] font-bold text-white tracking-wide">
+                        {calendarMonth.toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                        className="p-1 rounded-md hover:bg-white/5 text-white/60 hover:text-white transition-colors"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                      </button>
+                    </div>
+
+                    {/* Day labels */}
+                    <div className="grid grid-cols-7 gap-0.5 text-center text-[9px] font-bold text-white/30 mb-1">
+                      <span>S</span>
+                      <span>M</span>
+                      <span>T</span>
+                      <span>W</span>
+                      <span>T</span>
+                      <span>F</span>
+                      <span>S</span>
+                    </div>
+
+                    {/* Days grid */}
+                    <div className="grid grid-cols-7 gap-0.5">
+                      {getDaysInMonth(calendarMonth).map((day, idx) => {
+                        if (!day) return <div key={`empty-${idx}`} className="aspect-square" />
+
+                        const yyyy = day.getFullYear()
+                        const mm = String(day.getMonth() + 1).padStart(2, "0")
+                        const dd = String(day.getDate()).padStart(2, "0")
+                        const dateKey = `${yyyy}-${mm}-${dd}`
+
+                        const hasUpdates = !!groupedByDate[dateKey]
+                        const isSelected = selectedDate === dateKey
+                        const isToday = dateKey === new Date().toISOString().split("T")[0]
+
+                        return (
+                          <button
+                            key={dateKey}
+                            type="button"
+                            onClick={() => {
+                              setSelectedDate(isSelected ? null : dateKey)
+                              setShowCalendar(false)
+                            }}
+                            className={cn(
+                              "relative aspect-square flex items-center justify-center rounded-md text-[10px] font-semibold transition-all",
+                              isSelected
+                                ? "bg-[#0EA5E9] text-white font-bold"
+                                : hasUpdates
+                                ? "text-[#0EA5E9] hover:bg-white/5"
+                                : "text-white/60 hover:bg-white/5",
+                              isToday && !isSelected && "border border-[#0EA5E9]/40"
+                            )}
+                          >
+                            <span>{day.getDate()}</span>
+                            {/* Dot indicator if has updates */}
+                            {hasUpdates && !isSelected && (
+                              <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[#0EA5E9]" />
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
               )}
             </div>
           )}
@@ -807,7 +944,13 @@ export function UpdatesEvidenceTab({ projectId, activities, subtasksByActivity }
 
       {/* ===== CENTER TIMELINE ===== */}
       <div className="min-w-0 overflow-y-auto ue-scroll p-3 sm:p-4 md:p-5 bg-muted/10 dark:bg-[rgba(3,6,12,0.5)]">
-        {visibleSortedDates.length === 0 ? (
+        {isLoadingUpdates ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
+            <Spinner className="h-6 w-6" />
+            <p className="text-sm font-medium">Loading updates...</p>
+            <p className="text-[11px] opacity-50">Fetching the latest activity feed</p>
+          </div>
+        ) : visibleSortedDates.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
             <FileText className="h-12 w-12 opacity-15" />
             <p className="text-sm font-medium">No updates found</p>
