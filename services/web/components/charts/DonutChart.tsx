@@ -15,6 +15,7 @@ export type DonutChartProps = {
   centerLabel?: string
   ariaLabel?: string
   className?: string
+  compact?: boolean
 }
 
 type ResolvedSegment = DonutChartSegment & {
@@ -27,6 +28,7 @@ export default function DonutChart({
   centerLabel = "Total",
   ariaLabel = "Donut chart",
   className = "",
+  compact = false,
 }: DonutChartProps) {
   const [hoveredKey, setHoveredKey] = useState<string | null>(null)
 
@@ -49,7 +51,7 @@ export default function DonutChart({
 
   return (
     <div className={`flex ${className} justify-center items-center gap-2`}>
-      <div className="relative mx-auto h-40 w-40 min-w-1/6">
+      <div className={`relative mx-auto ${compact ? "h-28 w-28" : "h-40 w-40"} min-w-1/6`}>
         <svg viewBox="0 0 40 40" className="h-full w-full -rotate-90" aria-label={ariaLabel}>
           <circle cx="20" cy="20" r="12" fill="none" stroke="currentColor" strokeWidth="4" className="text-zinc-700/40" />
 
@@ -64,7 +66,7 @@ export default function DonutChart({
                 r="12"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth={hoveredKey === segment.key ? 5 : 4}
+                strokeWidth={hoveredKey === segment.key ? (compact ? 4 : 5) : (compact ? 3 : 4)}
                 strokeLinecap="butt"
                 strokeDasharray={`${segment.percentage} ${100 - segment.percentage}`}
                 strokeDashoffset={-offset}
@@ -79,13 +81,13 @@ export default function DonutChart({
         </svg>
 
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="text-2xl font-semibold tracking-tight text-foreground">
+          <span className={`${compact ? "text-lg" : "text-2xl"} font-semibold tracking-tight text-foreground`}>
             {hoveredSegment ? hoveredSegment.value : chartTotal}
           </span>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <span className={`${compact ? "text-[9px]" : "text-[10px]"} uppercase tracking-[0.2em] text-muted-foreground`}>
             {hoveredSegment ? hoveredSegment.label.substring(0, 10) : centerLabel.substring(0, 10)}
           </span>
-          <span className="text-[10px] text-muted-foreground">
+          <span className={`${compact ? "text-[9px]" : "text-[10px]"} text-muted-foreground`}>
             {hoveredSegment ? `${hoveredSegment.percentage.toFixed(1)}%` : ""}
           </span>
         </div>
@@ -96,14 +98,14 @@ export default function DonutChart({
           <button
             key={segment.key}
             type="button"
-            className="flex items-center gap-1.5 rounded-full border border-border/50 bg-muted/20 transition-colors hover:bg-muted/50"
+            className={`flex items-center gap-1.5 rounded-full border border-border/50 bg-muted/20 transition-colors hover:bg-muted/50 ${compact ? 'py-1 px-2' : ''}`}
             onMouseEnter={() => setHoveredKey(segment.key)}
             onMouseLeave={closeTooltip}
             onFocus={() => setHoveredKey(segment.key)}
             onBlur={closeTooltip}
           >
             <span className={`h-2 w-2 rounded-full bg-current ${segment.colorClass}`} />
-            <span className="text-[13px] font-medium text-foreground">{segment.label}</span>
+            <span className={`${compact ? 'text-[12px]' : 'text-[13px]'} font-medium text-foreground`}>{segment.label}</span>
           </button>
         ))}
       </div>

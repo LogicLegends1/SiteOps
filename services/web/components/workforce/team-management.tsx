@@ -10,6 +10,7 @@ import {
   getDisciplineLabel,
 } from "@/lib/workforce-data"
 import { type WorkforceTeam, type WorkforceWorker } from "@/lib/workforce-live"
+import { cn } from "@/lib/utils"
 
 import { CreateTeamDialog } from "./create-team-dialog"
 
@@ -18,6 +19,7 @@ interface TeamManagementProps {
   teams: WorkforceTeam[]
   workers: WorkforceWorker[]
   onTeamCreated: () => void
+  className?: string
 }
 
 export function TeamManagement({
@@ -25,6 +27,7 @@ export function TeamManagement({
   teams,
   workers,
   onTeamCreated,
+  className,
 }: TeamManagementProps) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null)
 
@@ -46,13 +49,13 @@ export function TeamManagement({
     const isExpanded = expandedTeam === team.id
 
     return (
-      <div key={team.id} className="rounded-lg border border-border bg-card overflow-hidden">
+      <div key={team.id} className="overflow-hidden rounded-lg border border-border/60 bg-card/60">
         <button
-          className="w-full flex items-center justify-between p-4 hover:bg-accent/50 transition-colors"
+          className="flex w-full items-center justify-between p-3 text-left transition-colors hover:bg-accent/40"
           onClick={() => setExpandedTeam(isExpanded ? null : team.id)}
         >
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
               <Users className="h-5 w-5 text-primary" />
             </div>
             <div className="text-left">
@@ -68,7 +71,7 @@ export function TeamManagement({
         </button>
 
         {isExpanded && (
-          <div className="border-t border-border p-4 bg-muted/30">
+          <div className="border-t border-border/60 bg-muted/10 p-3">
             <div className="mb-3">
               <p className="text-xs text-muted-foreground mb-1">Team Leader</p>
               {leader ? (
@@ -94,12 +97,12 @@ export function TeamManagement({
             </div>
 
             <p className="text-xs text-muted-foreground mb-2">Team Members</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-2 sm:grid-cols-2">
               {members.map((member) =>
                 member ? (
                   <div
                     key={member.id}
-                    className="flex items-center gap-2 rounded-md border border-border bg-card p-2"
+                    className="flex items-center gap-2 rounded-md border border-border/60 bg-background/70 p-2"
                   >
                     <Avatar className="h-6 w-6">
                       <AvatarFallback className="text-xs bg-secondary text-secondary-foreground">
@@ -126,8 +129,8 @@ export function TeamManagement({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className={cn("flex h-full flex-col gap-4", className)}>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
         <div>
           <div className="text-xs font-black uppercase tracking-widest text-muted-foreground">Teams</div>
           <div className="text-sm text-muted-foreground">Manage on-site crews and assignments</div>
@@ -135,9 +138,9 @@ export function TeamManagement({
         <CreateTeamDialog projectId={projectId} workers={workers} onTeamCreated={onTeamCreated} />
       </div>
 
-      <div className="rounded-xl border border-border/60 bg-card/60">
-        <ScrollArea className="h-130 pr-4">
-          <div className="space-y-3 p-4">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-lg border border-border/60">
+        <ScrollArea className="h-full pr-2">
+          <div className="space-y-3 pb-1">
             {teams.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center">
                 <Users className="h-10 w-10 text-muted-foreground" />

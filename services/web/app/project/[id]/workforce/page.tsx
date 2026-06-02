@@ -10,6 +10,8 @@ import { WorkerClassification } from "@/components/workforce/worker-classificati
 import { TeamManagement } from "@/components/workforce/team-management"
 import { AddWorkerDialog } from "@/components/workforce/add-worker-dialog"
 import { WorkforceBottomCharts } from "@/components/workforce/workforce-bottom-charts"
+import { WorkforceAllocationRequestsPanel } from "@/components/workforce/workforce-allocation-requests"
+import { WorkforceQuickFacts } from "@/components/workforce/workforce-quick-facts"
 import {
   ActivityWorkforceDistributionPanel,
   WorkforceAllocationAlertsPanel,
@@ -97,7 +99,7 @@ export default function WorkforcePage() {
         {/* Main column */}
         <div className="space-y-4">
           <Tabs defaultValue="classification" className="w-full">
-            <Card className="border-border/60 bg-card/60">
+            <Card className="border-border/60 bg-card/60 flex h-104 flex-col">
               <CardHeader className="gap-4">
                   {/* Search row (UI only) — above the main tabs like the screenshot */}
                   <div className="flex items-center gap-2">
@@ -117,7 +119,7 @@ export default function WorkforcePage() {
                   </div>
 
                   {/* Main tabs */}
-                  <TabsList className="h-10 w-full max-w-md rounded-xl border border-border/60 bg-muted/20 p-1">
+                  <TabsList className="h-10 w-full max-w-2xl rounded-xl border border-border/60 bg-muted/20 p-1">
                     <TabsTrigger
                       value="classification"
                       className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs font-bold"
@@ -130,24 +132,38 @@ export default function WorkforcePage() {
                     >
                       Teams
                     </TabsTrigger>
+                    <TabsTrigger
+                      value="allocation-requests"
+                      className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs font-bold"
+                    >
+                      Allocation Requests
+                    </TabsTrigger>
                   </TabsList>
               </CardHeader>
 
-              <CardContent className="space-y-4">
-                <TabsContent value="classification" className="m-0">
+              <CardContent className="flex flex-1 min-h-0 flex-col overflow-hidden">
+                <TabsContent value="classification" className="m-0 flex-1 min-h-0">
                   <WorkerClassification
                     workers={filteredWorkers}
                     teams={teams ?? []}
                     toolbarRight={null}
+                    className="h-full"
                   />
                 </TabsContent>
 
-                <TabsContent value="teams" className="m-0">
-                  <TeamManagement projectId={projectId} teams={teams ?? []} workers={workers ?? []} onTeamCreated={reload} />
+                <TabsContent value="teams" className="m-0 flex-1 min-h-0">
+                  <TeamManagement
+                    projectId={projectId}
+                    teams={teams ?? []}
+                    workers={workers ?? []}
+                    onTeamCreated={reload}
+                    className="h-full"
+                  />
                 </TabsContent>
 
-                {/* Bottom charts inside the main card (closer to screenshot) */}
-                <WorkforceBottomCharts />
+                <TabsContent value="allocation-requests" className="m-0 flex-1 min-h-0">
+                  <WorkforceAllocationRequestsPanel projectId={projectId} className="h-full" />
+                </TabsContent>
               </CardContent>
             </Card>
           </Tabs>
@@ -155,8 +171,16 @@ export default function WorkforcePage() {
 
         {/* Right column (hard-coded for now) */}
         <div className="space-y-4">
-          <WorkforceAllocationAlertsPanel projectId={projectId} />
-          <WorkforceAllocationTimelinePanel />
+          <WorkforceAllocationAlertsPanel projectId={projectId} className="h-104" />
+        </div>
+
+        {/* Independent chart + timeline row */}
+        <div className="lg:col-span-2 grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)] items-stretch">
+          <WorkforceBottomCharts workers={workers ?? []} className="h-full" />
+          <div className="flex h-full flex-col gap-4">
+            <WorkforceAllocationTimelinePanel projectId={projectId} className="flex-1 min-h-0" />
+            <WorkforceQuickFacts workers={workers ?? []} teams={teams ?? []} />
+          </div>
         </div>
 
         {/* Full-width section (spans both columns) */}

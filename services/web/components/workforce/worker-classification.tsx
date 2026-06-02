@@ -35,12 +35,14 @@ interface WorkerClassificationProps {
   workers: WorkforceWorker[]
   teams?: WorkforceTeam[]
   toolbarRight?: React.ReactNode
+  className?: string
 }
 
 export function WorkerClassification({
   workers,
   teams = [],
   toolbarRight,
+  className,
 }: WorkerClassificationProps) {
   const [activeTab, setActiveTab] = useState<"discipline" | "role" | "experience">("discipline")
 
@@ -155,7 +157,11 @@ export function WorkerClassification({
   }
 
   return (
-    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "discipline" | "role" | "experience")}>
+    <Tabs
+      value={activeTab}
+      onValueChange={(v) => setActiveTab(v as "discipline" | "role" | "experience")}
+      className={cn("flex h-full flex-col", className)}
+    >
       <div className="flex items-center justify-between gap-3">
         <TabsList className="grid w-full max-w-105 grid-cols-3 rounded-lg bg-muted/30 p-1">
           <TabsTrigger value="discipline" className="rounded-md text-xs font-semibold">
@@ -172,8 +178,8 @@ export function WorkerClassification({
         {toolbarRight ? <div className="shrink-0">{toolbarRight}</div> : null}
       </div>
 
-      <TabsContent value="discipline" className="mt-4">
-        <ScrollArea className="h-64 pr-2">
+      <TabsContent value="discipline" className="mt-4 flex-1 min-h-0">
+        <ScrollArea className="h-full pr-2">
           <div className="space-y-4">
             {disciplines.map((discipline) => {
               const disciplineWorkers = workers.filter((w) => w.discipline === discipline)
@@ -205,8 +211,8 @@ export function WorkerClassification({
         </ScrollArea>
       </TabsContent>
 
-      <TabsContent value="role" className="mt-4">
-        <ScrollArea className="h-64 pr-2">
+      <TabsContent value="role" className="mt-4 flex-1 min-h-0">
+        <ScrollArea className="h-full pr-2">
           <div className="space-y-4">
             {roles.map((role) => {
               const roleWorkers = workers.filter((w) => w.role === role)
@@ -237,8 +243,8 @@ export function WorkerClassification({
         </ScrollArea>
       </TabsContent>
 
-      <TabsContent value="experience" className="mt-4">
-        <ScrollArea className="h-64 pr-2">
+      <TabsContent value="experience" className="mt-4 flex-1 min-h-0">
+        <ScrollArea className="h-full pr-2">
           <div className="space-y-4">
             {experienceLevels.map((level) => {
               const levelWorkers = workers.filter((w) => w.experienceLevel === level)
