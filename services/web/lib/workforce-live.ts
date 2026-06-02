@@ -47,6 +47,63 @@ export interface WorkforceSummary {
   teams: number
 }
 
+export const WORKER_REQUEST_ROLE_KEYS = [
+  "tower_crane_operators",
+  "excavator_operators",
+  "crawler_crane_operators",
+  "tipper_drivers",
+  "surveyors",
+  "masons",
+  "carpenters",
+  "steel_fixers",
+  "electricians",
+  "general_labors",
+  "site_engineers",
+] as const
+
+export type WorkerRequestRoleKey = (typeof WORKER_REQUEST_ROLE_KEYS)[number]
+
+export const workerRequestRoleLabels: Record<WorkerRequestRoleKey, string> = {
+  tower_crane_operators: "Tower Crane Operators",
+  excavator_operators: "Excavator Operators",
+  crawler_crane_operators: "Crawler Crane Operators",
+  tipper_drivers: "Tipper Drivers",
+  surveyors: "Surveyors",
+  masons: "Masons",
+  carpenters: "Carpenters",
+  steel_fixers: "Steel Fixers",
+  electricians: "Electricians",
+  general_labors: "General Labors",
+  site_engineers: "Site Engineers",
+}
+
+export interface WorkerAllocationRequestRole {
+  key: WorkerRequestRoleKey
+  label: string
+  count: number
+}
+
+export interface WorkerAllocationRequest {
+  id: number
+  activityId: number
+  activityName: string
+  activityDescription: string
+  activityStatus: string | null
+  totalRequested: number
+  roles: WorkerAllocationRequestRole[]
+}
+
+export interface WorkerAllocationRequestSummary {
+  pendingRequests: number
+  activities: number
+  totalRequested: number
+}
+
+export interface WorkerAllocationRequestResponse {
+  summary: WorkerAllocationRequestSummary
+  requests: WorkerAllocationRequest[]
+}
+
 export interface WorkforceResponse {
   summary: WorkforceSummary
   workers: WorkforceWorker[]

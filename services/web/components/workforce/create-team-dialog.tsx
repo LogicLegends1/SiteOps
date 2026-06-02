@@ -173,7 +173,7 @@ export function CreateTeamDialog({ projectId, workers, onTeamCreated, disabled =
           Create Team
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-200 gap-6 max-h-screen overflow-hidden flex flex-col">
+      <DialogContent className="flex max-h-screen flex-col gap-6 sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>Create New Team</DialogTitle>
           <DialogDescription>
@@ -182,7 +182,7 @@ export function CreateTeamDialog({ projectId, workers, onTeamCreated, disabled =
         </DialogHeader>
 
         <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="grid grid-cols-[1fr,1fr] gap-6">
+          <div className="grid gap-6 lg:grid-cols-[1fr,1.15fr]">
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="team-name">Team Name</Label>
@@ -227,12 +227,12 @@ export function CreateTeamDialog({ projectId, workers, onTeamCreated, disabled =
             </div>
           </div>
 
-          <div className="flex flex-col border rounded-md h-100">
-            <div className="bg-muted px-4 py-2 font-semibold text-sm border-b flex justify-between items-center">
+          <div className="flex min-h-[28rem] flex-col overflow-hidden rounded-lg border border-border/60 bg-card/60">
+            <div className="flex items-center justify-between border-b border-border/60 bg-muted/20 px-4 py-2 text-sm font-semibold">
               <span>Available Workers</span>
               <Badge variant="outline">{availableWorkers.length}</Badge>
             </div>
-            <ScrollArea className="flex-1 p-2">
+            <ScrollArea className="flex-1 pr-2">
               <div className="space-y-4">
                 {availableWorkers.length === 0 ? (
                   <p className="text-sm text-muted-foreground p-4 text-center">No unassigned workers available.</p>

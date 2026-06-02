@@ -228,27 +228,31 @@ export function ActivityWorkforceDistributionPanel() {
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-black tracking-wide">Activity Workforce Distribution</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {demoItems.map((item) => (
-          <div key={item.title} className="rounded-xl border border-border/60 bg-muted/10 p-3">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="text-sm font-semibold text-foreground">{item.title}</div>
-                <div className="text-xs text-muted-foreground">{item.subtitle}</div>
-              </div>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                {item.assignedTeam}
-              </Badge>
-            </div>
+      <CardContent className="pt-0">
+        <ScrollArea className="h-104 pr-3">
+          <div className="space-y-3 pb-1">
+            {demoItems.map((item) => (
+              <div key={item.title} className="rounded-xl border border-border/60 bg-muted/10 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">{item.title}</div>
+                    <div className="text-xs text-muted-foreground">{item.subtitle}</div>
+                  </div>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                    {item.assignedTeam}
+                  </Badge>
+                </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <MiniDonut segments={item.discipline.segments} labelLines={item.discipline.labelLines} />
-              <MiniDonut segments={item.role.segments} labelLines={item.role.labelLines} />
-              <MiniDonut segments={item.experience.segments} labelLines={item.experience.labelLines} />
-              <MiniAllocationCap cap={item.allocationCap.cap} allocated={item.allocationCap.allocated} />
-            </div>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <MiniDonut segments={item.discipline.segments} labelLines={item.discipline.labelLines} />
+                  <MiniDonut segments={item.role.segments} labelLines={item.role.labelLines} />
+                  <MiniDonut segments={item.experience.segments} labelLines={item.experience.labelLines} />
+                  <MiniAllocationCap cap={item.allocationCap.cap} allocated={item.allocationCap.allocated} />
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </ScrollArea>
       </CardContent>
     </Card>
   )
@@ -293,7 +297,13 @@ function statusBadge(status: AllocationAlertStatus) {
   }
 }
 
-export function WorkforceAllocationAlertsPanel({ projectId }: { projectId: string }) {
+export function WorkforceAllocationAlertsPanel({
+  projectId,
+  className,
+}: {
+  projectId: string
+  className?: string
+}) {
   const [items, setItems] = useState<AllocationAlertActivity[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -323,10 +333,10 @@ export function WorkforceAllocationAlertsPanel({ projectId }: { projectId: strin
   }, [items])
 
   return (
-    <Card className="border-border/60 bg-card/60">
+    <Card className={cn("border-border/60 bg-card/60 flex h-full flex-col", className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-sm font-black tracking-wide">Workforce Allocation Alerts</CardTitle>
+          <CardTitle className="text-sm font-black tracking-wide">Allocation Gap Alerts</CardTitle>
           <div className="flex items-center gap-2">
             {loading ? (
               <Badge variant="outline" className="bg-muted/30 text-muted-foreground">
@@ -346,14 +356,14 @@ export function WorkforceAllocationAlertsPanel({ projectId }: { projectId: strin
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 min-h-0">
         {items.length === 0 && !loading ? (
           <div className="rounded-xl border border-border/60 bg-muted/10 p-4 text-center">
-            <div className="text-sm font-semibold text-foreground">No allocation alerts</div>
+            <div className="text-sm font-semibold text-foreground">No gap alerts</div>
             <div className="text-xs text-muted-foreground">No activities with teams were found for this project.</div>
           </div>
         ) : (
-          <ScrollArea className="h-80 pr-3">
+          <ScrollArea className="h-full pr-3">
             <div className="space-y-3">
               {items.map((item) => {
                 const badge = statusBadge(item.statusSummary)
@@ -448,70 +458,364 @@ export function WorkforceAllocationAlertsPanel({ projectId }: { projectId: strin
   )
 }
 
-type TimelineRow = {
-  label: string
-  bar: { startPct: number; widthPct: number; className: string }
+type TimelineActivity = {
+  activityid: number
+  name: string | null
+  description: string | null
+  status: string | null
+  createdat: string | null
+  deadline: string | null
 }
 
-const demoTimeline: TimelineRow[] = [
-  {
-    label: "Excavation (Flash A)",
-    bar: { startPct: 2, widthPct: 42, className: "bg-blue-500/80" },
-  },
-  {
-    label: "Pouring (Flash A)",
-    bar: { startPct: 24, widthPct: 40, className: "bg-amber-500/80" },
-  },
-  {
-    label: "Pouring (Flash B)",
-    bar: { startPct: 40, widthPct: 32, className: "bg-sky-500/80" },
-  },
-  {
-    label: "Drainage (Flash A)",
-    bar: { startPct: 58, widthPct: 28, className: "bg-emerald-500/80" },
-  },
-  {
-    label: "Drainage (Flash C)",
-    bar: { startPct: 70, widthPct: 24, className: "bg-amber-500/80" },
-  },
-]
+type TimelineRow = {
+  key: number
+  title: string
+  status: string | null
+  createdAt: Date
+  deadline: Date
+  durationDays: number
+  className: string
+}
 
-export function WorkforceAllocationTimelinePanel() {
+type TimelineMonth = {
+  key: string
+  label: string
+  year: string
+  start: Date
+  end: Date
+}
+
+type TimelineYearBand = {
+  key: string
+  label: string
+  startIndex: number
+  monthCount: number
+}
+
+function parseDate(value: unknown): Date | null {
+  if (typeof value !== "string" || !value.trim()) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function startOfMonth(value: Date): Date {
+  return new Date(value.getFullYear(), value.getMonth(), 1)
+}
+
+function addMonths(value: Date, count: number): Date {
+  return new Date(value.getFullYear(), value.getMonth() + count, 1)
+}
+
+function formatMonthLabel(value: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+  }).format(value)
+}
+
+function formatYearLabel(value: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+  }).format(value)
+}
+
+function getTimelineColorClass(status: string | null): string {
+  const normalized = (status ?? "").toLowerCase()
+  if (normalized.includes("complete")) return "bg-emerald-500/80"
+  if (normalized.includes("progress") || normalized.includes("active")) return "bg-sky-500/80"
+  if (normalized.includes("cancel")) return "bg-zinc-500/70"
+  if (normalized.includes("delay") || normalized.includes("late")) return "bg-rose-500/80"
+  return "bg-amber-500/80"
+}
+
+function buildTimelineRows(items: TimelineActivity[]): TimelineRow[] {
+  const parsed = items
+    .map((item) => {
+      const createdAt = parseDate(item.createdat)
+      const deadline = parseDate(item.deadline)
+
+      if (!createdAt || !deadline) return null
+
+      const durationDays = Math.max(1, Math.round((deadline.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)))
+
+      return {
+        key: item.activityid,
+        title: item.name?.trim() || item.description?.trim() || `Activity ${item.activityid}`,
+        status: item.status,
+        createdAt,
+        deadline,
+        durationDays,
+        className: getTimelineColorClass(item.status),
+      }
+    })
+    .filter((row): row is TimelineRow => row !== null)
+
+  if (parsed.length === 0) return []
+
+  return parsed
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+}
+
+function buildTimelineCalendar(rows: TimelineRow[], monthWidth = 144) {
+  if (rows.length === 0) {
+    return null
+  }
+
+  const timelineStart = startOfMonth(new Date(Math.min(...rows.map((row) => row.createdAt.getTime()))))
+  const timelineEnd = addMonths(
+    startOfMonth(new Date(Math.max(...rows.map((row) => Math.max(row.deadline.getTime(), row.createdAt.getTime()))))),
+    1
+  )
+
+  const monthCount = Math.max(
+    1,
+    (timelineEnd.getFullYear() - timelineStart.getFullYear()) * 12 + (timelineEnd.getMonth() - timelineStart.getMonth())
+  )
+
+  const months = Array.from({ length: monthCount }, (_, index) => {
+    const start = addMonths(timelineStart, index)
+    const end = addMonths(start, 1)
+
+    return {
+      key: `${start.getFullYear()}-${start.getMonth()}`,
+      label: formatMonthLabel(start),
+      year: formatYearLabel(start),
+      start,
+      end,
+    } satisfies TimelineMonth
+  })
+
+  const yearBands: TimelineYearBand[] = []
+  let monthIndex = 0
+
+  while (monthIndex < months.length) {
+    const currentYear = months[monthIndex].start.getFullYear()
+    const yearStart = monthIndex
+
+    while (monthIndex < months.length && months[monthIndex].start.getFullYear() === currentYear) {
+      monthIndex += 1
+    }
+
+    yearBands.push({
+      key: String(currentYear),
+      label: String(currentYear),
+      startIndex: yearStart,
+      monthCount: monthIndex - yearStart,
+    })
+  }
+
+  const contentWidth = monthCount * monthWidth
+  const totalWindow = Math.max(1, timelineEnd.getTime() - timelineStart.getTime())
+
+  return {
+    timelineStart,
+    timelineEnd,
+    displayEnd: addMonths(timelineEnd, -1),
+    monthWidth,
+    monthCount,
+    contentWidth,
+    months,
+    yearBands,
+    getTimeToPx(value: Date) {
+      return ((value.getTime() - timelineStart.getTime()) / totalWindow) * contentWidth
+    },
+  }
+}
+
+function TimelineCard({
+  projectId,
+  compact = false,
+  className,
+}: {
+  projectId: string
+  compact?: boolean
+  className?: string
+}) {
+  const [items, setItems] = useState<TimelineActivity[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!projectId) return
+
+    const controller = new AbortController()
+    setLoading(true)
+    setError(null)
+
+    fetch(`/api/project/${projectId}/activities`, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        return response.json()
+      })
+      .then((json) => {
+        setItems(Array.isArray(json?.activities) ? json.activities : [])
+      })
+      .catch((fetchError: any) => {
+        if (fetchError?.name === "AbortError") return
+        setError(fetchError?.message ?? "Failed to load activity timeline")
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+
+    return () => controller.abort()
+  }, [projectId])
+
+  const rows = useMemo(() => buildTimelineRows(items), [items])
+
+  const monthWidth = compact ? 108 : 144
+  const timelineBounds = useMemo(() => buildTimelineCalendar(rows, monthWidth), [rows, monthWidth])
+
   return (
-    <Card className="border-border/60 bg-card/60">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-black tracking-wide">Workforce Allocation Timeline</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-[120px_1fr] gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          <div />
-          <div className="grid grid-cols-4">
-            <div className="text-center">Phase 1</div>
-            <div className="text-center">Phase 2</div>
-            <div className="text-center">Phase 3</div>
-            <div className="text-center">Phase 4</div>
+    <Card className={cn("border-border/60 bg-card/60 flex h-full flex-col", className)}>
+      <CardHeader className={compact ? "space-y-2 pb-2" : "space-y-3 pb-3"}>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className={compact ? "text-xs font-black tracking-wide" : "text-sm font-black tracking-wide"}>
+            Workforce Allocation Timeline
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {loading ? (
+              <Badge variant="outline" className={compact ? "bg-muted/30 text-muted-foreground text-[10px]" : "bg-muted/30 text-muted-foreground"}>
+                Loading…
+              </Badge>
+            ) : null}
+            {error ? (
+              <Badge variant="outline" className={compact ? "bg-destructive/10 text-destructive border-destructive/20 text-[10px]" : "bg-destructive/10 text-destructive border-destructive/20"}>
+                {error}
+              </Badge>
+            ) : null}
           </div>
         </div>
 
-        <div className="space-y-3">
-          {demoTimeline.map((row) => (
-            <div key={row.label} className="grid grid-cols-[120px_1fr] items-center gap-2">
-              <div className="text-xs text-muted-foreground truncate">{row.label}</div>
+        {!error && timelineBounds ? (
+          <div className={compact ? "flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground" : "flex flex-wrap items-center gap-2 text-xs text-muted-foreground"}>
+            <Badge variant="outline" className={compact ? "bg-muted/10 text-muted-foreground border-border/60 text-[10px]" : "bg-muted/10 text-muted-foreground border-border/60"}>
+              {rows.length} activities
+            </Badge>
+            <Badge variant="outline" className={compact ? "bg-muted/10 text-muted-foreground border-border/60 text-[10px]" : "bg-muted/10 text-muted-foreground border-border/60"}>
+              {timelineBounds.monthCount} month window
+            </Badge>
+            <span>
+              {formatMonthLabel(timelineBounds.timelineStart)} {formatYearLabel(timelineBounds.timelineStart)} - {formatMonthLabel(timelineBounds.displayEnd)} {formatYearLabel(timelineBounds.displayEnd)}
+            </span>
+          </div>
+        ) : null}
+      </CardHeader>
 
-              <div className="relative h-3 rounded-full border border-border/60 bg-muted/20 overflow-hidden">
-                <div className="pointer-events-none absolute inset-y-0 left-1/4 w-px bg-border/50" />
-                <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-border/50" />
-                <div className="pointer-events-none absolute inset-y-0 left-3/4 w-px bg-border/50" />
-
-                <div
-                  className={cn("absolute top-1/2 h-2 -translate-y-1/2 rounded-full", row.bar.className)}
-                  style={{ left: `${row.bar.startPct}%`, width: `${row.bar.widthPct}%` }}
-                />
-              </div>
+      <CardContent className="flex-1 min-h-0">
+        {rows.length === 0 && !loading ? (
+          <div className="rounded-2xl border border-dashed border-border/60 bg-muted/10 p-8 text-center">
+            <div className="text-sm font-semibold text-foreground">No timeline data</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Activities for this project need both a created date and a deadline to render the timeline.
             </div>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <ScrollArea className="h-full pr-2">
+            <div className={compact ? "space-y-2" : "space-y-3"}>
+              {timelineBounds ? (
+                <div className="overflow-x-auto pb-2">
+                  <div style={{ minWidth: `${180 + timelineBounds.contentWidth}px` }}>
+                    <div
+                      className={cn(
+                        "grid items-end px-1 pb-2 font-black uppercase tracking-widest text-muted-foreground",
+                        compact ? "gap-2 text-[9px]" : "gap-3 text-[10px]"
+                      )}
+                      style={{ gridTemplateColumns: `180px ${timelineBounds.contentWidth}px` }}
+                    >
+                      <div>Activities</div>
+                      <div className="grid" style={{ gridTemplateColumns: `repeat(${timelineBounds.monthCount}, ${timelineBounds.monthWidth}px)` }}>
+                        {timelineBounds.yearBands.map((band) => (
+                          <div
+                            key={band.key}
+                            className={cn(
+                              "col-start-1 row-start-1 flex items-center justify-center text-muted-foreground",
+                              compact ? "text-[9px] tracking-[0.25em]" : "text-[10px] tracking-[0.3em]"
+                            )}
+                            style={{ gridColumn: `${band.startIndex + 1} / span ${band.monthCount}` }}
+                          >
+                            <span className={cn("rounded-full border border-border/60 bg-background/80 shadow-sm", compact ? "px-2.5 py-0.5" : "px-3 py-1") }>
+                              {band.label}
+                            </span>
+                          </div>
+                        ))}
+
+                        {timelineBounds.months.map((month, index) => (
+                          <div
+                            key={month.key}
+                            className="col-start-1 row-start-2 flex flex-col items-center justify-end"
+                            style={{ gridColumn: index + 1 }}
+                          >
+                            <div className={compact ? "mb-1.5 h-2 w-px bg-border/70" : "mb-2 h-2 w-px bg-border/70"} />
+                            <span className={cn(
+                              "whitespace-nowrap rounded-full border border-border/60 bg-background/80 font-bold normal-case tracking-normal text-muted-foreground shadow-sm",
+                              compact ? "px-2 py-0.5 text-[8px]" : "px-2.5 py-1 text-[9px]"
+                            )}>
+                              {month.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {rows.map((row) => (
+                <div
+                  key={row.key}
+                  className={cn(
+                    "grid items-center rounded-xl border border-border/60 bg-muted/10",
+                    compact ? "gap-2 p-2.5" : "gap-3 p-3"
+                  )}
+                  style={{ gridTemplateColumns: `180px ${timelineBounds?.contentWidth ?? 0}px` }}
+                >
+                  <div className="min-w-0">
+                    <div className={compact ? "truncate text-xs font-semibold text-foreground" : "truncate text-sm font-semibold text-foreground"}>{row.title}</div>
+                  </div>
+
+                  <div className={compact ? "relative h-7 rounded-full border border-border/60 bg-background/70" : "relative h-8 rounded-full border border-border/60 bg-background/70"}>
+                    {timelineBounds?.months.map((month) => (
+                      <div
+                        key={`${row.key}-${month.key}`}
+                        className="pointer-events-none absolute inset-y-0 w-px bg-border/40"
+                        style={{ left: `${timelineBounds.getTimeToPx(month.start)}px` }}
+                      />
+                    ))}
+
+                    <div
+                      className={cn("absolute top-1/2 h-3 -translate-y-1/2 rounded-full shadow-sm", row.className)}
+                      style={{
+                        left: `${Math.max(0, timelineBounds.getTimeToPx(row.createdAt))}px`,
+                        width: `${Math.max(24, timelineBounds.getTimeToPx(row.deadline) - timelineBounds.getTimeToPx(row.createdAt))}px`,
+                      }}
+                    />
+                    <div
+                      className={cn("absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border-2 border-background shadow-sm", row.className)}
+                      style={{ left: `${Math.max(0, timelineBounds.getTimeToPx(row.createdAt))}px` }}
+                    />
+                    <div
+                      className={cn("absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border-2 border-background shadow-sm", row.className)}
+                      style={{ left: `${Math.max(0, timelineBounds.getTimeToPx(row.deadline))}px` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
       </CardContent>
     </Card>
   )
+}
+
+export function WorkforceAllocationTimelinePanel({
+  projectId,
+  compact = false,
+  className,
+}: {
+  projectId: string
+  compact?: boolean
+  className?: string
+}) {
+  return <TimelineCard projectId={projectId} compact={compact} className={className} />
 }
