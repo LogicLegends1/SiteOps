@@ -405,7 +405,6 @@ export default function ProjectPage() {
   )
   const hoveredActivity =
     timelineActivities.find((activity) => activity.activityid === (pinnedActivityId ?? hoveredActivityId)) ??
-    timelineActivities[0] ??
     null
   const hoveredSubtasks = hoveredActivity ? subtasksByActivity[hoveredActivity.activityid] ?? [] : []
   const pendingActivities = timelineActivities
@@ -572,7 +571,7 @@ export default function ProjectPage() {
                         <div className="text-sm text-muted-foreground">No activities available for this project</div>
                       ) : (
                         timelineActivities.map((activity, index) => {
-                          const isHovered = (pinnedActivityId ?? hoveredActivityId) === activity.activityid || (!hoveredActivityId && !pinnedActivityId && index === 0)
+                          const isHovered = (pinnedActivityId ?? hoveredActivityId) === activity.activityid
                           const statusMeta = getActivityStatusMeta(activity.status)
 
                           return (
