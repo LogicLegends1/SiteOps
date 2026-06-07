@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { cn } from "@/lib/utils"
 
 type DonutSegment = {
@@ -86,8 +87,10 @@ function MiniDonut({ segments, size = 44, strokeWidth = 6, labelLines }: MiniDon
 
 type ActivityDistributionItem = {
   title: string
-  subtitle: string
+  phase: string
+  location: string
   assignedTeam: string
+  status: "balanced" | "under-cap" | "over-cap"
   discipline: { labelLines: string[]; segments: DonutSegment[] }
   role: { labelLines: string[]; segments: DonutSegment[] }
   experience: { labelLines: string[]; segments: DonutSegment[] }
@@ -96,91 +99,142 @@ type ActivityDistributionItem = {
 
 const demoItems: ActivityDistributionItem[] = [
   {
-    title: "Excavate for Zone A Foundation",
-    subtitle: "Assigned Team: Flash A",
-    assignedTeam: "Flash A",
+    title: "Excavate Zone A Foundation",
+    phase: "Earthworks",
+    location: "Zone A",
+    assignedTeam: "Groundworks Alpha",
+    status: "under-cap",
     discipline: {
-      labelLines: ["4 Civil", "2 Mechanical", "2 Electrical"],
+      labelLines: ["5 Civil", "3 Surveying", "2 Logistics", "2 Safety"],
       segments: [
-        { value: 4, className: "text-blue-500" },
+        { value: 5, className: "text-blue-500" },
+        { value: 3, className: "text-cyan-500" },
         { value: 2, className: "text-amber-500" },
-        { value: 2, className: "text-emerald-500" },
+        { value: 2, className: "text-rose-500" },
       ],
     },
     role: {
-      labelLines: ["2 Supervisor", "6 Technician"],
+      labelLines: ["3 Excavator Operators", "3 Tipper Drivers", "2 Surveyors", "4 General Labors"],
       segments: [
-        { value: 2, className: "text-sky-500" },
-        { value: 6, className: "text-violet-500" },
+        { value: 3, className: "text-violet-500" },
+        { value: 3, className: "text-amber-500" },
+        { value: 2, className: "text-cyan-500" },
+        { value: 4, className: "text-slate-500" },
       ],
     },
     experience: {
-      labelLines: ["3 < 1 yr", "3 1-5 yrs", "2 5-10 yrs"],
+      labelLines: ["4 Junior", "5 Mid-level", "3 Senior"],
       segments: [
-        { value: 3, className: "text-cyan-500" },
-        { value: 3, className: "text-lime-500" },
-        { value: 2, className: "text-orange-500" },
+        { value: 4, className: "text-slate-500" },
+        { value: 5, className: "text-emerald-500" },
+        { value: 3, className: "text-primary" },
       ],
     },
-    allocationCap: { cap: 10, allocated: 8 },
+    allocationCap: { cap: 14, allocated: 12 },
   },
   {
-    title: "Pour Foundation Zone B",
-    subtitle: "Assigned Team: Thunder",
-    assignedTeam: "Thunder",
+    title: "Rebar Fixing for Pier Caps",
+    phase: "Structural Works",
+    location: "Pier Line B",
+    assignedTeam: "Steel Crew Bravo",
+    status: "balanced",
     discipline: {
-      labelLines: ["4 Civil", "2 Mechanical", "2 Electrical"],
+      labelLines: ["6 Structural", "3 Steel", "2 Surveying", "1 Safety"],
       segments: [
-        { value: 4, className: "text-blue-500" },
-        { value: 2, className: "text-amber-500" },
-        { value: 2, className: "text-emerald-500" },
+        { value: 6, className: "text-indigo-500" },
+        { value: 3, className: "text-zinc-500" },
+        { value: 2, className: "text-cyan-500" },
+        { value: 1, className: "text-rose-500" },
       ],
     },
     role: {
-      labelLines: ["2 Supervisor", "6 Technician"],
+      labelLines: ["6 Steel Fixers", "2 Carpenters", "2 Site Engineers", "2 General Labors"],
       segments: [
-        { value: 2, className: "text-sky-500" },
-        { value: 6, className: "text-violet-500" },
+        { value: 6, className: "text-zinc-500" },
+        { value: 2, className: "text-orange-500" },
+        { value: 2, className: "text-blue-500" },
+        { value: 2, className: "text-slate-500" },
       ],
     },
     experience: {
-      labelLines: ["3 < 1 yr", "3 1-5 yrs", "2 5-10 yrs"],
+      labelLines: ["2 Junior", "4 Mid-level", "4 Senior", "2 Expert"],
       segments: [
-        { value: 3, className: "text-cyan-500" },
-        { value: 3, className: "text-lime-500" },
-        { value: 2, className: "text-orange-500" },
+        { value: 2, className: "text-slate-500" },
+        { value: 4, className: "text-emerald-500" },
+        { value: 4, className: "text-primary" },
+        { value: 2, className: "text-amber-500" },
       ],
     },
-    allocationCap: { cap: 8, allocated: 8 },
+    allocationCap: { cap: 12, allocated: 12 },
   },
   {
-    title: "Install Drainage Zone C",
-    subtitle: "Assigned Team: Flash A",
-    assignedTeam: "Flash A",
+    title: "Deck Formwork and Concrete Pour",
+    phase: "Concrete Works",
+    location: "Span C",
+    assignedTeam: "Deck Crew Charlie",
+    status: "over-cap",
     discipline: {
-      labelLines: ["4 Civil", "2 Mechanical", "2 Electrical"],
+      labelLines: ["5 Concrete", "4 Structural", "2 Mechanical", "2 Safety"],
       segments: [
-        { value: 4, className: "text-blue-500" },
+        { value: 5, className: "text-sky-500" },
+        { value: 4, className: "text-indigo-500" },
         { value: 2, className: "text-amber-500" },
-        { value: 2, className: "text-emerald-500" },
+        { value: 2, className: "text-rose-500" },
       ],
     },
     role: {
-      labelLines: ["2 Supervisor", "6 Technician"],
+      labelLines: ["4 Masons", "3 Carpenters", "2 Tower Crane Operators", "1 Crawler Crane Operator", "2 General Labors"],
       segments: [
-        { value: 2, className: "text-sky-500" },
-        { value: 6, className: "text-violet-500" },
+        { value: 4, className: "text-sky-500" },
+        { value: 3, className: "text-orange-500" },
+        { value: 2, className: "text-fuchsia-500" },
+        { value: 1, className: "text-violet-500" },
+        { value: 2, className: "text-slate-500" },
       ],
     },
     experience: {
-      labelLines: ["3 < 1 yr", "3 1-5 yrs", "2 5-10 yrs"],
+      labelLines: ["3 Junior", "4 Mid-level", "5 Senior"],
       segments: [
-        { value: 3, className: "text-cyan-500" },
-        { value: 3, className: "text-lime-500" },
-        { value: 2, className: "text-orange-500" },
+        { value: 3, className: "text-slate-500" },
+        { value: 4, className: "text-emerald-500" },
+        { value: 5, className: "text-primary" },
       ],
     },
-    allocationCap: { cap: 9, allocated: 10 },
+    allocationCap: { cap: 11, allocated: 12 },
+  },
+  {
+    title: "Electrical Conduit Installation",
+    phase: "MEP Works",
+    location: "Service Corridor D",
+    assignedTeam: "MEP Delta",
+    status: "under-cap",
+    discipline: {
+      labelLines: ["6 Electrical", "2 Civil", "1 Surveying", "1 Safety"],
+      segments: [
+        { value: 6, className: "text-emerald-500" },
+        { value: 2, className: "text-blue-500" },
+        { value: 1, className: "text-cyan-500" },
+        { value: 1, className: "text-rose-500" },
+      ],
+    },
+    role: {
+      labelLines: ["5 Electricians", "2 Site Engineers", "2 General Labors", "1 Surveyor"],
+      segments: [
+        { value: 5, className: "text-emerald-500" },
+        { value: 2, className: "text-blue-500" },
+        { value: 2, className: "text-slate-500" },
+        { value: 1, className: "text-cyan-500" },
+      ],
+    },
+    experience: {
+      labelLines: ["2 Junior", "5 Mid-level", "3 Senior"],
+      segments: [
+        { value: 2, className: "text-slate-500" },
+        { value: 5, className: "text-emerald-500" },
+        { value: 3, className: "text-primary" },
+      ],
+    },
+    allocationCap: { cap: 12, allocated: 10 },
   },
 ]
 
@@ -222,39 +276,110 @@ function MiniAllocationCap({ cap, allocated }: { cap: number; allocated: number 
   )
 }
 
-export function ActivityWorkforceDistributionPanel() {
+function DistributionBlock({
+  title,
+  data,
+}: {
+  title: string
+  data: ActivityDistributionItem["discipline"]
+}) {
   return (
-    <Card className="border-border/60 bg-card/60">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-black tracking-wide">Activity Workforce Distribution</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <ScrollArea className="h-104 pr-3">
-          <div className="space-y-3 pb-1">
-            {demoItems.map((item) => (
-              <div key={item.title} className="rounded-xl border border-border/60 bg-muted/10 p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">{item.title}</div>
-                    <div className="text-xs text-muted-foreground">{item.subtitle}</div>
-                  </div>
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                    {item.assignedTeam}
-                  </Badge>
-                </div>
+    <div className="rounded-xl border border-border/60 bg-background/70 p-3">
+      <div className="mb-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">{title}</div>
+      <MiniDonut segments={data.segments} labelLines={data.labelLines} size={58} strokeWidth={7} />
+    </div>
+  )
+}
 
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <MiniDonut segments={item.discipline.segments} labelLines={item.discipline.labelLines} />
-                  <MiniDonut segments={item.role.segments} labelLines={item.role.labelLines} />
-                  <MiniDonut segments={item.experience.segments} labelLines={item.experience.labelLines} />
-                  <MiniAllocationCap cap={item.allocationCap.cap} allocated={item.allocationCap.allocated} />
-                </div>
-              </div>
-            ))}
+function statusBadgeClass(status: ActivityDistributionItem["status"]) {
+  switch (status) {
+    case "over-cap":
+      return "bg-destructive/10 text-destructive border-destructive/20"
+    case "under-cap":
+      return "bg-amber-500/10 text-amber-600 border-amber-500/20"
+    case "balanced":
+    default:
+      return "bg-success/15 text-success border-success/20"
+  }
+}
+
+function statusBadgeLabel(status: ActivityDistributionItem["status"]) {
+  switch (status) {
+    case "over-cap":
+      return "Over cap"
+    case "under-cap":
+      return "Capacity available"
+    case "balanced":
+    default:
+      return "Balanced"
+  }
+}
+
+function ActivityDistributionCard({ item }: { item: ActivityDistributionItem }) {
+  return (
+    <Card className="h-full border-border/60 bg-card/80">
+      <CardHeader className="space-y-3 pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="truncate text-base font-black tracking-tight">{item.title}</CardTitle>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+              <span>{item.phase}</span>
+              <span className="text-border">/</span>
+              <span>{item.location}</span>
+            </div>
           </div>
-        </ScrollArea>
+          <Badge variant="outline" className={cn("shrink-0", statusBadgeClass(item.status))}>
+            {statusBadgeLabel(item.status)}
+          </Badge>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+            {item.assignedTeam}
+          </Badge>
+          <Badge variant="outline" className="bg-muted/20 text-muted-foreground border-border/60">
+            {item.allocationCap.allocated} assigned / {item.allocationCap.cap} cap
+          </Badge>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 md:grid-cols-3">
+          <DistributionBlock title="Discipline" data={item.discipline} />
+          <DistributionBlock title="Role" data={item.role} />
+          <DistributionBlock title="Experience" data={item.experience} />
+        </div>
+
+        <div className="rounded-xl border border-border/60 bg-background/70 p-3">
+          <MiniAllocationCap cap={item.allocationCap.cap} allocated={item.allocationCap.allocated} />
+        </div>
       </CardContent>
     </Card>
+  )
+}
+
+export function ActivityWorkforceDistributionPanel() {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-black tracking-wide text-foreground">Activity Workforce Distribution</h3>
+          <p className="mt-1 text-xs text-muted-foreground">{demoItems.length} planned activity allocations</p>
+        </div>
+      </div>
+
+      <Carousel opts={{ align: "start" }} className="px-10">
+        <CarouselContent>
+          {demoItems.map((item) => (
+            <CarouselItem key={item.title} className="md:basis-1/2 2xl:basis-1/3">
+              <ActivityDistributionCard item={item} />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious className="left-0 border-border/60 bg-card/90" />
+        <CarouselNext className="right-0 border-border/60 bg-card/90" />
+      </Carousel>
+    </section>
   )
 }
 

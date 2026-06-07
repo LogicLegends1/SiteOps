@@ -15,6 +15,10 @@ export type DonutChartProps = {
   centerLabel?: string
   ariaLabel?: string
   className?: string
+  chartClassName?: string
+  legendClassName?: string
+  legendItemClassName?: string
+  legendLabelClassName?: string
   compact?: boolean
 }
 
@@ -28,6 +32,10 @@ export default function DonutChart({
   centerLabel = "Total",
   ariaLabel = "Donut chart",
   className = "",
+  chartClassName = "",
+  legendClassName = "",
+  legendItemClassName = "",
+  legendLabelClassName = "",
   compact = false,
 }: DonutChartProps) {
   const [hoveredKey, setHoveredKey] = useState<string | null>(null)
@@ -48,10 +56,12 @@ export default function DonutChart({
   const hoveredSegment = visibleSegments.find((segment) => segment.key === hoveredKey) ?? null
 
   const closeTooltip = () => setHoveredKey(null)
+  const chartSizeClassName = chartClassName || (compact ? "h-28 w-28" : "h-40 w-40")
+  const legendLabelClassNames = legendLabelClassName || "truncate"
 
   return (
     <div className={`flex ${className} justify-center items-center gap-2`}>
-      <div className={`relative mx-auto ${compact ? "h-28 w-28" : "h-40 w-40"} min-w-1/6`}>
+      <div className={`relative mx-auto ${chartSizeClassName} min-w-1/6`}>
         <svg viewBox="0 0 40 40" className="h-full w-full -rotate-90" aria-label={ariaLabel}>
           <circle cx="20" cy="20" r="12" fill="none" stroke="currentColor" strokeWidth="4" className="text-zinc-700/40" />
 
@@ -93,19 +103,19 @@ export default function DonutChart({
         </div>
       </div>
 
-      <div className="flex-1">
+      <div className={`flex-1 ${legendClassName}`}>
         {visibleSegments.map((segment) => (
           <button
             key={segment.key}
             type="button"
-            className={`flex items-center gap-1.5 rounded-full border border-border/50 bg-muted/20 transition-colors hover:bg-muted/50 ${compact ? 'py-1 px-2' : ''}`}
+            className={`flex min-w-0 items-center gap-1.5 rounded-full border border-border/50 bg-muted/20 transition-colors hover:bg-muted/50 ${compact ? 'py-1 px-2' : ''} ${legendItemClassName}`}
             onMouseEnter={() => setHoveredKey(segment.key)}
             onMouseLeave={closeTooltip}
             onFocus={() => setHoveredKey(segment.key)}
             onBlur={closeTooltip}
           >
             <span className={`h-2 w-2 rounded-full bg-current ${segment.colorClass}`} />
-            <span className={`${compact ? 'text-[12px]' : 'text-[13px]'} font-medium text-foreground`}>{segment.label}</span>
+            <span className={`${compact ? 'text-[12px]' : 'text-[13px]'} font-medium text-foreground ${legendLabelClassNames}`}>{segment.label}</span>
           </button>
         ))}
       </div>

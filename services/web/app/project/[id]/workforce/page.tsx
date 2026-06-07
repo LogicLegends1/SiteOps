@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, Search, SlidersHorizontal } from "lucide-react"
+import { Search, SlidersHorizontal } from "lucide-react"
 
 export default function WorkforcePage() {
   const params = useParams()
@@ -87,7 +87,7 @@ export default function WorkforcePage() {
           ) : null}
           {loading ? (
             <Badge variant="outline" className="bg-muted/30 text-muted-foreground">
-              Loading…
+              Loading...
             </Badge>
           ) : null}
         </div>
@@ -95,99 +95,115 @@ export default function WorkforcePage() {
         <WorkforceStats summary={summary} loading={loading} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Main column */}
-        <div className="space-y-4">
-          <Tabs defaultValue="classification" className="w-full">
+      <Tabs defaultValue="overview" className="w-full space-y-4">
+        <Card className="border-border/60 bg-card/60">
+          <CardHeader className="gap-4">
+            {/* Search row (UI only) - above the main tabs like the screenshot */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search"
+                  className="pl-9 bg-muted/10 border-border/60"
+                />
+              </div>
+              <Button variant="outline" size="icon" className="border-border/60 bg-muted/10">
+                <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+              </Button>
+              <AddWorkerDialog projectId={projectId} onWorkerAdded={reload} />
+            </div>
+
+            {/* Main tabs */}
+            <TabsList className="h-auto min-h-10 w-full max-w-3xl flex-wrap justify-start rounded-xl border border-border/60 bg-muted/20 p-1">
+              <TabsTrigger
+                value="overview"
+                className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs font-bold"
+              >
+                Overview
+              </TabsTrigger>
+              <TabsTrigger
+                value="classification"
+                className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs font-bold"
+              >
+                Worker Classification
+              </TabsTrigger>
+              <TabsTrigger
+                value="teams"
+                className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs font-bold"
+              >
+                Teams
+              </TabsTrigger>
+              <TabsTrigger
+                value="allocation-requests"
+                className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs font-bold"
+              >
+                Allocation Requests
+              </TabsTrigger>
+            </TabsList>
+          </CardHeader>
+        </Card>
+
+        <TabsContent value="overview" className="m-0 space-y-4">
+          <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)] items-stretch">
+            <WorkforceBottomCharts workers={workers ?? []} className="h-full" />
+            <div className="flex h-full flex-col gap-4">
+              <WorkforceAllocationTimelinePanel projectId={projectId} className="flex-1 min-h-0" />
+              <WorkforceQuickFacts workers={workers ?? []} teams={teams ?? []} />
+            </div>
+          </div>
+
+          <ActivityWorkforceDistributionPanel />
+        </TabsContent>
+
+        <TabsContent value="classification" className="m-0">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
             <Card className="border-border/60 bg-card/60 flex h-104 flex-col">
-              <CardHeader className="gap-4">
-                  {/* Search row (UI only) — above the main tabs like the screenshot */}
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search"
-                        className="pl-9 bg-muted/10 border-border/60"
-                      />
-                    </div>
-                    <Button variant="outline" size="icon" className="border-border/60 bg-muted/10">
-                      <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                    <AddWorkerDialog projectId={projectId} onWorkerAdded={reload} />
-                  </div>
-
-                  {/* Main tabs */}
-                  <TabsList className="h-10 w-full max-w-2xl rounded-xl border border-border/60 bg-muted/20 p-1">
-                    <TabsTrigger
-                      value="classification"
-                      className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs font-bold"
-                    >
-                      Worker Classification
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="teams"
-                      className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs font-bold"
-                    >
-                      Teams
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="allocation-requests"
-                      className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs font-bold"
-                    >
-                      Allocation Requests
-                    </TabsTrigger>
-                  </TabsList>
-              </CardHeader>
-
-              <CardContent className="flex flex-1 min-h-0 flex-col overflow-hidden">
-                <TabsContent value="classification" className="m-0 flex-1 min-h-0">
-                  <WorkerClassification
-                    workers={filteredWorkers}
-                    teams={teams ?? []}
-                    toolbarRight={null}
-                    className="h-full"
-                  />
-                </TabsContent>
-
-                <TabsContent value="teams" className="m-0 flex-1 min-h-0">
-                  <TeamManagement
-                    projectId={projectId}
-                    teams={teams ?? []}
-                    workers={workers ?? []}
-                    onTeamCreated={reload}
-                    className="h-full"
-                  />
-                </TabsContent>
-
-                <TabsContent value="allocation-requests" className="m-0 flex-1 min-h-0">
-                  <WorkforceAllocationRequestsPanel projectId={projectId} className="h-full" />
-                </TabsContent>
+              <CardContent className="flex flex-1 min-h-0 flex-col overflow-hidden p-6">
+                <WorkerClassification
+                  workers={filteredWorkers}
+                  teams={teams ?? []}
+                  toolbarRight={null}
+                  className="h-full"
+                />
               </CardContent>
             </Card>
-          </Tabs>
-        </div>
 
-        {/* Right column (hard-coded for now) */}
-        <div className="space-y-4">
-          <WorkforceAllocationAlertsPanel projectId={projectId} className="h-104" />
-        </div>
-
-        {/* Independent chart + timeline row */}
-        <div className="lg:col-span-2 grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)] items-stretch">
-          <WorkforceBottomCharts workers={workers ?? []} className="h-full" />
-          <div className="flex h-full flex-col gap-4">
-            <WorkforceAllocationTimelinePanel projectId={projectId} className="flex-1 min-h-0" />
-            <WorkforceQuickFacts workers={workers ?? []} teams={teams ?? []} />
+            <WorkforceAllocationAlertsPanel projectId={projectId} className="h-104" />
           </div>
-        </div>
+        </TabsContent>
 
-        {/* Full-width section (spans both columns) */}
-        <div className="lg:col-span-2">
-          <ActivityWorkforceDistributionPanel />
-        </div>
-      </div>
+        <TabsContent value="teams" className="m-0">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <Card className="border-border/60 bg-card/60 flex h-104 flex-col">
+              <CardContent className="flex flex-1 min-h-0 flex-col overflow-hidden p-6">
+                <TeamManagement
+                  projectId={projectId}
+                  teams={teams ?? []}
+                  workers={workers ?? []}
+                  onTeamCreated={reload}
+                  className="h-full"
+                />
+              </CardContent>
+            </Card>
+
+            <WorkforceAllocationAlertsPanel projectId={projectId} className="h-104" />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="allocation-requests" className="m-0">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <Card className="border-border/60 bg-card/60 flex h-104 flex-col">
+              <CardContent className="flex flex-1 min-h-0 flex-col overflow-hidden p-6">
+                <WorkforceAllocationRequestsPanel projectId={projectId} className="h-full" />
+              </CardContent>
+            </Card>
+
+            <WorkforceAllocationAlertsPanel projectId={projectId} className="h-104" />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
