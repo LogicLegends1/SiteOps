@@ -2,6 +2,11 @@
 
 **SiteOps** is a construction operations management platform that connects Site Engineers, Project Managers, and Operations Managers in a single, unified workflow. It brings real-time activity tracking, workforce management, issue reporting, and predictive delay intelligence into one system — replacing scattered spreadsheets and status calls with a structured, role-based interface.
 
+## 🚀 Live Demo
+
+**Hosted Application:**  
+https://site-ops-eight.vercel.app/
+
 ---
 
 ## Tech Stack
@@ -29,26 +34,26 @@ Three roles interact with the platform at different levels:
 
 ## Get Started
 
-### Option A — Docker (recommended)
+### Option A — Docker (Recommended)
 
 Runs both services together in a single container. Suitable for staging, demos, or anyone who just wants the app running without configuring a local environment.
 
 **Prerequisites:** Docker installed and running.
 
-**1. Clone the repository**
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/your-org/siteops.git
 cd siteops
 ```
 
-**2. Build the image**
+### 2. Build the Image
 
 ```bash
 docker build -t siteops .
 ```
 
-**3. Run the container**
+### 3. Run the Container
 
 ```bash
 docker run -p 3000:3000 siteops
@@ -58,7 +63,7 @@ The startup script launches the Python ML service internally and brings up Next.
 
 | Service | URL |
 |---|---|
-| Web app (Next.js) | http://localhost:3000 |
+| Web App (Next.js) | http://localhost:3000 |
 
 ---
 
@@ -84,7 +89,17 @@ pip install -r requirements.txt
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-API is available at `http://localhost:8000`. Interactive docs at `http://localhost:8000/docs`.
+API available at:
+
+```text
+http://localhost:8000
+```
+
+Interactive API Documentation:
+
+```text
+http://localhost:8000/docs
+```
 
 #### Terminal 2 — Next.js
 
@@ -94,19 +109,27 @@ cd services/web
 # Install dependencies
 npm install
 
-# Start the development server
+# Start development server
 npm run dev
 ```
 
-Web app is available at `http://localhost:3000`.
+Web application available at:
 
-> **Note:** For a production-equivalent build locally, run `npm run build && npm start` instead of `npm run dev`.
+```text
+http://localhost:3000
+```
+
+> **Note:** For a production-equivalent build locally, run:
+>
+> ```bash
+> npm run build && npm start
+> ```
 
 ---
 
 ## Project Structure
 
-```
+```text
 siteops/
 ├── services/
 │   ├── web/                  # Next.js frontend
