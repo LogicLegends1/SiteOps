@@ -45,12 +45,32 @@ export default function DonutChart({
   const visibleSegments = useMemo<ResolvedSegment[]>(() => {
     if (chartTotal <= 0) return []
 
-    return segments
-      .filter((segment) => segment.value > 0)
-      .map((segment) => ({
-        ...segment,
-        percentage: (segment.value / chartTotal) * 100,
-      }))
+    // Aggregate segments by a normalized key so keys differing only by case
+    // (or surrounding whitespace) are combined into a single segment.
+    const map = new Map<string, { label: string; colorClass: string; value: number }>()
+
+    segments.forEach((segment) => {
+      if (!segment || !(segment.value > 0)) return
+      const normKey = (segment.key ?? "").toString().trim().toLowerCase()
+      const existing = map.get(normKey)
+      if (existing) {
+        existing.value += segment.value
+      } else {
+        map.set(normKey, {
+          label: segment.label ?? segment.key,
+          colorClass: segment.colorClass ?? "",
+          value: segment.value,
+        })
+      }
+    })
+
+    return Array.from(map.entries()).map(([key, entry]) => ({
+      key,
+      label: entry.label,
+      value: entry.value,
+      colorClass: entry.colorClass,
+      percentage: (entry.value / chartTotal) * 100,
+    }))
   }, [chartTotal, segments])
 
   const hoveredSegment = visibleSegments.find((segment) => segment.key === hoveredKey) ?? null
