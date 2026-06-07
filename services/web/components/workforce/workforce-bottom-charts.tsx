@@ -100,7 +100,7 @@ export function WorkforceBottomCharts({ workers, className }: WorkforceBottomCha
   )
 
   return (
-    <div className={cn("flex h-full flex-col justify-between gap-4", className)}>
+    <div className={cn("flex h-full flex-col gap-4", className)}>
       <Card className="border-border/60 bg-card/60 min-h-44">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-black tracking-wide">Workforce Distribution By Discipline</CardTitle>
@@ -110,12 +110,21 @@ export function WorkforceBottomCharts({ workers, className }: WorkforceBottomCha
         </CardContent>
       </Card>
 
-      <Card className="border-border/60 bg-card/60 min-h-44">
-        <CardHeader className="pb-3">
+      <Card className="border-border/60 bg-card/60 flex-1 min-h-56 gap-0 overflow-hidden py-4">
+        <CardHeader className="px-5 pb-2">
           <CardTitle className="text-sm font-black tracking-wide">Workforce Distribution By Role</CardTitle>
         </CardHeader>
-        <CardContent>
-          <DonutChart segments={workforceByRole} centerLabel="Workers" className="w-full" compact />
+        <CardContent className="flex flex-1 items-center px-5 pt-0">
+          <DonutChart
+            segments={workforceByRole}
+            centerLabel="Workers"
+            className="h-full w-full flex-col gap-3"
+            chartClassName="h-40 w-40"
+            legendClassName="grid w-full grid-cols-2 gap-1.5"
+            legendItemClassName="h-7 min-w-0 justify-start !px-2 !py-0"
+            legendLabelClassName="whitespace-nowrap text-[11px]"
+            compact
+          />
         </CardContent>
       </Card>
 
