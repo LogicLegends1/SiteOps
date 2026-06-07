@@ -276,21 +276,6 @@ function MiniAllocationCap({ cap, allocated }: { cap: number; allocated: number 
   )
 }
 
-function DistributionBlock({
-  title,
-  data,
-}: {
-  title: string
-  data: ActivityDistributionItem["discipline"]
-}) {
-  return (
-    <div className="rounded-xl border border-border/60 bg-background/70 p-3">
-      <div className="mb-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">{title}</div>
-      <MiniDonut segments={data.segments} labelLines={data.labelLines} size={58} strokeWidth={7} />
-    </div>
-  )
-}
-
 function statusBadgeClass(status: ActivityDistributionItem["status"]) {
   switch (status) {
     case "over-cap":
@@ -317,8 +302,8 @@ function statusBadgeLabel(status: ActivityDistributionItem["status"]) {
 
 function ActivityDistributionCard({ item }: { item: ActivityDistributionItem }) {
   return (
-    <Card className="h-full border-border/60 bg-card/80">
-      <CardHeader className="space-y-3 pb-3">
+    <Card className="h-full gap-0 border-border/60 bg-card/80 py-5">
+      <CardHeader className="space-y-3 px-5 pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <CardTitle className="truncate text-base font-black tracking-tight">{item.title}</CardTitle>
@@ -343,11 +328,9 @@ function ActivityDistributionCard({ item }: { item: ActivityDistributionItem }) 
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-3">
-          <DistributionBlock title="Discipline" data={item.discipline} />
-          <DistributionBlock title="Role" data={item.role} />
-          <DistributionBlock title="Experience" data={item.experience} />
+      <CardContent className="flex flex-1 flex-col gap-4 px-5">
+        <div className="flex flex-1 items-center justify-center rounded-xl border border-border/60 bg-background/70 p-4">
+          <MiniDonut segments={item.role.segments} labelLines={item.role.labelLines} size={124} strokeWidth={13} />
         </div>
 
         <div className="rounded-xl border border-border/60 bg-background/70 p-3">
