@@ -106,8 +106,10 @@ def seed_data():
                     elif roll < 0.93: status = "maintenance"
                     else: status = "down"
 
-                    service_days = random.randint(-10, 30)
-                    next_service = (datetime.now() + timedelta(days=service_days)).strftime("%Y-%m-%d")
+                    # Ensure next service is after June 10, 2026 (presentation date)
+                    base_date = datetime(2026, 6, 10)
+                    service_days = random.randint(3, 30)
+                    next_service = (base_date + timedelta(days=service_days)).strftime("%Y-%m-%d")
                     
                     full_specs = specs.copy()
                     full_specs["model"] = model_name

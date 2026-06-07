@@ -230,9 +230,11 @@ def seed_geospatial_equipment():
         elif "DZ-001" in eq_t["name"]:
             status = "maintenance"
 
-        next_svc = (datetime.now() + timedelta(days=random.randint(5, 30))).strftime("%Y-%m-%d")
+        # Ensure next service is after June 10, 2026 (presentation date)
+        base_date = datetime(2026, 6, 10)
+        next_svc = (base_date + timedelta(days=random.randint(3, 30))).strftime("%Y-%m-%d")
         if status == "down":
-            next_svc = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
+            next_svc = (base_date - timedelta(days=2)).strftime("%Y-%m-%d")
 
         item_row = {
             "name": eq_t["name"],

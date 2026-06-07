@@ -7,6 +7,7 @@ import { type Activity, type Project } from "@/lib/site-data"
 import { type Subtask, calculateProgressFromSubtasks, getSubtaskCounts, getTrackLabelFromSubtasks } from "@/lib/subtasks-data"
 import { getIssuesByActivityId } from "@/lib/issues-data"
 import { cn } from "@/lib/utils"
+import { type EquipmentItem } from "@/lib/equipment-data"
 
 export interface ActivityWorkersSummary {
   roleCounts: Record<string, number>
@@ -26,6 +27,7 @@ interface LeafletMapProps {
   activityWorkersCache?: Record<number, ActivityWorkersSummary>
   engineerByActivity?: Record<number, string>
   onViewPeople?: (activity: Activity) => void
+  equipment?: EquipmentItem[]
 }
 
 const DEFAULT_MARKER_COLOR = "#EA4335"
@@ -249,14 +251,80 @@ function WeatherOverlay({ activityName }: { activityName: string }) {
   )
 }
 
-// ── Crew & Machinery Combined Overlay ─────────────────────────────────────────
+// Helper to get mock machinery if database contains no assignments for this zone/activity
+function getMockMachineryForActivity(activity: Activity): { name: string; status: string; className: string }[] {
+  const n = (activity.name || "").toLowerCase()
+  if (n.includes("excavat") || n.includes("earthwork") || n.includes("bulk earth")) {
+    return [
+      { name: "Excavator #01 (CAT 320)", status: "active", className: "Excavator" },
+      { name: "Excavator #02 (Komatsu PC210)", status: "active", className: "Excavator" },
+      { name: "Heavy Tipper #01 (Volvo FMX)", status: "active", className: "Heavy Tipper" },
+      { name: "Heavy Tipper #02 (Volvo FMX)", status: "idle", className: "Heavy Tipper" },
+      { name: "Heavy Tipper #03 (Scania G440)", status: "maintenance", className: "Heavy Tipper" },
+    ]
+  } else if (n.includes("haul") || n.includes("transport")) {
+    return [
+      { name: "Tipper Truck #01", status: "active", className: "Tipper Truck" },
+      { name: "Tipper Truck #02", status: "active", className: "Tipper Truck" },
+      { name: "Tipper Truck #03", status: "idle", className: "Tipper Truck" },
+      { name: "Tipper Truck #04", status: "active", className: "Tipper Truck" },
+      { name: "Wheel Loader #01", status: "active", className: "Wheel Loader" },
+    ]
+  } else if (n.includes("concrete") || n.includes("pcc") || n.includes("pour") || n.includes("footing") || n.includes("piling") || n.includes("rig")) {
+    return [
+      { name: "Piling Rig (Bauer BG24)", status: "active", className: "Piling Rig" },
+      { name: "Concrete Pump (Schwing)", status: "active", className: "Concrete Pump" },
+      { name: "Concrete Mixer Truck #01", status: "active", className: "Concrete Mixer" },
+      { name: "Concrete Mixer Truck #02", status: "idle", className: "Concrete Mixer" },
+    ]
+  } else if (n.includes("rebar") || n.includes("reinforc") || n.includes("steel")) {
+    return [
+      { name: "Mobile Crane #01 (Tadano 50T)", status: "active", className: "Mobile Crane" },
+      { name: "Rebar Bender (Peddinghaus)", status: "active", className: "Rebar Bender" },
+      { name: "Flatbed Cargo Truck", status: "idle", className: "Flatbed Truck" },
+    ]
+  } else if (n.includes("drain") || n.includes("pipe") || n.includes("utility") || n.includes("trench")) {
+    return [
+      { name: "Backhoe Loader (JCB 3CX)", status: "active", className: "Backhoe Loader" },
+      { name: "Excavator #03 (CAT 313)", status: "active", className: "Excavator" },
+      { name: "Dewatering Pump #01", status: "active", className: "Dewatering Pump" },
+    ]
+  } else if (n.includes("compact") || n.includes("sub-base") || n.includes("road") || n.includes("grading") || n.includes("leveling")) {
+    return [
+      { name: "Vibratory Roller #01", status: "active", className: "Vibratory Roller" },
+      { name: "Motor Grader (CAT 140K)", status: "active", className: "Motor Grader" },
+      { name: "Water Bowser #01", status: "idle", className: "Water Bowser" },
+    ]
+  }
+  return [
+    { name: "Crawler Crane (Terex)", status: "active", className: "Crawler Crane" },
+    { name: "Excavator (CAT 320)", status: "active", className: "Excavator" },
+    { name: "Flatbed Truck", status: "active", className: "Flatbed Truck" },
+  ]
+}
+
+function getMachineryStatusDetails(status: string) {
+  const s = String(status || "").toLowerCase().trim()
+  if (s === "active" || s === "operational") {
+    return { label: "Active", color: "bg-emerald-400" }
+  } else if (s === "idle") {
+    return { label: "Idle", color: "bg-yellow-400" }
+  } else if (s === "down" || s === "broken" || s === "under_repair") {
+    return { label: "Down", color: "bg-red-400" }
+  } else if (s === "maintenance" || s === "service_due") {
+    return { label: "Maintenance", color: "bg-orange-400" }
+  }
+  return { label: "Active", color: "bg-emerald-400" }
+}
 
 function CrewAndMachineryOverlay({
   activity,
   activityWorkersCache,
+  equipment = [],
 }: {
   activity: Activity
   activityWorkersCache?: Record<number, ActivityWorkersSummary>
+  equipment?: EquipmentItem[]
 }) {
   const workers = activityWorkersCache?.[activity.zoneID]
   const roleCounts = workers?.roleCounts ?? {}
@@ -276,19 +344,33 @@ function CrewAndMachineryOverlay({
     { label: "Unavailable / Off Site", count: 2, color: "bg-red-400" },
   ]
 
-  const machineryStatuses = [
-    { label: "Active", count: 6, color: "bg-emerald-400" },
-    { label: "Idle", count: 2, color: "bg-yellow-400" },
-    { label: "Under Maintenance", count: 2, color: "bg-orange-400" },
-    { label: "Breakdown / Broken", count: 1, color: "bg-red-400" },
-  ]
-
   const crewRows = crewCategories.length > 0 ? crewCategories : fallbackCrew
   const [showAllCrew, setShowAllCrew] = useState(false)
   const visibleCrewRows = showAllCrew ? crewRows : crewRows.slice(0, 3)
 
+  // Filter assigned machinery
+  const assignedMachinery = useMemo(() => {
+    const matched = equipment.filter(
+      (e) => String(e.activeZoneId) === String(activity.zoneID)
+    )
+    if (matched.length > 0) {
+      return matched.map((e) => ({
+        name: e.name,
+        status: e.status,
+        className: e.className,
+      }))
+    }
+    return getMockMachineryForActivity(activity)
+  }, [equipment, activity])
+
+  const [showAllMachinery, setShowAllMachinery] = useState(false)
+  const visibleMachineryRows = showAllMachinery ? assignedMachinery : assignedMachinery.slice(0, 3)
+  const activeMachineryCount = assignedMachinery.filter(
+    (m) => String(m.status).toLowerCase() === "active" || String(m.status).toLowerCase() === "operational"
+  ).length
+
   return (
-    <div className="bg-[rgba(15,23,42,0.92)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5)] min-w-[220px]">
+    <div className="bg-[rgba(15,23,42,0.95)] backdrop-blur-xl border border-white/[0.1] rounded-xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.6)] w-[300px]">
       {/* Crew */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -303,7 +385,7 @@ function CrewAndMachineryOverlay({
           <span className="text-sm font-semibold text-white/90">Crew</span>
         </div>
         <div className="text-right">
-          <div className="text-[10px] text-white/50">Total Crew On Site</div>
+          <div className="text-[10px] text-white/50">Total On Site</div>
           <div className="text-lg font-bold text-white leading-none">{totalCrew || 11}</div>
         </div>
       </div>
@@ -366,24 +448,44 @@ function CrewAndMachineryOverlay({
               <circle cx="12" cy="12" r="3" />
             </svg>
           </div>
-          <span className="text-sm font-semibold text-white/90">Machinery</span>
+          <span className="text-sm font-semibold text-white/90">Machinery Employed</span>
         </div>
         <div className="text-right">
-          <div className="text-[10px] text-white/50">Total Active</div>
-          <div className="text-lg font-bold text-white leading-none">11</div>
+          <div className="text-[10px] text-white/50">Active / Total</div>
+          <div className="text-lg font-bold text-white leading-none">
+            {activeMachineryCount}/{assignedMachinery.length}
+          </div>
         </div>
       </div>
 
       <div className="flex flex-col gap-2 mb-3">
-        {machineryStatuses.map((s) => (
-          <div key={s.label} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className={cn("w-2 h-2 rounded-full", s.color)} />
-              <span className="text-xs text-white/70">{s.label}</span>
+        {visibleMachineryRows.map((m, idx) => {
+          const statusDetails = getMachineryStatusDetails(m.status)
+          return (
+            <div key={idx} className="flex flex-col gap-0.5 border-b border-white/[0.03] pb-1.5 last:border-b-0 last:pb-0">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-white/90 truncate max-w-[170px]" title={m.name}>
+                  {m.name}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className={cn("w-1.5 h-1.5 rounded-full", statusDetails.color)} />
+                  <span className="text-[10px] text-white/55">{statusDetails.label}</span>
+                </div>
+              </div>
+              <div className="text-[10px] text-white/40">
+                {m.className}
+              </div>
             </div>
-            <span className="text-xs font-bold text-white">{s.count}</span>
-          </div>
-        ))}
+          )
+        })}
+        {assignedMachinery.length > 3 && (
+          <button
+            onClick={() => setShowAllMachinery((v) => !v)}
+            className="text-[11px] text-sky-400 hover:text-sky-300 mt-0.5 pointer-events-auto cursor-pointer text-left w-fit"
+          >
+            {showAllMachinery ? "See less" : `See more (+${assignedMachinery.length - 3})`}
+          </button>
+        )}
       </div>
 
       <div className="border-t border-white/[0.08] pt-3">
@@ -420,6 +522,7 @@ export function LeafletMap({
   activityWorkersCache,
   engineerByActivity,
   onViewPeople,
+  equipment = [],
 }: LeafletMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -427,7 +530,10 @@ export function LeafletMap({
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const [hoveredActivityId, setHoveredActivityId] = useState<number | null>(null)
-  const [overlaysOnRight, setOverlaysOnRight] = useState(false)
+  const [pinnedActivityId, setPinnedActivityId] = useState<number | null>(null)
+  const pinnedActivityIdRef = useRef<number | null>(null)
+  // Prevents popupclose from wiping the pin when we're switching between pins
+  const isSwitchingPinRef = useRef(false)
   const onActivitySelectRef = useRef(onActivitySelect)
 
   useEffect(() => {
@@ -462,6 +568,11 @@ export function LeafletMap({
     mapRef.current = map
 
     map.on("popupclose", () => {
+      // If we're in the middle of switching pins, don't clear — the new pin
+      // is already set and opening. The popupclose here is from the OLD popup.
+      if (isSwitchingPinRef.current) return
+      setPinnedActivityId(null)
+      pinnedActivityIdRef.current = null
       setHoveredActivityId(null)
     })
 
@@ -497,28 +608,91 @@ export function LeafletMap({
           closeButton: true,
           maxWidth: 420,
           minWidth: 350,
-          autoPan: true,
-          autoPanPadding: L.point(40, 40),
+          autoPan: false,
         })
-        .on("click", () => {
+        .on("click", (e) => {
+          // Prevent this click from bubbling to the map layer
+          if (e.originalEvent) e.originalEvent.stopPropagation()
+
+          if (closeTimeoutRef.current) {
+            clearTimeout(closeTimeoutRef.current)
+            closeTimeoutRef.current = null
+          }
+
+          // Clicking the already-pinned marker → unpin and close
+          if (pinnedActivityIdRef.current === activity.zoneID) {
+            setPinnedActivityId(null)
+            pinnedActivityIdRef.current = null
+            marker.closePopup()
+            setHoveredActivityId(null)
+            return
+          }
+
+          const map = mapRef.current!
+
+          // Set the new pin BEFORE opening the popup so that when Leaflet
+          // fires `popupclose` for the previous popup (synchronously inside
+          // openPopup), the isSwitchingPinRef guard blocks the clear.
+          isSwitchingPinRef.current = true
+          setPinnedActivityId(activity.zoneID)
+          pinnedActivityIdRef.current = activity.zoneID
+          marker.openPopup()         // may fire popupclose for previous popup
+          isSwitchingPinRef.current = false
+
+          setHoveredActivityId(activity.zoneID)
           onActivitySelectRef.current(activity)
+
+          // After the popup has rendered, measure its position against the map
+          // container and pan by exactly the right amount to bring it fully into
+          // view — handles pins at any edge or corner of the map.
+          requestAnimationFrame(() => {
+            const popupEl = marker.getPopup()?.getElement()
+            if (!popupEl) return
+
+            const mapContainer = map.getContainer()
+            const mapRect = mapContainer.getBoundingClientRect()
+            const popupRect = popupEl.getBoundingClientRect()
+            const PAD = 16
+
+            let panX = 0
+            let panY = 0
+
+            // Popup cut off at top → pan map UP so popup slides down into view
+            if (popupRect.top < mapRect.top + PAD) {
+              panY = -(mapRect.top + PAD - popupRect.top)
+            // Popup cut off at bottom → pan map DOWN
+            } else if (popupRect.bottom > mapRect.bottom - PAD) {
+              panY = popupRect.bottom - mapRect.bottom + PAD
+            }
+
+            // Popup cut off at left → pan map LEFT so popup slides right into view
+            if (popupRect.left < mapRect.left + PAD) {
+              panX = -(mapRect.left + PAD - popupRect.left)
+            // Popup cut off at right → pan map RIGHT
+            } else if (popupRect.right > mapRect.right - PAD) {
+              panX = popupRect.right - mapRect.right + PAD
+            }
+
+            if (panX !== 0 || panY !== 0) {
+              map.panBy([panX, panY], { animate: true, duration: 0.25 })
+            }
+          })
         })
         .on("mouseover", () => {
           if (closeTimeoutRef.current) {
             clearTimeout(closeTimeoutRef.current)
             closeTimeoutRef.current = null
           }
-          const map = mapRef.current!
-          const markerPoint = map.latLngToContainerPoint(marker.getLatLng())
-          const mapSize = map.getSize()
-          const isLeftSide = markerPoint.x < mapSize.x * 0.55
-          setOverlaysOnRight(isLeftSide)
-
           marker.openPopup()
           setHoveredActivityId(activity.zoneID)
         })
         .on("mouseout", () => {
+          // Do NOT close if this marker is pinned
+          if (pinnedActivityIdRef.current === activity.zoneID) return
+
           closeTimeoutRef.current = setTimeout(() => {
+            // Double-check pin hasn't changed during the delay
+            if (pinnedActivityIdRef.current === activity.zoneID) return
             marker.closePopup()
             setHoveredActivityId(null)
           }, 200)
@@ -645,7 +819,11 @@ export function LeafletMap({
     const handlePopupMouseLeave = (e: MouseEvent) => {
       const target = e.target as HTMLElement
       if (target.closest(".leaflet-popup")) {
+        // If any marker is pinned, keep the popup alive
+        if (pinnedActivityIdRef.current !== null) return
+
         closeTimeoutRef.current = setTimeout(() => {
+          if (pinnedActivityIdRef.current !== null) return
           mapRef.current?.closePopup()
           setHoveredActivityId(null)
         }, 200)
@@ -687,6 +865,9 @@ export function LeafletMap({
         margin: 14px 16px !important;
         color: #f8fafc !important;
         font-family: system-ui, -apple-system, sans-serif !important;
+        max-height: 70vh !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
       }
       .site-rich-popup .leaflet-popup-tip {
         background: rgba(15,23,42,0.96) !important;
@@ -720,33 +901,35 @@ export function LeafletMap({
 
       <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
 
-      {/* Weather + Crew & Machinery overlays */}
+      {/* Weather + Crew & Machinery overlays — always pinned to the right */}
       {hoveredActivity && (
-        <div className={cn("absolute top-0 z-[400] pointer-events-none flex flex-col gap-3 animate-in fade-in duration-300", overlaysOnRight ? "right-4 slide-in-from-right-2" : "left-4 slide-in-from-left-2")}>
+        <div className="absolute top-4 right-4 z-[400] pointer-events-none flex flex-col gap-3 animate-in fade-in slide-in-from-right-2 duration-300">
           <WeatherOverlay activityName={hoveredActivity.name} />
-          <CrewAndMachineryOverlay activity={hoveredActivity} activityWorkersCache={activityWorkersCache} />
+          <CrewAndMachineryOverlay 
+            activity={hoveredActivity} 
+            activityWorkersCache={activityWorkersCache} 
+            equipment={equipment}
+          />
         </div>
       )}
 
-      {/* Custom zoom controls */}
-      {!(hoveredActivity && overlaysOnRight) && (
-        <div className="absolute bottom-3 right-3 z-[400] flex flex-col gap-1">
-          <button
-            onClick={() => mapRef.current?.zoomIn()}
-            className="w-7 h-7 flex items-center justify-center bg-background/90 backdrop-blur-sm rounded-md border border-border/50 text-foreground hover:bg-background text-sm font-medium transition-colors"
-            aria-label="Zoom in"
-          >
-            +
-          </button>
-          <button
-            onClick={() => mapRef.current?.zoomOut()}
-            className="w-7 h-7 flex items-center justify-center bg-background/90 backdrop-blur-sm rounded-md border border-border/50 text-foreground hover:bg-background text-sm font-medium transition-colors"
-            aria-label="Zoom out"
-          >
-            −
-          </button>
-        </div>
-      )}
+      {/* Custom zoom controls — always visible bottom-right */}
+      <div className="absolute bottom-3 right-3 z-[400] flex flex-col gap-1">
+        <button
+          onClick={() => mapRef.current?.zoomIn()}
+          className="w-7 h-7 flex items-center justify-center bg-background/90 backdrop-blur-sm rounded-md border border-border/50 text-foreground hover:bg-background text-sm font-medium transition-colors"
+          aria-label="Zoom in"
+        >
+          +
+        </button>
+        <button
+          onClick={() => mapRef.current?.zoomOut()}
+          className="w-7 h-7 flex items-center justify-center bg-background/90 backdrop-blur-sm rounded-md border border-border/50 text-foreground hover:bg-background text-sm font-medium transition-colors"
+          aria-label="Zoom out"
+        >
+          −
+        </button>
+      </div>
 
       {zoomedImage && (
         <div
