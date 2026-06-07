@@ -136,11 +136,11 @@ function formatDisciplineLabel(value: string) {
 
 function getTimelineRank(status?: string) {
   switch ((status || "").toUpperCase()) {
-    case "PENDING":
+    case "COMPLETED":
       return 0
     case "IN_PROGRESS":
       return 1
-    case "COMPLETED":
+    case "PENDING":
       return 2
     default:
       return 3
