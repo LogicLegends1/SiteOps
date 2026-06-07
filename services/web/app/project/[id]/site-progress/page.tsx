@@ -12,6 +12,7 @@ import { type Activity, type ActivityStatus, type Project } from "@/lib/site-dat
 import { type Subtask, calculateProgressFromSubtasks } from "@/lib/subtasks-data"
 import type { OnSiteMember } from "@/lib/site-team-types"
 import type { ActivityWorkersSummary } from "@/components/site-progress/leaflet-map"
+import type { EquipmentItem } from "@/lib/equipment-data"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
@@ -93,6 +94,7 @@ export default function ActivityProgressPage() {
   const [activityWorkersCache, setActivityWorkersCache] = useState<Record<number, ActivityWorkersSummary>>({})
   const [activityWorkersDetail, setActivityWorkersDetail] = useState<Record<number, ActivityWorkerDetail[]>>({})
   const [userRoleLoaded, setUserRoleLoaded] = useState(false)
+  const [equipment, setEquipment] = useState<EquipmentItem[]>([])
 
   const engineerByActivity = useMemo(() => {
     const map: Record<number, string> = {}
@@ -156,6 +158,18 @@ export default function ActivityProgressPage() {
     }
   }
 
+  async function fetchEquipment() {
+    try {
+      const res = await fetch(`/api/project/${projectId}/equipment?filter=project`, { cache: "no-store" })
+      const data = await res.json()
+      if (res.ok) {
+        setEquipment(data.equipment ?? [])
+      }
+    } catch (error) {
+      console.error("Error fetching equipment:", error)
+    }
+  }
+
   async function fetchAllActivityWorkers(zones: Activity[]) {
     const summaryCache: Record<number, ActivityWorkersSummary> = {}
     const detailCache: Record<number, ActivityWorkerDetail[]> = {}
@@ -198,7 +212,7 @@ export default function ActivityProgressPage() {
       const zones: Activity[] = activitiesData.zones || []
       setActivities(zones)
 
-      await Promise.all([fetchSubtasks(), fetchTeamOnSite()])
+      await Promise.all([fetchSubtasks(), fetchTeamOnSite(), fetchEquipment()])
 
       // Fetch workers for all activities
       fetchAllActivityWorkers(zones)
@@ -401,6 +415,7 @@ export default function ActivityProgressPage() {
               subtasksByActivity={subtasksByActivity}
               activityWorkersCache={activityWorkersCache}
               engineerByActivity={engineerByActivity}
+              equipment={equipment}
               onViewIssues={() => {
                 setActiveTab("issues")
               }}
