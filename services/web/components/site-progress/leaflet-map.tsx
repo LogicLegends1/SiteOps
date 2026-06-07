@@ -531,7 +531,6 @@ export function LeafletMap({
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const [hoveredActivityId, setHoveredActivityId] = useState<number | null>(null)
   const [pinnedActivityId, setPinnedActivityId] = useState<number | null>(null)
-  const [overlaysOnRight, setOverlaysOnRight] = useState(false)
   const pinnedActivityIdRef = useRef<number | null>(null)
   // Prevents popupclose from wiping the pin when we're switching between pins
   const isSwitchingPinRef = useRef(false)
@@ -630,9 +629,6 @@ export function LeafletMap({
           }
 
           const map = mapRef.current!
-          const markerPoint = map.latLngToContainerPoint(marker.getLatLng())
-          const mapSize = map.getSize()
-          setOverlaysOnRight(markerPoint.x < mapSize.x * 0.55)
 
           // Set the new pin BEFORE opening the popup so that when Leaflet
           // fires `popupclose` for the previous popup (synchronously inside
@@ -687,12 +683,6 @@ export function LeafletMap({
             clearTimeout(closeTimeoutRef.current)
             closeTimeoutRef.current = null
           }
-          const map = mapRef.current!
-          const markerPoint = map.latLngToContainerPoint(marker.getLatLng())
-          const mapSize = map.getSize()
-          const isLeftSide = markerPoint.x < mapSize.x * 0.55
-          setOverlaysOnRight(isLeftSide)
-
           marker.openPopup()
           setHoveredActivityId(activity.zoneID)
         })
@@ -911,9 +901,9 @@ export function LeafletMap({
 
       <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
 
-      {/* Weather + Crew & Machinery overlays */}
+      {/* Weather + Crew & Machinery overlays — always pinned to the right */}
       {hoveredActivity && (
-        <div className={cn("absolute top-0 z-[400] pointer-events-none flex flex-col gap-3 animate-in fade-in duration-300", overlaysOnRight ? "right-4 slide-in-from-right-2" : "left-4 slide-in-from-left-2")}>
+        <div className="absolute top-4 right-4 z-[400] pointer-events-none flex flex-col gap-3 animate-in fade-in slide-in-from-right-2 duration-300">
           <WeatherOverlay activityName={hoveredActivity.name} />
           <CrewAndMachineryOverlay 
             activity={hoveredActivity} 
@@ -923,25 +913,23 @@ export function LeafletMap({
         </div>
       )}
 
-      {/* Custom zoom controls */}
-      {!(hoveredActivity && overlaysOnRight) && (
-        <div className="absolute bottom-3 right-3 z-[400] flex flex-col gap-1">
-          <button
-            onClick={() => mapRef.current?.zoomIn()}
-            className="w-7 h-7 flex items-center justify-center bg-background/90 backdrop-blur-sm rounded-md border border-border/50 text-foreground hover:bg-background text-sm font-medium transition-colors"
-            aria-label="Zoom in"
-          >
-            +
-          </button>
-          <button
-            onClick={() => mapRef.current?.zoomOut()}
-            className="w-7 h-7 flex items-center justify-center bg-background/90 backdrop-blur-sm rounded-md border border-border/50 text-foreground hover:bg-background text-sm font-medium transition-colors"
-            aria-label="Zoom out"
-          >
-            −
-          </button>
-        </div>
-      )}
+      {/* Custom zoom controls — always visible bottom-right */}
+      <div className="absolute bottom-3 right-3 z-[400] flex flex-col gap-1">
+        <button
+          onClick={() => mapRef.current?.zoomIn()}
+          className="w-7 h-7 flex items-center justify-center bg-background/90 backdrop-blur-sm rounded-md border border-border/50 text-foreground hover:bg-background text-sm font-medium transition-colors"
+          aria-label="Zoom in"
+        >
+          +
+        </button>
+        <button
+          onClick={() => mapRef.current?.zoomOut()}
+          className="w-7 h-7 flex items-center justify-center bg-background/90 backdrop-blur-sm rounded-md border border-border/50 text-foreground hover:bg-background text-sm font-medium transition-colors"
+          aria-label="Zoom out"
+        >
+          −
+        </button>
+      </div>
 
       {zoomedImage && (
         <div
