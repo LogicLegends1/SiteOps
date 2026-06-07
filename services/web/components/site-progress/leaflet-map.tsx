@@ -427,7 +427,11 @@ export function LeafletMap({
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const [hoveredActivityId, setHoveredActivityId] = useState<number | null>(null)
+  const [pinnedActivityId, setPinnedActivityId] = useState<number | null>(null)
   const [overlaysOnRight, setOverlaysOnRight] = useState(false)
+  const pinnedActivityIdRef = useRef<number | null>(null)
+  // Prevents popupclose from wiping the pin when we're switching between pins
+  const isSwitchingPinRef = useRef(false)
   const onActivitySelectRef = useRef(onActivitySelect)
 
   useEffect(() => {
@@ -462,6 +466,11 @@ export function LeafletMap({
     mapRef.current = map
 
     map.on("popupclose", () => {
+      // If we're in the middle of switching pins, don't clear — the new pin
+      // is already set and opening. The popupclose here is from the OLD popup.
+      if (isSwitchingPinRef.current) return
+      setPinnedActivityId(null)
+      pinnedActivityIdRef.current = null
       setHoveredActivityId(null)
     })
 
@@ -497,11 +506,78 @@ export function LeafletMap({
           closeButton: true,
           maxWidth: 420,
           minWidth: 350,
-          autoPan: true,
-          autoPanPadding: L.point(40, 40),
+          autoPan: false,
         })
-        .on("click", () => {
+        .on("click", (e) => {
+          // Prevent this click from bubbling to the map layer
+          if (e.originalEvent) e.originalEvent.stopPropagation()
+
+          if (closeTimeoutRef.current) {
+            clearTimeout(closeTimeoutRef.current)
+            closeTimeoutRef.current = null
+          }
+
+          // Clicking the already-pinned marker → unpin and close
+          if (pinnedActivityIdRef.current === activity.zoneID) {
+            setPinnedActivityId(null)
+            pinnedActivityIdRef.current = null
+            marker.closePopup()
+            setHoveredActivityId(null)
+            return
+          }
+
+          const map = mapRef.current!
+          const markerPoint = map.latLngToContainerPoint(marker.getLatLng())
+          const mapSize = map.getSize()
+          setOverlaysOnRight(markerPoint.x < mapSize.x * 0.55)
+
+          // Set the new pin BEFORE opening the popup so that when Leaflet
+          // fires `popupclose` for the previous popup (synchronously inside
+          // openPopup), the isSwitchingPinRef guard blocks the clear.
+          isSwitchingPinRef.current = true
+          setPinnedActivityId(activity.zoneID)
+          pinnedActivityIdRef.current = activity.zoneID
+          marker.openPopup()         // may fire popupclose for previous popup
+          isSwitchingPinRef.current = false
+
+          setHoveredActivityId(activity.zoneID)
           onActivitySelectRef.current(activity)
+
+          // After the popup has rendered, measure its position against the map
+          // container and pan by exactly the right amount to bring it fully into
+          // view — handles pins at any edge or corner of the map.
+          requestAnimationFrame(() => {
+            const popupEl = marker.getPopup()?.getElement()
+            if (!popupEl) return
+
+            const mapContainer = map.getContainer()
+            const mapRect = mapContainer.getBoundingClientRect()
+            const popupRect = popupEl.getBoundingClientRect()
+            const PAD = 16
+
+            let panX = 0
+            let panY = 0
+
+            // Popup cut off at top → pan map UP so popup slides down into view
+            if (popupRect.top < mapRect.top + PAD) {
+              panY = -(mapRect.top + PAD - popupRect.top)
+            // Popup cut off at bottom → pan map DOWN
+            } else if (popupRect.bottom > mapRect.bottom - PAD) {
+              panY = popupRect.bottom - mapRect.bottom + PAD
+            }
+
+            // Popup cut off at left → pan map LEFT so popup slides right into view
+            if (popupRect.left < mapRect.left + PAD) {
+              panX = -(mapRect.left + PAD - popupRect.left)
+            // Popup cut off at right → pan map RIGHT
+            } else if (popupRect.right > mapRect.right - PAD) {
+              panX = popupRect.right - mapRect.right + PAD
+            }
+
+            if (panX !== 0 || panY !== 0) {
+              map.panBy([panX, panY], { animate: true, duration: 0.25 })
+            }
+          })
         })
         .on("mouseover", () => {
           if (closeTimeoutRef.current) {
@@ -518,7 +594,12 @@ export function LeafletMap({
           setHoveredActivityId(activity.zoneID)
         })
         .on("mouseout", () => {
+          // Do NOT close if this marker is pinned
+          if (pinnedActivityIdRef.current === activity.zoneID) return
+
           closeTimeoutRef.current = setTimeout(() => {
+            // Double-check pin hasn't changed during the delay
+            if (pinnedActivityIdRef.current === activity.zoneID) return
             marker.closePopup()
             setHoveredActivityId(null)
           }, 200)
@@ -645,7 +726,11 @@ export function LeafletMap({
     const handlePopupMouseLeave = (e: MouseEvent) => {
       const target = e.target as HTMLElement
       if (target.closest(".leaflet-popup")) {
+        // If any marker is pinned, keep the popup alive
+        if (pinnedActivityIdRef.current !== null) return
+
         closeTimeoutRef.current = setTimeout(() => {
+          if (pinnedActivityIdRef.current !== null) return
           mapRef.current?.closePopup()
           setHoveredActivityId(null)
         }, 200)
@@ -687,6 +772,9 @@ export function LeafletMap({
         margin: 14px 16px !important;
         color: #f8fafc !important;
         font-family: system-ui, -apple-system, sans-serif !important;
+        max-height: 70vh !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
       }
       .site-rich-popup .leaflet-popup-tip {
         background: rgba(15,23,42,0.96) !important;
