@@ -14,6 +14,16 @@ export interface ActivityWorkersSummary {
   total: number
 }
 
+export interface ActivityWorkerDetail {
+  id: number
+  name: string
+  role: string
+  discipline: string
+  experience: number
+  teamName: string | null
+  isAvailable: boolean
+}
+
 interface LeafletMapProps {
   activities: Activity[]
   project: Project | null
@@ -25,6 +35,7 @@ interface LeafletMapProps {
   className?: string
   subtasksByActivity?: Record<number, Subtask[]>
   activityWorkersCache?: Record<number, ActivityWorkersSummary>
+  activityWorkersDetail?: Record<number, ActivityWorkerDetail[]>
   engineerByActivity?: Record<number, string>
   onViewPeople?: (activity: Activity) => void
   equipment?: EquipmentItem[]
@@ -320,33 +331,62 @@ function getMachineryStatusDetails(status: string) {
 function CrewAndMachineryOverlay({
   activity,
   activityWorkersCache,
+  activityWorkersDetail,
   equipment = [],
 }: {
   activity: Activity
   activityWorkersCache?: Record<number, ActivityWorkersSummary>
+  activityWorkersDetail?: Record<number, ActivityWorkerDetail[]>
   equipment?: EquipmentItem[]
 }) {
   const workers = activityWorkersCache?.[activity.zoneID]
   const roleCounts = workers?.roleCounts ?? {}
   const totalCrew = workers?.total ?? 0
+  const workerDetails = activityWorkersDetail?.[activity.zoneID] ?? []
 
-  const roleColors = ["bg-emerald-400", "bg-sky-400", "bg-amber-400", "bg-violet-400", "bg-rose-400"]
+  // Build per-role active/idle breakdown from worker details
+  const roleBreakdown = useMemo(() => {
+    if (workerDetails.length === 0) return []
+    const breakdown: Record<string, { active: number; idle: number }> = {}
+    for (const w of workerDetails) {
+      const role = capitalizeRole(w.role || "general-labour")
+      if (!breakdown[role]) breakdown[role] = { active: 0, idle: 0 }
+      if (w.isAvailable) {
+        breakdown[role].active++
+      } else {
+        breakdown[role].idle++
+      }
+    }
+    return Object.entries(breakdown).map(([role, counts]) => ({
+      role,
+      active: counts.active,
+      idle: counts.idle,
+      total: counts.active + counts.idle,
+    }))
+  }, [workerDetails])
 
-  const crewCategories = Object.entries(roleCounts).map(([role, count], i) => ({
-    label: capitalizeRole(role),
-    count,
-    color: roleColors[i % roleColors.length],
-  }))
+  const totalIdle = useMemo(() => workerDetails.filter(w => !w.isAvailable).length, [workerDetails])
 
+  // Fallback rows if no detail data
   const fallbackCrew = [
     { label: "Active", count: 8, color: "bg-emerald-400" },
     { label: "Idle", count: 1, color: "bg-yellow-400" },
     { label: "Unavailable / Off Site", count: 2, color: "bg-red-400" },
   ]
 
-  const crewRows = crewCategories.length > 0 ? crewCategories : fallbackCrew
+  const roleColors = ["bg-emerald-400", "bg-sky-400", "bg-amber-400", "bg-violet-400", "bg-rose-400"]
+
+  // Original: role → total count (from roleCounts API field)
+  const crewCategories = Object.entries(roleCounts).map(([role, count]) => ({
+    label: capitalizeRole(role),
+    count,
+  }))
+
+  // Idle roles derived from worker details (isAvailable === false)
+  const idleRoles = roleBreakdown.filter((r) => r.idle > 0)
+
   const [showAllCrew, setShowAllCrew] = useState(false)
-  const visibleCrewRows = showAllCrew ? crewRows : crewRows.slice(0, 3)
+  const displayLimit = 3
 
   // Filter assigned machinery
   const assignedMachinery = useMemo(() => {
@@ -390,25 +430,56 @@ function CrewAndMachineryOverlay({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 mb-3">
-        {visibleCrewRows.map((s) => (
-          <div key={s.label} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className={cn("w-2 h-2 rounded-full", s.color)} />
-              <span className="text-xs text-white/70">{s.label}</span>
+      {/* Original crew role counts — unchanged */}
+      <div className="flex flex-col gap-2 mb-2">
+        {crewCategories.length > 0 ? (
+          <>
+            {(showAllCrew ? crewCategories : crewCategories.slice(0, displayLimit)).map((row, i) => (
+              <div key={row.label} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className={cn("w-2 h-2 rounded-full", roleColors[i % roleColors.length])} />
+                  <span className="text-xs text-white/70">{row.label}</span>
+                </div>
+                <span className="text-xs font-bold text-white">{row.count}</span>
+              </div>
+            ))}
+            {crewCategories.length > displayLimit && (
+              <button
+                onClick={() => setShowAllCrew((v) => !v)}
+                className="text-[11px] text-sky-400 hover:text-sky-300 mt-0.5 pointer-events-auto cursor-pointer text-left w-fit"
+              >
+                {showAllCrew ? "See less" : `See more (+${crewCategories.length - displayLimit})`}
+              </button>
+            )}
+          </>
+        ) : (
+          fallbackCrew.map((s) => (
+            <div key={s.label} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={cn("w-2 h-2 rounded-full", s.color)} />
+                <span className="text-xs text-white/70">{s.label}</span>
+              </div>
+              <span className="text-xs font-bold text-white">{s.count}</span>
             </div>
-            <span className="text-xs font-bold text-white">{s.count}</span>
-          </div>
-        ))}
-        {crewRows.length > 3 && (
-          <button
-            onClick={() => setShowAllCrew((v) => !v)}
-            className="text-[11px] text-sky-400 hover:text-sky-300 mt-0.5 pointer-events-auto cursor-pointer text-left w-fit"
-          >
-            {showAllCrew ? "See less" : `See more (+${crewRows.length - 3})`}
-          </button>
+          ))
         )}
       </div>
+
+      {/* Idle crew sub-section — only shown when there are idle members */}
+      {idleRoles.length > 0 && (
+        <div className="mb-3 rounded-lg border border-yellow-500/20 bg-yellow-500/[0.05] p-2 flex flex-col gap-1.5">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+            <span className="text-[10px] font-semibold text-yellow-300 uppercase tracking-wider">Idle / Unavailable — {totalIdle}</span>
+          </div>
+          {idleRoles.map((row) => (
+            <div key={row.role} className="flex items-center justify-between pl-3">
+              <span className="text-[11px] text-white/60">{row.role}</span>
+              <span className="text-[11px] font-bold text-yellow-400">{row.idle}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="border-t border-white/[0.08] pt-3 mb-3">
         <div className="flex items-center justify-between mb-1">
@@ -520,6 +591,7 @@ export function LeafletMap({
   className,
   subtasksByActivity,
   activityWorkersCache,
+  activityWorkersDetail,
   engineerByActivity,
   onViewPeople,
   equipment = [],
@@ -907,7 +979,8 @@ export function LeafletMap({
           <WeatherOverlay activityName={hoveredActivity.name} />
           <CrewAndMachineryOverlay 
             activity={hoveredActivity} 
-            activityWorkersCache={activityWorkersCache} 
+            activityWorkersCache={activityWorkersCache}
+            activityWorkersDetail={activityWorkersDetail}
             equipment={equipment}
           />
         </div>

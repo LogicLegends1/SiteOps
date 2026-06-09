@@ -19,15 +19,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { MapPin, LayoutList, FileText, AlertTriangle, X } from "lucide-react"
 import { createClient } from "@/lib/superbase"
 
-export interface ActivityWorkerDetail {
-  id: number
-  name: string
-  role: string
-  discipline: string
-  experience: number
-  teamName: string | null
-  isAvailable: boolean
-}
+import { type ActivityWorkerDetail } from "@/components/site-progress/leaflet-map"
 
 const LeafletMap = dynamic(
   () => import("@/components/site-progress/leaflet-map").then((mod) => ({ default: mod.LeafletMap })),
@@ -414,6 +406,7 @@ export default function ActivityProgressPage() {
               selectedActivityId={selectedActivity?.zoneID}
               subtasksByActivity={subtasksByActivity}
               activityWorkersCache={activityWorkersCache}
+              activityWorkersDetail={activityWorkersDetail}
               engineerByActivity={engineerByActivity}
               equipment={equipment}
               onViewIssues={() => {
