@@ -159,7 +159,7 @@ export default function WorkforcePage() {
 
         <TabsContent value="classification" className="m-0">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <Card className="border-border/60 bg-card/60 flex h-104 flex-col">
+            <Card className="border-border/60 bg-card/60 flex h-[48rem] flex-col">
               <CardContent className="flex flex-1 min-h-0 flex-col overflow-hidden p-6">
                 <WorkerClassification
                   workers={filteredWorkers}
@@ -170,13 +170,13 @@ export default function WorkforcePage() {
               </CardContent>
             </Card>
 
-            <WorkforceAllocationAlertsPanel projectId={projectId} className="h-104" />
+            <WorkforceAllocationAlertsPanel projectId={projectId} className="h-[48rem]" />
           </div>
         </TabsContent>
 
         <TabsContent value="teams" className="m-0">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <Card className="border-border/60 bg-card/60 flex h-104 flex-col">
+            <Card className="border-border/60 bg-card/60 flex h-[48rem] flex-col">
               <CardContent className="flex flex-1 min-h-0 flex-col overflow-hidden p-6">
                 <TeamManagement
                   projectId={projectId}
@@ -188,19 +188,19 @@ export default function WorkforcePage() {
               </CardContent>
             </Card>
 
-            <WorkforceAllocationAlertsPanel projectId={projectId} className="h-104" />
+            <WorkforceAllocationAlertsPanel projectId={projectId} className="h-[48rem]" />
           </div>
         </TabsContent>
 
         <TabsContent value="allocation-requests" className="m-0">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <Card className="border-border/60 bg-card/60 flex h-104 flex-col">
+            <Card className="border-border/60 bg-card/60 flex h-[48rem] flex-col">
               <CardContent className="flex flex-1 min-h-0 flex-col overflow-hidden p-6">
                 <WorkforceAllocationRequestsPanel projectId={projectId} className="h-full" />
               </CardContent>
             </Card>
 
-            <WorkforceAllocationAlertsPanel projectId={projectId} className="h-104" />
+            <WorkforceAllocationAlertsPanel projectId={projectId} className="h-[48rem]" />
           </div>
         </TabsContent>
       </Tabs>
