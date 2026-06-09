@@ -17,6 +17,7 @@ import {
   WorkforceAllocationAlertsPanel,
   WorkforceAllocationTimelinePanel,
 } from "@/components/workforce/workforce-right-panels"
+import { WorkforceOverviewNewTab } from "@/components/workforce/workforce-overview-new-tab"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -146,6 +147,8 @@ export default function WorkforcePage() {
         </Card>
 
         <TabsContent value="overview" className="m-0 space-y-4">
+          <WorkforceOverviewNewTab />
+          {/* OLD OVERVIEW HIDDEN
           <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)] items-stretch">
             <WorkforceBottomCharts workers={workers ?? []} className="h-full" />
             <div className="flex h-full flex-col gap-4">
@@ -155,6 +158,7 @@ export default function WorkforcePage() {
           </div>
 
           <ActivityWorkforceDistributionPanel />
+          */}
         </TabsContent>
 
         <TabsContent value="classification" className="m-0">
