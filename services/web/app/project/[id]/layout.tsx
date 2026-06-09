@@ -122,7 +122,7 @@ export default function ProjectLayout({
   const formatRoleLabel = (role: string | null) => {
     switch (role) {
       case "OPERATION_MANAGER":
-        return "Operational Director"
+        return "Project Manager"
       case "PROJECT_MANAGER":
         return "Project Manager"
       case "SITE_ENGINEER":
