@@ -264,7 +264,7 @@ export default function UnifiedEquipmentDashboard() {
           </button>
           <button 
             onClick={() => setActiveTab("map")} 
-            className={`pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "map" ? "text-cyan-500 border-cyan-500" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+            className={`hidden pb-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === "map" ? "text-cyan-500 border-cyan-500" : "text-muted-foreground border-transparent hover:text-foreground"}`}
           >
             Geospatial Map
           </button>
